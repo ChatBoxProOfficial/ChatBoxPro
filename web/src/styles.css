@@ -619,15 +619,23 @@ body {
   box-shadow: 0 0 8px #6f8bff55;
 }
 
-/* 最大：左半纯紫、从中间往右渐变成蓝，整体仍是半透明底（和别的档位一致） */
+/* 最大：和原来一致的蓝色底 */
 .effort-note.max {
+  background: #2f6dff33;
+  border: 1px solid #4a8cffee;
+  color: #b7d2ff;
+  box-shadow: 0 0 10px #4a8cff77;
+}
+
+/* 最大 + 团队协作：左半纯紫，中间起渐变到蓝 */
+.effort-note.max.team {
   background: linear-gradient(
     90deg,
     rgba(124, 77, 255, 0.24) 0%,
     rgba(124, 77, 255, 0.24) 46%,
     rgba(74, 140, 255, 0.26) 100%
   );
-  border: 1px solid #7f8cffcc;
+  border-color: #7f8cffcc;
   color: #e6e9ff;
   box-shadow: 0 0 8px #6f8bff44;
 }

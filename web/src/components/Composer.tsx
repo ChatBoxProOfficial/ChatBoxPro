@@ -174,7 +174,9 @@ export default function Composer({
 
                 <div className="pop-label effort-head">
                   <span className="effort-head-left">
-                    <span className={`effort-note ${effort}`}>{EFFORT_NOTE[effort]}</span>
+                    <span className={`effort-note ${effort}${teamMode ? " team" : ""}`}>
+                      {EFFORT_NOTE[effort]}
+                    </span>
                     <span className="effort-title">思考强度</span>
                   </span>
                   <span className="effort-model" title={modelFullName(model)}>

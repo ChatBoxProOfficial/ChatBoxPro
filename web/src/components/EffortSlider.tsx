@@ -46,6 +46,8 @@ interface Dot {
   r: number
   spd: number
   a: number
+  /** 出现进度 0→1，用于刚开启时的渐显 */
+  t?: number
 }
 
 export default function EffortSlider({ value, onChange, onAdjustChange, teamMode = false }: Props) {
@@ -56,6 +58,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
   const draggingRef = useRef(false)
   const teamRef = useRef(teamMode)
   teamRef.current = teamMode
+  const prevTeamRef = useRef(false)
 
   const frac = Math.max(0, EFFORTS.indexOf(value)) / (EFFORTS.length - 1)
 
@@ -113,6 +116,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
         r: rand(0.8, 2.2),
         spd: rand(0.3, 0.9),
         a: rand(0.6, 1),
+        t: 1,
       }))
     }
     resize()
@@ -155,22 +159,36 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
       }
 
       // 团队协作：额外一层紫色粒子，独立运动，不影响蓝色粒子
-      const teamCount = teamRef.current ? TEAM_COUNT[valueRef.current] ?? 0 : 0
+      const teamOn = teamRef.current
+      if (teamOn && !prevTeamRef.current) {
+        // 刚打开开关：让粒子从白色旋钮那里「冒出来」
+        for (const d of teamDots) {
+          d.x = dr - rand(0, 10)
+          d.y = rand(h * 0.3, Math.max(h * 0.35, h * 0.8))
+          d.a = rand(0.6, 1)
+          d.t = 0
+        }
+      }
+      prevTeamRef.current = teamOn
+
+      const teamCount = teamOn ? TEAM_COUNT[valueRef.current] ?? 0 : 0
       if (teamCount > 0) {
         for (let i = 0; i < teamDots.length; i++) {
           const d = teamDots[i]
           d.x -= d.spd * (0.5 + speed * 0.6)
           d.y -= 0.12
+          d.t = Math.min(1, (d.t ?? 1) + 0.035)
           if (d.x < -3 || d.x > dr || d.y < -4) {
             d.x = dr - rand(0, 8)
             d.y = rand(h * 0.3, Math.max(h * 0.35, h * 0.85))
             d.a = rand(0.6, 1)
+            d.t = 1
           }
           if (i >= teamCount) continue
           if (d.x > dr) continue
           ctx.beginPath()
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(186, 138, 255, ${d.a})`
+          ctx.fillStyle = `rgba(186, 138, 255, ${d.a * (d.t ?? 1)})`
           ctx.fill()
         }
       }
