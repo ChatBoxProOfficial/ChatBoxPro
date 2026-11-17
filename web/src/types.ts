@@ -91,9 +91,15 @@ export const MODELS = [
   {
     id: 'deepseek-flash',
     label: 'DeepSeek-V4.1 Flash',
+    short: 'V4.1 Flash',
     full: 'DeepSeek-V4.1-Flash-1017',
   },
-  { id: 'deepseek-v4-pro', label: 'DeepSeek-V4 Pro', full: 'DeepSeek-V4-Pro-0813' },
+  {
+    id: 'deepseek-v4-pro',
+    label: 'DeepSeek V4 Pro',
+    short: 'V4 Pro',
+    full: 'DeepSeek-V4-Pro-0813',
+  },
 ]
 
 /** 思考强度档位（与官方一致：off / low / high / max） */
@@ -123,4 +129,10 @@ export function newId(): string {
 
 export function modelLabel(id: string): string {
   return MODELS.find((m) => m.id === id)?.label ?? id
+}
+
+/** 输入栏里用的短名，省地方 */
+export function modelShort(id: string): string {
+  const m = MODELS.find((x) => x.id === id)
+  return m?.short ?? m?.label ?? id
 }

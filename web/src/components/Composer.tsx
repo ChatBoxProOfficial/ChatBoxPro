@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { modelFullName, modelLabel, type Attachment, type Settings } from '../types'
+import { modelFullName, modelShort, type Attachment, type Settings } from '../types'
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 import Switch from './Switch'
 
@@ -136,7 +136,8 @@ export default function Composer({
             onClick={() => setPopOpen((v) => !v)}
             title="模型与思考强度"
           >
-            {modelLabel(model)}
+            {modelShort(model)}
+            <span className="chip-effort">{effort}</span>
             <span className="caret">▾</span>
           </button>
 
