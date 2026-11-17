@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
 import { confirmDialog } from './Confirm'
+import Switch from './Switch'
 
 interface Props {
   settings: Settings
@@ -231,14 +232,13 @@ function AccountSection({
 function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Patch }) {
   return (
     <section className="card">
-      <label className="switch-row">
+      <div className="switch-row">
         <span>紧凑模式</span>
-        <input
-          type="checkbox"
+        <Switch
           checked={settings.compact}
-          onChange={(e) => patch({ compact: e.target.checked })}
+          onChange={(v) => patch({ compact: v })}
         />
-      </label>
+      </div>
       <p className="muted small">更小的字号与行距，一屏能看更多内容。</p>
 
       <label className="field" style={{ marginTop: 14 }}>
@@ -299,31 +299,45 @@ function ModelsSection({
         <p className="muted small">勾选后会出现在输入栏的模型菜单里。</p>
         <div className="model-list">
           {all.map((id) => (
-            <label key={id} className="switch-row">
+            <div key={id} className="switch-row">
               <span>{modelLabel(id)}</span>
-              <input
-                type="checkbox"
+              <Switch
                 checked={settings.enabledModels.includes(id)}
                 onChange={() => toggle(id)}
               />
-            </label>
+            </div>
           ))}
         </div>
       </section>
 
       <section className="card">
         <h3>思维链展示</h3>
-        <label className="switch-row">
+        <div className="switch-row">
           <span>开启思维链展示</span>
-          <input
-            type="checkbox"
+          <Switch
             checked={settings.reasoningDisplay !== 'off'}
-            onChange={(e) => patch({ reasoningDisplay: e.target.checked ? 'web' : 'off' })}
+            onChange={(v) => patch({ reasoningDisplay: v ? 'web' : 'off' })}
           />
-        </label>
+        </div>
         <p className="muted small">
-          仅对推理模型（DeepSeek R1 等返回 reasoning_content 的模型）有效。
+          开启后会向接口请求思维链（reasoning_content）；关闭则同时关闭模型的思考模式，更省 token。
         </p>
+
+        {settings.reasoningDisplay !== 'off' && (
+          <label className="field">
+            <span>思考强度</span>
+            <select
+              value={settings.reasoningEffort}
+              onChange={(e) =>
+                patch({ reasoningEffort: e.target.value as 'low' | 'high' | 'max' })
+              }
+            >
+              <option value="low">low — 最快最省</option>
+              <option value="high">high — 默认</option>
+              <option value="max">max — 最难的任务</option>
+            </select>
+          </label>
+        )}
 
         {settings.reasoningDisplay !== 'off' && (
           <div className="radio-list">

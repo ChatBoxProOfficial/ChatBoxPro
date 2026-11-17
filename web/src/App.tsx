@@ -5,7 +5,7 @@ import Sidebar from './components/Sidebar'
 import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadConversation } from './exportFile'
-import { DEFAULT_SETTINGS, newId, type Session, type Settings } from './types'
+import { DEFAULT_SETTINGS, newId, normalizeModelId, type Session, type Settings } from './types'
 
 const SETTINGS_KEY = 'settings'
 
@@ -15,11 +15,28 @@ function draftSession(model: string): Session {
     id: newId(),
     title: '新对话',
     storage: 'local',
-    model,
+    model: normalizeModelId(model),
     createdAt: now,
     updatedAt: now,
     messages: [],
   }
+}
+
+/** 旧版本的配置/会话里可能还存着已下线的模型名，读出来时统一迁移 */
+function migrateSettings(saved: Partial<Settings>): Settings {
+  const merged: Settings = { ...DEFAULT_SETTINGS, ...saved }
+  merged.model = normalizeModelId(merged.model)
+  merged.enabledModels = Array.from(
+    new Set(merged.enabledModels.map(normalizeModelId)),
+  )
+  merged.extraModels = Array.from(new Set(merged.extraModels.map(normalizeModelId)))
+  if (merged.enabledModels.length === 0) {
+    merged.enabledModels = [...DEFAULT_SETTINGS.enabledModels]
+  }
+  if (!merged.enabledModels.includes(merged.model)) {
+    merged.enabledModels = Array.from(new Set([merged.model, ...merged.enabledModels]))
+  }
+  return merged
 }
 
 export default function App() {
@@ -45,7 +62,7 @@ export default function App() {
           kvGet<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS),
           timeout,
         ])
-        const merged = { ...DEFAULT_SETTINGS, ...saved }
+        const merged = migrateSettings(saved)
         setSettings(merged)
         await Promise.race([refresh(), timeout])
         setCurrent(draftSession(merged.model))
@@ -62,6 +79,7 @@ export default function App() {
     const s = (await db.getSession(id)) as Session | undefined
     if (!s) return
     if (!Array.isArray(s.messages)) s.messages = []
+    s.model = normalizeModelId(s.model)
     setCurrent(s)
     setSidebarOpen(false)
     setShowSettings(false)

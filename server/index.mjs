@@ -185,10 +185,13 @@ async function handleChat(req, res) {
   }
   // 只转发白名单字段，避免把客户端多余的东西带上去
   const forward = JSON.stringify({
-    model: signal.model || 'deepseek-chat',
+    model: signal.model || 'deepseek-flash',
     messages: Array.isArray(signal.messages) ? signal.messages : [],
     temperature: typeof signal.temperature === 'number' ? signal.temperature : 0.7,
     stream: true,
+    // 思考模式开关与强度（DeepSeek 新接口参数）
+    ...(signal.thinking ? { thinking: signal.thinking } : {}),
+    ...(signal.reasoning_effort ? { reasoning_effort: signal.reasoning_effort } : {}),
   })
 
   try {

@@ -95,6 +95,14 @@ export async function streamChat(
         messages: toPayload(messages, settings),
         temperature: settings.temperature,
         stream: true,
+        // 明确告诉服务端要不要思考：不传的话默认是开启的，
+        // 关掉显示时顺手关掉思考，省 token
+        thinking: {
+          type: settings.reasoningDisplay === 'off' ? 'disabled' : 'enabled',
+        },
+        ...(settings.reasoningDisplay === 'off'
+          ? {}
+          : { reasoning_effort: settings.reasoningEffort || 'high' }),
       }),
       signal,
     })
@@ -140,8 +148,10 @@ export async function streamChat(
             const json = JSON.parse(data)
             const delta = json?.choices?.[0]?.delta
             if (!delta) continue
-            if (typeof delta.reasoning_content === 'string' && delta.reasoning_content) {
-              handlers.onDelta(delta.reasoning_content, 'reasoning')
+            // 不同兼容实现字段名略有差异，两个都认
+            const reasoning = delta.reasoning_content ?? delta.reasoning
+            if (typeof reasoning === 'string' && reasoning) {
+              handlers.onDelta(reasoning, 'reasoning')
             }
             if (typeof delta.content === 'string' && delta.content) {
               handlers.onDelta(delta.content, 'content')

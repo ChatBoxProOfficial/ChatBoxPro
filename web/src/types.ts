@@ -64,26 +64,42 @@ export interface Settings {
   dshUrl: string
   /** 思维链展示方式：off 关闭 / web 仿网页版 / dsh 仿 DSH */
   reasoningDisplay: 'off' | 'web' | 'dsh'
+  /** 思考强度：low / high / max（思考模式开启时有效） */
+  reasoningEffort: 'low' | 'high' | 'max'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   baseUrl: '/api',
-  model: 'deepseek-chat',
+  model: 'deepseek-flash',
   temperature: 0.7,
   systemPrompt: '',
   userName: '我',
-  enabledModels: ['deepseek-chat', 'deepseek-reasoner'],
+  enabledModels: ['deepseek-flash', 'deepseek-v4-pro'],
   extraModels: [],
   contextLimit: 0,
   compact: false,
   dshUrl: '',
   reasoningDisplay: 'web',
+  reasoningEffort: 'high',
 }
 
+/** 当前 DeepSeek API 提供的模型（2026-11） */
 export const MODELS = [
-  { id: 'deepseek-chat', label: 'DeepSeek V3' },
-  { id: 'deepseek-reasoner', label: 'DeepSeek R1' },
+  { id: 'deepseek-flash', label: 'DeepSeek-V4.1 Flash' },
+  { id: 'deepseek-v4-pro', label: 'DeepSeek-V4 Pro' },
 ]
+
+/** 旧模型名 → 新模型名（历史会话/旧配置迁移用） */
+const LEGACY: Record<string, string> = {
+  'deepseek-chat': 'deepseek-flash',
+  'deepseek-reasoner': 'deepseek-flash',
+  'deepseek-v4-flash': 'deepseek-flash',
+  'deepseek-v4-flash-vision-exp': 'deepseek-flash',
+}
+
+export function normalizeModelId(id: string): string {
+  return LEGACY[id] || id
+}
 
 export function newId(): string {
   const c = globalThis.crypto
