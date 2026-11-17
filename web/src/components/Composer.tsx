@@ -139,21 +139,26 @@ export default function Composer({
             <>
               <div className="pop-mask" onClick={() => setPopOpen(false)} />
               <div className={`model-pop${adjusting ? " adjusting" : ""}`} role="dialog">
-                <div className="pop-label">模型</div>
-                {models.map((m) => (
-                  <button
-                    key={m}
-                    className={`pop-item${m === model ? ' active' : ''}`}
-                    disabled={adjusting}
-                    onClick={() => {
-                      if (adjusting) return
-                      onModelChange(m)
-                    }}
-                  >
-                    <span className="pop-item-name">{modelFullName(m)}</span>
-                    {m === model && <span className="pop-tick">✓</span>}
-                  </button>
-                ))}
+                {adjusting ? (
+                  <div className="adjust-model">
+                    <div className="adjust-model-label">当前模型</div>
+                    <div className="adjust-model-name">{modelFullName(model)}</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="pop-label">模型</div>
+                    {models.map((m) => (
+                      <button
+                        key={m}
+                        className={`pop-item${m === model ? ' active' : ''}`}
+                        onClick={() => onModelChange(m)}
+                      >
+                        <span className="pop-item-name">{modelFullName(m)}</span>
+                        {m === model && <span className="pop-tick">✓</span>}
+                      </button>
+                    ))}
+                  </>
+                )}
 
                 <div className="pop-divider" />
 
@@ -168,10 +173,6 @@ export default function Composer({
                     </span>
                   )}
                 </div>
-
-                {adjusting && (
-                  <div className="effort-model-full">{modelFullName(model)}</div>
-                )}
 
                 <EffortSlider
                   value={effort}

@@ -76,11 +76,11 @@ export default function EffortSlider({ value, onChange, onAdjustChange }: Props)
       return KNOB / 2 + (w - KNOB) * (idx / (EFFORTS.length - 1))
     }
 
-    /** 底色填充到旋钮右缘，max 档铺满整条 */
-    const fillRight = () => Math.min(w, knobX() + KNOB / 2)
+    /** 特效（底色 + 粒子）的右端 = 旋钮中心：视觉上「流进」按钮里 */
+    const fillRight = () => Math.min(w, knobX())
 
-    /** 粒子的右边界 = 旋钮左缘再退 2px：特效永远进不到按钮范围里 */
-    const dotRight = () => Math.max(0, knobX() - KNOB / 2 - 2)
+    /** 粒子的右边界与底色一致，也停在旋钮中心 */
+    const dotRight = () => Math.max(0, knobX() - 1)
 
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
 

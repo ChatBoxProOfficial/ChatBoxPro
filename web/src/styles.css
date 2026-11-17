@@ -634,14 +634,24 @@ body {
   cursor: default;
 }
 
-/* 调节中完整显示模型名 */
-.effort-model-full {
+/* 调节中：模型列表收起，改为顶部放大的模型名 */
+.adjust-model {
+  padding: 8px 10px 10px;
+}
+
+.adjust-model-label {
   font-size: 10.5px;
-  color: #8b93a1;
-  padding: 6px 10px 2px;
-  white-space: normal;
+  color: #6f7987;
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+
+.adjust-model-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f0f3f7;
+  line-height: 1.35;
   overflow-wrap: anywhere;
-  line-height: 1.45;
 }
 
 .effort-title {

@@ -77,13 +77,17 @@ await page.mouse.move(tb2.x + tb2.width * 0.8, tb2.y + tb2.height / 2, { steps: 
 await page.waitForTimeout(350)
 await page.screenshot({ path: `${OUT}/38-adjusting.png` })
 
-const fullNameShown = await page.locator('.effort-model-full').count()
+const bigName = await page.locator('.adjust-model-name').count()
+const listCount = await page.locator('.pop-item').count()
 const popCls = await page.locator('.model-pop').getAttribute('class')
-const itemDisabled = await page.locator('.pop-item').first().isDisabled()
-console.log('✓ 拖动中：完整模型名', fullNameShown ? '显示' : '缺失', '| 面板类', popCls, '| 模型项禁用', itemDisabled)
-if (!fullNameShown) errors.push('拖动时没有显示完整模型名')
+const bigText = bigName ? await page.locator('.adjust-model-name').innerText() : ''
+console.log(
+  '✓ 拖动中：放大模型名', bigName ? `显示「${bigText}」` : '缺失',
+  '| 模型列表条数', listCount, '| 面板类', popCls,
+)
+if (!bigName) errors.push('拖动时没有显示放大的模型名')
+if (listCount !== 0) errors.push('拖动时模型列表没有隐藏')
 if (!popCls?.includes('adjusting')) errors.push('面板没有进入 adjusting 状态')
-if (!itemDisabled) errors.push('拖动时仍可切换模型')
 
 // 采样画布：按钮右侧不应有像素
 const leak = await page.evaluate(() => {
@@ -93,7 +97,8 @@ const leak = await page.evaluate(() => {
   const cr = c.getBoundingClientRect()
   const kr = knob.getBoundingClientRect()
   const scale = c.width / cr.width // 画布是设备像素
-  const x = Math.min(c.width - 1, Math.round((kr.right - cr.left) * scale) + 3)
+  const cx = kr.left + kr.width / 2 - cr.left
+  const x = Math.min(c.width - 1, Math.round(cx * scale) + 6)
   const ctx = c.getContext('2d')
   const data = ctx.getImageData(x, 0, 1, c.height).data
   let opaque = 0
