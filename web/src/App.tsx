@@ -93,7 +93,6 @@ export default function App() {
     setSettings(s)
     void db.setKV(SETTINGS_KEY, s)
   }, [])
-
   const wipe = useCallback(async () => {
     for (const s of await db.listSessions()) await db.deleteSession(s.id)
     await refresh()
@@ -103,7 +102,7 @@ export default function App() {
   if (!ready) return <div className="boot">加载中…</div>
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${settings.compact ? ' compact' : ''}`}>
       {initError && (
         <div className="banner">
           本地存储不可用：{initError}
@@ -132,7 +131,7 @@ export default function App() {
       {showSettings ? (
         <SettingsScreen
           settings={settings}
-          onSave={saveSettings}
+          onChange={saveSettings}
           onBack={() => setShowSettings(false)}
           onWipe={() => void wipe()}
         />

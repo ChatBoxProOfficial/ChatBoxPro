@@ -8,7 +8,7 @@
  *
  * 换句话说：双击 exe 就能用，不需要先手动起服务，也不需要浏览器。
  */
-const { app, BrowserWindow, Menu, shell } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const http = require('node:http')
@@ -67,6 +67,24 @@ async function startEmbeddedServer() {
 
 const stateFile = () => path.join(app.getPath('userData'), 'window.json')
 
+/* --------------------------------- IPC ---------------------------------- */
+
+function registerIpc() {
+  ipcMain.handle('chatbox:open-folder', async (_e, target) => {
+    if (typeof target !== 'string' || !target) return 'invalid path'
+    try {
+      return await shell.openPath(target)
+    } catch (e) {
+      return String(e && e.message ? e.message : e)
+    }
+  })
+
+  ipcMain.handle('chatbox:paths', () => ({
+    inbox: path.join(app.getPath('userData'), 'inbox'),
+    userData: app.getPath('userData'),
+  }))
+}
+
 function loadBounds() {
   try {
     const raw = fs.readFileSync(stateFile(), 'utf8')
@@ -111,6 +129,7 @@ function createWindow(target) {
       contextIsolation: true,
       nodeIntegration: false,
       spellcheck: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   })
   mainWindow = win
@@ -172,6 +191,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     app.setAppUserModelId('com.chatboxpro.desktop')
+    registerIpc()
     let target = LOCAL_URL
     let failure = ''
     try {

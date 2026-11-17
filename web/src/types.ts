@@ -21,8 +21,6 @@ export interface Message {
   model?: string
   /** 该条消息是否是一次失败的请求 */
   error?: boolean
-  /** 引导型提示（例如未填 API Key），不算错误、也不进上下文 */
-  hint?: boolean
   attachments?: Attachment[]
 }
 
@@ -50,6 +48,16 @@ export interface Settings {
   systemPrompt: string
   /** 侧边栏底部显示的账号名 */
   userName: string
+  /** 已启用的模型 id（内置 + 自定义） */
+  enabledModels: string[]
+  /** 自定义追加的模型 id */
+  extraModels: string[]
+  /** 每次送给模型的最近消息条数；0 表示全部 */
+  contextLimit: number
+  /** 紧凑模式：更小的行距与字号 */
+  compact: boolean
+  /** DeepSeek Harness 服务器地址（暂未完成深度对接） */
+  dshUrl: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -58,6 +66,11 @@ export const DEFAULT_SETTINGS: Settings = {
   temperature: 0.7,
   systemPrompt: '',
   userName: '我',
+  enabledModels: ['deepseek-chat', 'deepseek-reasoner'],
+  extraModels: [],
+  contextLimit: 0,
+  compact: false,
+  dshUrl: '',
 }
 
 export const MODELS = [

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { MODELS, modelLabel, type Attachment } from '../types'
+import { modelLabel, type Attachment } from '../types'
 
 interface Props {
   value: string
@@ -8,6 +8,7 @@ interface Props {
   onStop: () => void
   busy: boolean
   model: string
+  models: string[]
   onModelChange: (m: string) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
@@ -28,6 +29,7 @@ export default function Composer({
   onStop,
   busy,
   model,
+  models,
   onModelChange,
   attachments,
   onPickFiles,
@@ -128,16 +130,16 @@ export default function Composer({
             <>
               <div className="pop-mask" onClick={() => setModelOpen(false)} />
               <div className="pop-menu">
-                {MODELS.map((m) => (
+                {models.map((m) => (
                   <button
-                    key={m.id}
-                    className={`pop-item${m.id === model ? ' active' : ''}`}
+                    key={m}
+                    className={`pop-item${m === model ? ' active' : ''}`}
                     onClick={() => {
-                      onModelChange(m.id)
+                      onModelChange(m)
                       setModelOpen(false)
                     }}
                   >
-                    {m.label}
+                    {modelLabel(m)}
                   </button>
                 ))}
               </div>

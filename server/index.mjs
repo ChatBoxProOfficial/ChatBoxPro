@@ -252,6 +252,11 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, upstream: UPSTREAM }))
     return
   }
+  if (url.pathname === '/api/paths') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ inbox: INBOX, dist: DIST }))
+    return
+  }
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)

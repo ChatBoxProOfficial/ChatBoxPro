@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { streamChat, uploadFile, NEED_KEY_TEXT } from '../api'
+import { streamChat, uploadFile } from '../api'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import type { Attachment, Message, Session, Settings } from '../types'
@@ -208,15 +208,13 @@ export default function ChatScreen({
     setBusy(false)
     abortRef.current = null
 
-    const isHint = failed === NEED_KEY_TEXT
     const assistant: Message = failed
       ? {
           id: newId(),
           role: 'assistant',
           content: failed,
           createdAt: Date.now(),
-          error: !isHint,
-          hint: isHint,
+          error: true,
         }
       : {
           id: newId(),
@@ -337,6 +335,7 @@ export default function ChatScreen({
         onStop={stop}
         busy={busy}
         model={session.model || settings.model}
+        models={settings.enabledModels.length ? settings.enabledModels : [settings.model]}
         onModelChange={(m) => persist(messages, { model: m })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
@@ -356,10 +355,10 @@ function MessageRow({ msg }: { msg: Message }) {
     )
   }
   return (
-    <div className={`msg assistant${msg.error ? ' error' : ''}${msg.hint ? ' hint' : ''}`}>
+    <div className={`msg assistant${msg.error ? ' error' : ''}`}>
       <div className="msg-role">DeepSeek</div>
       <div className="msg-body">
-        {msg.hint ? <p>{msg.content}</p> : <Markdown text={msg.content} />}
+        <Markdown text={msg.content} />
       </div>
     </div>
   )

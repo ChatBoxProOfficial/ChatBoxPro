@@ -56,9 +56,10 @@ function toPayload(messages: Message[], settings: Settings) {
   if (settings.systemPrompt.trim()) {
     out.push({ role: 'system', content: settings.systemPrompt.trim() })
   }
-  for (const m of messages) {
-    if (m.error || m.hint) continue
-    if (!m.content.trim()) continue
+  const kept = messages.filter((m) => !m.error && m.content.trim())
+  // 上下文管理：只带最近 N 条（0 = 全部）
+  const limit = settings.contextLimit > 0 ? settings.contextLimit : kept.length
+  for (const m of kept.slice(-limit)) {
     out.push({ role: m.role, content: m.content })
   }
   return out
