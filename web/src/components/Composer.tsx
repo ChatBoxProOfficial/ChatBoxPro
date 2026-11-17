@@ -79,6 +79,15 @@ export default function Composer({
         </div>
       )}
 
+      {collapsed ? (
+        <button
+          className="collapsed-fab"
+          onClick={() => setCollapsed(false)}
+          title="展开输入栏"
+        >
+          展开
+        </button>
+      ) : (
       <div className="composer-bar">
         <input
           ref={fileRef}
@@ -110,10 +119,10 @@ export default function Composer({
 
         <button
           className="tool-btn text"
-          onClick={() => setCollapsed((v) => !v)}
-          title={collapsed ? '展开输入栏' : '收起输入栏'}
+          onClick={() => setCollapsed(true)}
+          title="收起输入栏"
         >
-          {collapsed ? '展开' : '收起'}
+          收起
         </button>
 
         <textarea
@@ -231,6 +240,7 @@ export default function Composer({
           </button>
         )}
       </div>
+      )}
     </div>
   )
 }

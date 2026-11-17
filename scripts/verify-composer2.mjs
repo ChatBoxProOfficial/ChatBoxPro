@@ -32,22 +32,26 @@ console.log('✓ 输入栏强度:', effortText, '| 模型名颜色', chipColor, 
 if (!effortText.trim()) errors.push('没有显示思考强度')
 if (chipColor === effortColor) errors.push('强度颜色和模型名一样，不够淡')
 
-// 2) 收起
+// 2) 收起：整条输入栏消失，只剩圆形「展开」
 const bar = page.locator('.composer-bar')
 const before = await bar.boundingBox()
 await page.locator('.tool-btn.text').click()
-await page.waitForTimeout(300)
-const after = await bar.boundingBox()
+await page.waitForTimeout(350)
+const barAfter = await page.locator('.composer-bar').count()
+const fab = page.locator('.collapsed-fab')
+const fabVisible = await fab.isVisible()
+const fabText = await fab.innerText()
 await page.screenshot({ path: `${OUT}/48-composer-collapsed.png` })
-console.log('✓ 输入栏高度 收起前/后:', Math.round(before.height), '/', Math.round(after.height))
-if (after.height >= before.height - 2) errors.push('收起没有让输入栏变矮')
+console.log('✓ 收起后：输入栏数量', barAfter, '| 圆形按钮', fabVisible ? `可见「${fabText}」` : '缺失')
+if (barAfter !== 0) errors.push('收起后输入栏还在')
+if (!fabVisible) errors.push('收起后没有圆形展开按钮')
 
-// 3) 展开回来
-await page.locator('.tool-btn.text').click()
-await page.waitForTimeout(300)
-const back = await bar.boundingBox()
-console.log('✓ 展开后高度:', Math.round(back.height))
-if (back.height < after.height + 2) errors.push('展开没有恢复')
+// 3) 点圆形按钮恢复
+await fab.click()
+await page.waitForTimeout(350)
+const back = await page.locator('.composer-bar').boundingBox()
+console.log('✓ 展开后输入栏高度:', Math.round(back.height), '（收起前', Math.round(before.height) + '）')
+if (Math.abs(back.height - before.height) > 2) errors.push('展开后高度没恢复')
 
 await browser.close()
 if (errors.length) {
