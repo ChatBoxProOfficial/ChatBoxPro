@@ -63,6 +63,22 @@ console.log('✓ 思维链内容长度：', body.length, '字符')
 await page.screenshot({ path: `${OUT}/26-thinking-open.png` })
 
 // 5) 动画结束截图（DSH 与网页版都看一遍）
+// 5) 切到 DSH 风格再看一遍
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(400)
+await page.locator('.drawer-foot').click()
+await page.waitForSelector('.settings-dialog', { timeout: 8000 })
+await page.getByRole('button', { name: '管理模型', exact: true }).click()
+await page.waitForSelector('.radio-list', { timeout: 5000 })
+await page.getByText('2 号：仿 DSH').click()
+await page.locator('.settings-close').click()
+await page.waitForSelector('.thinking-dsh', { timeout: 8000 })
+await page.screenshot({ path: `${OUT}/27-dsh-collapsed.png` })
+await page.locator('.dsh-head').click()
+await page.waitForSelector('.dsh-panel', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/28-dsh-open.png` })
+console.log('✓ DSH 风格已渲染（折叠 + 展开）')
+
 await browser.close()
 
 // 6) 断言上游收到的参数

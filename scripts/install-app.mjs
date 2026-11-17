@@ -40,7 +40,15 @@ const dest = process.env.CHATBOX_INSTALL_DIR
     : fallback
 
 console.log('安装到：', dest)
-rmSync(dest, { recursive: true, force: true })
+try {
+  rmSync(dest, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 })
+} catch (e) {
+  console.error(
+    `\n删除旧版本失败：${e.message}\n` +
+      '通常是 ChatBox Pro 还在运行（文件被占用）。请先关掉应用窗口，再执行 npm run install:app。',
+  )
+  process.exit(1)
+}
 mkdirSync(dest, { recursive: true })
 cpSync(src, dest, { recursive: true })
 

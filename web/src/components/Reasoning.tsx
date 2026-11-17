@@ -56,15 +56,29 @@ export default function Reasoning({
   }
 
   if (mode === 'dsh') {
+    // 仿 DSH：一条可折叠的标题行 + 下面是逐条列举的内容面板
+    const lines = reasoning
+      .split('\n')
+      .map((l) => l.replace(/^[-*•\s]+/, '').trim())
+      .filter(Boolean)
+
     return (
       <div className="thinking-dsh">
-        <button className="dsh-head" onClick={toggle}>
-          <span className="dsh-dot" />
-          <span className="dsh-title">{streaming ? '正在思考' : '思考过程'}</span>
-          {!streaming && durationMs ? <span className="dsh-secs">{secs(durationMs)}s</span> : null}
+        <button className={`dsh-head${open ? ' open' : ''}`} onClick={toggle}>
           <span className={`dsh-chev${open ? ' open' : ''}`}>›</span>
+          <span className="dsh-title">{streaming ? '正在思考…' : '思考过程'}</span>
+          {!streaming && durationMs ? <span className="dsh-secs">{secs(durationMs)}s</span> : null}
         </button>
-        {open && <pre className="dsh-body">{reasoning}</pre>}
+        {open && (
+          <div className="dsh-panel">
+            {lines.map((line, i) => (
+              <div className="dsh-row" key={i}>
+                <span className="dsh-bullet" aria-hidden="true" />
+                <span className="dsh-line">{line}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }
