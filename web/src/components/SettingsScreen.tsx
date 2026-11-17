@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
+import { confirmDialog } from './Confirm'
 
 interface Props {
   settings: Settings
@@ -168,7 +169,13 @@ function AccountSection({
             <button
               className="mini danger"
               onClick={async () => {
-                if (!confirm('清除这台设备上的 API Key？')) return
+                const ok = await confirmDialog({
+                  title: '清除 API Key',
+                  message: '这台设备上保存的 Key 会被删除，之后需要重新填写才能发送消息。',
+                  confirmText: '清除',
+                  danger: true,
+                })
+                if (!ok) return
                 await clearApiKey()
                 setKey('')
                 flash('已清除')
@@ -384,8 +391,14 @@ function ContextSection({
         </p>
         <button
           className="danger"
-          onClick={() => {
-            if (confirm('删除这台设备上的全部会话？此操作无法撤销。')) onWipe()
+          onClick={async () => {
+            const ok = await confirmDialog({
+              title: '删除本机全部会话',
+              message: '这台设备上的所有对话都会被删除，此操作无法撤销。',
+              confirmText: '全部删除',
+              danger: true,
+            })
+            if (ok) onWipe()
           }}
         >
           删除本机全部会话

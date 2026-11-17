@@ -74,9 +74,21 @@ await page.screenshot({ path: `${OUT}/14-model.png` })
 console.log('✓ 模型菜单弹出')
 await page.locator('.pop-mask').click({ position: { x: 10, y: 10 } })
 
-// 设置（从侧边栏底部）
+// 应用内确认框（删除对话）
 await page.getByRole('button', { name: '展开栏目' }).click()
-await page.waitForTimeout(400)
+await page.waitForTimeout(450)
+const firstConv = page.locator('.conv-item').first()
+await firstConv.hover()
+await firstConv.locator('.conv-del').click()
+await page.waitForSelector('.confirm-box', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/18-confirm.png` })
+const confirmText = await page.locator('.confirm-box').innerText()
+console.log('✓ 应用内确认框：', confirmText.replace(/\n/g, ' / ').slice(0, 40))
+await page.getByRole('button', { name: '取消' }).click()
+await page.waitForSelector('.confirm-box', { state: 'detached', timeout: 5000 })
+console.log('✓ 取消后关闭')
+
+// 设置（从侧边栏底部）
 await page.locator('.drawer-foot').click()
 await page.waitForSelector('.settings-dialog', { timeout: 8000 })
 await page.waitForTimeout(450) // 等侧边栏退场动画结束

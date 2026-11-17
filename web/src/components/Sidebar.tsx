@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { SessionSummary } from '../db'
+import { confirmDialog } from './Confirm'
 
 interface Props {
   open: boolean
@@ -76,9 +77,15 @@ export default function Sidebar({
               <button
                 className="conv-del"
                 title="删除对话"
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation()
-                  if (confirm(`删除「${s.title || '新对话'}」？`)) onDeleteSession(s.id)
+                  const ok = await confirmDialog({
+                    title: '删除对话',
+                    message: `「${s.title || '新对话'}」将被永久删除，无法恢复。`,
+                    confirmText: '删除',
+                    danger: true,
+                  })
+                  if (ok) onDeleteSession(s.id)
                 }}
               >
                 ✕

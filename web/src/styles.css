@@ -1052,6 +1052,81 @@ input[type='range'] {
   }
 }
 
+/* 应用内确认框（替代系统 confirm） */
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  background: #000a;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 95;
+}
+
+.confirm-box {
+  width: min(340px, 100%);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px #000a;
+  padding: 18px 18px 14px;
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.confirm-msg {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.confirm-cancel,
+.confirm-ok {
+  border-radius: 9px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirm-cancel {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+}
+
+.confirm-cancel:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+
+.confirm-ok {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+}
+
+.confirm-ok.danger {
+  background: #e04b4b;
+  color: #fff;
+}
+
+.confirm-ok:hover {
+  filter: brightness(1.08);
+}
+
 /* 设置里的开关行、模型列表、路径、提示条 */
 .switch-row {
   display: flex;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import ChatScreen from './components/ChatScreen'
 import SettingsScreen from './components/SettingsScreen'
 import Sidebar from './components/Sidebar'
+import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadConversation } from './exportFile'
 import { DEFAULT_SETTINGS, newId, type Session, type Settings } from './types'
@@ -147,6 +148,8 @@ export default function App() {
           onWipe={() => void wipe()}
         />
       )}
+
+      <ConfirmHost />
     </div>
   )
 }
