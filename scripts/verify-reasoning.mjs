@@ -75,7 +75,7 @@ await page.locator('.settings-close').click()
 await page.waitForSelector('.thinking-dsh', { timeout: 8000 })
 await page.screenshot({ path: `${OUT}/27-dsh-collapsed.png` })
 await page.locator('.dsh-head').click()
-await page.waitForSelector('.dsh-panel', { timeout: 5000 })
+await page.waitForSelector('.dsh-raw', { timeout: 5000 })
 await page.screenshot({ path: `${OUT}/28-dsh-open.png` })
 console.log('✓ DSH 风格已渲染（折叠 + 展开）')
 

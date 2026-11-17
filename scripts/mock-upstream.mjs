@@ -12,10 +12,13 @@ const PORT = Number(process.argv[2] || 8899)
 const LOG = process.env.MOCK_LOG || 'mock-last-request.json'
 
 const REASONING = [
-  '先看用户问的是什么：为什么天空是蓝的。\n',
-  '这属于大气光学，核心是瑞利散射。\n',
-  '散射强度与波长四次方成反比，蓝光波长短，散射更强。\n',
-  '再补充日落变红的解释，最后组织语言输出。',
+  "Let me think about why the sky appears blue.\n\n",
+  "The user is asking about daytime sky color, which is a classic atmospheric optics question.\n",
+  "Key mechanism: Rayleigh scattering, intensity proportional to 1/lambda^4.\n",
+  "  - blue ~450nm, red ~700nm\n",
+  "  - (700/450)^4 is about 5.9x stronger scattering for blue\n\n",
+  "Also need to mention why sunsets look red: longer path through atmosphere depletes blue.\n",
+  "I will answer with the mechanism first, then the sunset contrast.\n",
 ]
 const CONTENT = [
   '因为大气分子对**短波长光**的散射更强（瑞利散射），',

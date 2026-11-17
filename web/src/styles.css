@@ -1223,40 +1223,20 @@ input[type='range'] {
   margin-left: 2px;
 }
 
-.dsh-panel {
+/* 原始思维链正文：保留换行与空白，不做任何改写 */
+.dsh-raw {
   margin-top: 7px;
   background: #14171c;
   border: 1px solid #232830;
   border-radius: 10px;
-  padding: 9px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.dsh-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
+  padding: 10px 12px;
+  color: #97a0ad;
   font-size: 12.5px;
-  line-height: 1.65;
-  color: #98a1ae;
-}
-
-.dsh-bullet {
-  width: 5px;
-  height: 5px;
-  border-radius: 1px;
-  background: #5d6a7d;
-  flex: 0 0 auto;
-  margin-top: 7px;
-}
-
-.dsh-line {
-  min-width: 0;
+  line-height: 1.7;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 /* 设置里的单选组 */

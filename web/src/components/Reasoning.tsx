@@ -56,12 +56,7 @@ export default function Reasoning({
   }
 
   if (mode === 'dsh') {
-    // 仿 DSH：一条可折叠的标题行 + 下面是逐条列举的内容面板
-    const lines = reasoning
-      .split('\n')
-      .map((l) => l.replace(/^[-*•\s]+/, '').trim())
-      .filter(Boolean)
-
+    // 仿 DSH：只做一个可折叠的标题行，内容原样呈现，不做任何美化或改写
     return (
       <div className="thinking-dsh">
         <button className={`dsh-head${open ? ' open' : ''}`} onClick={toggle}>
@@ -69,16 +64,7 @@ export default function Reasoning({
           <span className="dsh-title">{streaming ? '正在思考…' : '思考过程'}</span>
           {!streaming && durationMs ? <span className="dsh-secs">{secs(durationMs)}s</span> : null}
         </button>
-        {open && (
-          <div className="dsh-panel">
-            {lines.map((line, i) => (
-              <div className="dsh-row" key={i}>
-                <span className="dsh-bullet" aria-hidden="true" />
-                <span className="dsh-line">{line}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {open && <div className="dsh-raw">{reasoning}</div>}
       </div>
     )
   }
