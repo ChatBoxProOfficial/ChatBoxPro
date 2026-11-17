@@ -79,8 +79,20 @@ await page.getByRole('button', { name: '展开栏目' }).click()
 await page.waitForTimeout(400)
 await page.locator('.drawer-foot').click()
 await page.waitForSelector('.settings-screen', { timeout: 8000 })
+await page.waitForSelector('.settings-index', { timeout: 5000 })
+await page.waitForTimeout(450) // 等侧边栏退场动画结束
 await page.screenshot({ path: `${OUT}/15-settings.png`, fullPage: true })
-console.log('✓ 设置页打开')
+const rows = await page.locator('.index-row').count()
+console.log('✓ 设置分类数：', rows)
+
+// 进入某个板块
+await page.getByRole('button', { name: /管理模型/ }).first().click()
+await page.waitForSelector('.model-list', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/16-settings-detail.png` })
+console.log('✓ 板块详情打开：管理模型')
+await page.getByRole('button', { name: '返回' }).click()
+await page.waitForSelector('.settings-index', { timeout: 5000 })
+console.log('✓ 返回分类列表')
 
 await browser.close()
 
