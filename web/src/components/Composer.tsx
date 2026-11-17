@@ -186,6 +186,7 @@ export default function Composer({
                   value={effort}
                   onChange={onEffortChange}
                   onAdjustChange={setAdjusting}
+                  teamMode={teamMode}
                 />
 
                 <div className="pop-divider" />

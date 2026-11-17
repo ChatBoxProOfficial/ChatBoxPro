@@ -9,6 +9,9 @@ const SPEED: Record<Effort, number> = { off: 0, low: 0.55, high: 1.15, max: 2.1 
 /** 每个档位实际显示的粒子数量：档位越高越多 */
 const COUNT: Record<Effort, number> = { off: 0, low: 14, high: 30, max: 56 }
 
+/** 团队协作开启时，叠加上去的紫色粒子数量 */
+const TEAM_COUNT: Record<Effort, number> = { off: 0, low: 6, high: 12, max: 20 }
+
 /** 粒子颜色：低档偏紫，高档偏蓝 */
 const HUE: Record<Effort, [number, number, number]> = {
   off: [200, 170, 255],
@@ -30,6 +33,8 @@ interface Props {
   onChange: (e: Effort) => void
   /** 开始/结束拖动时回调，用于面板进入「调节中」状态 */
   onAdjustChange?: (adjusting: boolean) => void
+  /** 子智能体团队协作：开启后额外叠一层紫色粒子 */
+  teamMode?: boolean
 }
 
 const KNOB = 26 // 白色旋钮宽度（与 CSS 保持一致）
@@ -43,12 +48,14 @@ interface Dot {
   a: number
 }
 
-export default function EffortSlider({ value, onChange, onAdjustChange }: Props) {
+export default function EffortSlider({ value, onChange, onAdjustChange, teamMode = false }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const valueRef = useRef<Effort>(value)
   valueRef.current = value
   const draggingRef = useRef(false)
+  const teamRef = useRef(teamMode)
+  teamRef.current = teamMode
 
   const frac = Math.max(0, EFFORTS.indexOf(value)) / (EFFORTS.length - 1)
 
@@ -68,6 +75,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange }: Props)
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     let raf = 0
     let dots: Dot[] = []
+    let teamDots: Dot[] = []
     let w = 0
     let h = 0
 
@@ -98,6 +106,13 @@ export default function EffortSlider({ value, onChange, onAdjustChange }: Props)
         r: rand(0.7, 2.0),
         spd: rand(0.5, 1.4),
         a: rand(0.5, 0.95),
+      }))
+      teamDots = Array.from({ length: 20 }, () => ({
+        x: rand(0, Math.max(1, knobX())),
+        y: rand(h * 0.2, Math.max(h * 0.3, h * 0.8)),
+        r: rand(0.8, 2.2),
+        spd: rand(0.3, 0.9),
+        a: rand(0.6, 1),
       }))
     }
     resize()
@@ -136,6 +151,27 @@ export default function EffortSlider({ value, onChange, onAdjustChange }: Props)
           ctx.fillStyle = glow
           ctx.fillRect(0, 0, dr, h)
           ctx.restore()
+        }
+      }
+
+      // 团队协作：额外一层紫色粒子，独立运动，不影响蓝色粒子
+      const teamCount = teamRef.current ? TEAM_COUNT[valueRef.current] ?? 0 : 0
+      if (teamCount > 0) {
+        for (let i = 0; i < teamDots.length; i++) {
+          const d = teamDots[i]
+          d.x -= d.spd * (0.5 + speed * 0.6)
+          d.y -= 0.12
+          if (d.x < -3 || d.x > dr || d.y < -4) {
+            d.x = dr - rand(0, 8)
+            d.y = rand(h * 0.3, Math.max(h * 0.35, h * 0.85))
+            d.a = rand(0.6, 1)
+          }
+          if (i >= teamCount) continue
+          if (d.x > dr) continue
+          ctx.beginPath()
+          ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(186, 138, 255, ${d.a})`
+          ctx.fill()
         }
       }
 

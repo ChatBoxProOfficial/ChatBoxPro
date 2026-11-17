@@ -619,12 +619,12 @@ body {
   box-shadow: 0 0 8px #6f8bff55;
 }
 
-/* 最大：蓝 */
+/* 最大：左紫右蓝渐变 */
 .effort-note.max {
-  background: #2f6dff33;
-  border: 1px solid #4a8cffee;
-  color: #b7d2ff;
-  box-shadow: 0 0 10px #4a8cff77;
+  background: linear-gradient(90deg, #7c4dff 0%, #4a8cff 100%);
+  border: 1px solid #6f9bffee;
+  color: #ffffff;
+  box-shadow: 0 0 10px #6a7bff88;
 }
 
 /* 调节中：模型不可切换 */
