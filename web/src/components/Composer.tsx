@@ -140,12 +140,17 @@ export default function Composer({
               <div className="pop-mask" onClick={() => setPopOpen(false)} />
               <div className={`model-pop${adjusting ? " adjusting" : ""}`} role="dialog">
                 {adjusting ? (
-                  <div className="adjust-model">
-                    <div className="adjust-model-label">当前模型</div>
-                    <div className="adjust-model-name">{modelFullName(model)}</div>
+                  <div className="model-area">
+                    <div className="adjust-model">
+                      <div className="adjust-model-label">当前模型</div>
+                      <div className="adjust-model-row">
+                        <span className="adjust-model-name">{modelFullName(model)}</span>
+                        <span className="adjust-model-effort">{effort}</span>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="model-area">
                     <div className="pop-label">模型</div>
                     {models.map((m) => (
                       <button
@@ -157,7 +162,7 @@ export default function Composer({
                         {m === model && <span className="pop-tick">✓</span>}
                       </button>
                     ))}
-                  </>
+                  </div>
                 )}
 
                 <div className="pop-divider" />

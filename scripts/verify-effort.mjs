@@ -69,6 +69,9 @@ const canvasOk = await page.locator('.eslider-canvas').count()
 if (!canvasOk) errors.push('没有粒子画布')
 
 
+// 拖动前的面板高度
+const boxBefore = await page.locator('.model-pop').boundingBox()
+
 // 拖动中的状态：完整模型名 + 模型不可切换 + 特效不越过按钮
 const tb2 = await page.locator('.eslider-track').boundingBox()
 await page.mouse.move(tb2.x + 12, tb2.y + tb2.height / 2)
@@ -88,6 +91,25 @@ console.log(
 if (!bigName) errors.push('拖动时没有显示放大的模型名')
 if (listCount !== 0) errors.push('拖动时模型列表没有隐藏')
 if (!popCls?.includes('adjusting')) errors.push('面板没有进入 adjusting 状态')
+
+const boxDuring = await page.locator('.model-pop').boundingBox()
+console.log('✓ 面板高度 拖动前/拖动中:', Math.round(boxBefore.height), '/', Math.round(boxDuring.height))
+if (Math.abs(boxBefore.height - boxDuring.height) > 2) errors.push('拖动时面板高度变了')
+
+const effortSide = await page.locator('.adjust-model-effort').innerText()
+const styleOf = (sel) =>
+  page.locator(sel).evaluate((el) => {
+    const c = getComputedStyle(el)
+    return { size: c.fontSize, color: c.color, weight: c.fontWeight }
+  })
+const nameStyle = await styleOf('.adjust-model-name')
+const effortStyle = await styleOf('.adjust-model-effort')
+console.log('✓ 右侧英文:', effortSide)
+console.log('✓ 名称样式:', nameStyle.size, nameStyle.color, nameStyle.weight)
+console.log('✓ 英文样式:', effortStyle.size, effortStyle.color, effortStyle.weight)
+if (nameStyle.size !== effortStyle.size || nameStyle.color !== effortStyle.color) {
+  errors.push('右侧英文与模型名字号/颜色不一致')
+}
 
 // 采样画布：按钮右侧不应有像素
 const leak = await page.evaluate(() => {

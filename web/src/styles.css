@@ -634,9 +634,31 @@ body {
   cursor: default;
 }
 
+/* 模型区固定高度：调节前后弹窗大小不变 */
+.model-area {
+  min-height: 104px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* 调节中：模型列表收起，改为顶部放大的模型名 */
 .adjust-model {
   padding: 8px 10px 10px;
+}
+
+.adjust-model-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.adjust-model-effort {
+  flex: 0 0 auto;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f0f3f7;
 }
 
 .adjust-model-label {
@@ -647,7 +669,9 @@ body {
 }
 
 .adjust-model-name {
-  font-size: 15px;
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
   font-weight: 600;
   color: #f0f3f7;
   line-height: 1.35;
