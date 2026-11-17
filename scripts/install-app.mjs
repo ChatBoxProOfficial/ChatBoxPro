@@ -1,10 +1,11 @@
 /**
- * 把打包好的桌面应用"装"到用户目录并建快捷方式（全程不需要管理员）。
+ * 把打包好的桌面应用"装"到指定目录并建快捷方式（全程不需要管理员）。
  *
- *   release/ChatBox Pro-win32-x64/  →  %LOCALAPPDATA%\Programs\ChatBoxPro\
+ *   release/ChatBox Pro-win32-x64/  →  F:\Apps\ChatBoxPro\
  *   桌面快捷方式 → ChatBoxPro.exe（带我们自己的图标）
  *
- * 目标目录是每个用户自己的 Programs 目录，卸载就是删目录 + 删快捷方式。
+ * 安装目录可用 CHATBOX_INSTALL_DIR 覆盖；默认 F:\Apps\ChatBoxPro（F: 不存在时退回
+ * %LOCALAPPDATA%\Programs\ChatBoxPro）。卸载就是删目录 + 删快捷方式。
  */
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs'
 import { resolve, join } from 'node:path'
@@ -31,11 +32,12 @@ if (!existsSync(join(src, exeName))) {
   process.exit(1)
 }
 
-const dest = resolve(process.env.LOCALAPPDATA || '', 'Programs', 'ChatBoxPro')
-if (!dest.startsWith(resolve(process.env.LOCALAPPDATA || ''))) {
-  console.error('目标路径异常，已中止')
-  process.exit(1)
-}
+const fallback = resolve(process.env.LOCALAPPDATA || '', 'Programs', 'ChatBoxPro')
+const dest = process.env.CHATBOX_INSTALL_DIR
+  ? resolve(process.env.CHATBOX_INSTALL_DIR)
+  : existsSync('F:\\Apps')
+    ? 'F:\\Apps\\ChatBoxPro'
+    : fallback
 
 console.log('安装到：', dest)
 rmSync(dest, { recursive: true, force: true })

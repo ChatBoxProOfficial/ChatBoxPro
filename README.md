@@ -55,13 +55,13 @@ npm run dev             # 再起 Vite（5173，/api 代理到 8787）
 1. 检查 8787 上的内置服务，没起就在进程内拉起来（不闪黑框、不用先手动开服务）；
 2. 打开窗口加载界面。
 
-安装位置：`%LOCALAPPDATA%\Programs\ChatBoxPro\`（不需要管理员权限，卸载即删目录）。
+安装位置：`F:\Apps\ChatBoxPro\`（不需要管理员权限，卸载即删目录）。
 
 重新打包并安装：
 
 ```bash
 npm run pack:desktop     # 产出 release/ChatBox Pro-win32-x64/
-npm run install:app      # 复制到 LOCALAPPDATA + 重建桌面快捷方式
+npm run install:app      # 复制到 F:\Apps\ChatBoxPro + 重建桌面快捷方式
 ```
 
 **已知问题**：开发模式 `npm run desktop`（直接跑 `node_modules/electron/dist/electron.exe`）
