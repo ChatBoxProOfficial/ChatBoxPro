@@ -8,6 +8,7 @@ import { resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
 const desktop = resolve(root, 'desktop')
+const icon = resolve(root, 'assets', 'chatbox-pro.ico')
 
 if (!existsSync(resolve(desktop, 'app', 'index.html'))) {
   console.error('desktop/app 不存在，先运行 npm run build:desktop')
@@ -26,6 +27,8 @@ const out = await packager({
   overwrite: true,
   prune: true,
   asar: true,
+  icon: existsSync(icon) ? icon : undefined,
+  appIcon: existsSync(icon) ? icon : undefined,
   // 只保留运行必需的东西
   ignore: [/^\/package-lock\.json$/, /^\/\.git/],
 })
