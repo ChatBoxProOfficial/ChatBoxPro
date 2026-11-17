@@ -49,30 +49,31 @@ npm run dev             # 再起 Vite（5173，/api 代理到 8787）
 
 ## 桌面端：双击就能打开
 
-桌面上有一个 **ChatBox Pro** 快捷方式，双击后会：
+桌面上有一个 **ChatBox Pro** 快捷方式，双击直接出现一个**原生应用窗口**
+（Electron 壳，没有浏览器地址栏 / 标签页）。它会：
 
-1. 检查 8787 上的内置服务，没起就在后台拉起来（无黑框）；
-2. 用一个没有地址栏、没有标签页的独立窗口打开界面。
+1. 检查 8787 上的内置服务，没起就在进程内拉起来（不闪黑框、不用先手动开服务）；
+2. 打开窗口加载界面。
 
-它用的是 **Edge 的「应用模式」**（WebView 壳），不是普通浏览器窗口。
+安装位置：`%LOCALAPPDATA%\Programs\ChatBoxPro\`（不需要管理员权限，卸载即删目录）。
 
-想重建快捷方式 / 换图标：
-
-```bash
-npm run shortcut
-```
-
-### Electron 原生壳（可选，本机被环境挡住）
-
-`desktop/` 下是完整的 Electron 壳，打包命令：
+重新打包并安装：
 
 ```bash
-npm run pack:desktop     # 产出 release/ChatBox Pro-win32-x64/ChatBoxPro.exe
+npm run pack:desktop     # 产出 release/ChatBox Pro-win32-x64/
+npm run install:app      # 复制到 LOCALAPPDATA + 重建桌面快捷方式
 ```
 
-**注意**：在这台机器上 Electron 无法启动（进程立刻退出，退出码 `0x80000003`，
-连 `--enable-logging` 都来不及出日志；同一台机器的 Edge / notepad 都正常）。
-排查过程见 `docs/桌面壳排查.md`。所以在它可用之前，桌面入口走 Edge 应用模式。
+**已知问题**：开发模式 `npm run desktop`（直接跑 `node_modules/electron/dist/electron.exe`）
+在这台机器上会被安全软件静默拦掉，秒退且无日志；**打包后的 `ChatBoxPro.exe` 不受影响**。
+详见 `docs/桌面壳排查.md`。若需要开发模式，把该 `electron.exe` 加入火绒信任区。
+
+### 备用入口：Edge 应用模式
+
+若 Electron 版被拦截，可用 `ChatBox Pro.vbs`（`npm run shortcut` 重建）：
+
+1. 后台拉起 8787 服务；
+2. 用 Edge 的「应用模式」开一个无地址栏窗口（不是普通浏览器标签页）。
 
 ## 首次使用
 

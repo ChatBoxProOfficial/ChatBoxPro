@@ -1,36 +1,37 @@
-{
-  "name": "chatbox-pro",
-  "private": true,
-  "version": "0.1.0",
-  "description": "ChatBox Pro — 手机/电脑访问 DeepSeek 与 DSH 的客户端",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --config web/vite.config.ts",
-    "build": "vite build --config web/vite.config.ts",
-    "start": "node server/index.mjs",
-    "serve": "npm run build && node server/index.mjs",
-    "typecheck": "tsc --noEmit -p web/tsconfig.json",
-    "build:desktop": "npm run build && node scripts/prepare-desktop.mjs",
-    "desktop": "electron desktop",
-    "pack:desktop": "npm run build:desktop && node scripts/pack-desktop.mjs",
-    "smoke:desktop": "electron desktop --smoke",
-    "shortcut": "node scripts/make-shortcut.mjs",
-    "install:local": "npm run build && npm run shortcut"
-  },
-  "dependencies": {
-    "dompurify": "^3.2.4",
-    "marked": "^15.0.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@electron/packager": "^20.3.0",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "@vitejs/plugin-react": "^4.3.4",
-    "electron": "^30.5.1",
-    "playwright": "^1.65.1",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.11"
-  }
+﻿{
+    "name":  "chatbox-pro",
+    "private":  true,
+    "version":  "0.1.0",
+    "description":  "ChatBox Pro 鈥?鎵嬫満/鐢佃剳璁块棶 DeepSeek 涓?DSH 鐨勫鎴风",
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vite --config web/vite.config.ts",
+                    "build":  "vite build --config web/vite.config.ts",
+                    "start":  "node server/index.mjs",
+                    "serve":  "npm run build \u0026\u0026 node server/index.mjs",
+                    "typecheck":  "tsc --noEmit -p web/tsconfig.json",
+                    "build:desktop":  "npm run build \u0026\u0026 node scripts/prepare-desktop.mjs",
+                    "desktop":  "electron desktop",
+                    "pack:desktop":  "npm run build:desktop \u0026\u0026 node scripts/pack-desktop.mjs",
+                    "smoke:desktop":  "electron desktop --smoke",
+                    "shortcut":  "node scripts/make-shortcut.mjs",
+                    "install:local":  "npm run build \u0026\u0026 npm run shortcut",
+                    "install:app":  "node scripts/install-app.mjs"
+                },
+    "dependencies":  {
+                         "dompurify":  "^3.2.4",
+                         "marked":  "^15.0.7",
+                         "react":  "^19.0.0",
+                         "react-dom":  "^19.0.0"
+                     },
+    "devDependencies":  {
+                            "@electron/packager":  "^20.3.0",
+                            "@types/react":  "^19.0.8",
+                            "@types/react-dom":  "^19.0.3",
+                            "@vitejs/plugin-react":  "^4.3.4",
+                            "electron":  "^30.5.1",
+                            "playwright":  "^1.65.1",
+                            "typescript":  "^5.7.3",
+                            "vite":  "^6.0.11"
+                        }
 }
