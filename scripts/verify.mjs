@@ -78,23 +78,44 @@ await page.locator('.pop-mask').click({ position: { x: 10, y: 10 } })
 await page.getByRole('button', { name: '展开栏目' }).click()
 await page.waitForTimeout(400)
 await page.locator('.drawer-foot').click()
-await page.waitForSelector('.settings-screen', { timeout: 8000 })
-await page.waitForSelector('.settings-index', { timeout: 5000 })
+await page.waitForSelector('.settings-dialog', { timeout: 8000 })
 await page.waitForTimeout(450) // 等侧边栏退场动画结束
-await page.screenshot({ path: `${OUT}/15-settings.png`, fullPage: true })
-const rows = await page.locator('.index-row').count()
-console.log('✓ 设置分类数：', rows)
+await page.screenshot({ path: `${OUT}/15-settings.png` })
+const navCount = await page.locator('.nav-item').count()
+console.log('✓ 设置左侧分类数：', navCount)
 
-// 进入某个板块
-await page.getByRole('button', { name: /管理模型/ }).first().click()
+// 切换分类
+await page.getByRole('button', { name: '管理模型', exact: true }).click()
 await page.waitForSelector('.model-list', { timeout: 5000 })
 await page.screenshot({ path: `${OUT}/16-settings-detail.png` })
-console.log('✓ 板块详情打开：管理模型')
-await page.getByRole('button', { name: '返回' }).click()
-await page.waitForSelector('.settings-index', { timeout: 5000 })
-console.log('✓ 返回分类列表')
+console.log('✓ 切换到：管理模型')
+
+await page.getByRole('button', { name: '上下文管理', exact: true }).click()
+await page.waitForSelector('input[type=number]', { timeout: 5000 })
+console.log('✓ 切换到：上下文管理')
+
+// 关闭
+await page.locator('.settings-close').click()
+await page.waitForSelector('.settings-dialog', { state: 'detached', timeout: 5000 })
+await page.waitForSelector('.composer', { timeout: 5000 })
+console.log('✓ 关闭弹窗回到主界面')
 
 await browser.close()
+
+// 桌面尺寸下的设置弹窗（两栏布局）
+const b2 = await chromium.launch({ channel: 'msedge', headless: true })
+const c2 = await b2.newContext({ viewport: { width: 1400, height: 900 }, locale: 'zh-CN' })
+const p2 = await c2.newPage()
+await p2.goto(BASE, { waitUntil: 'networkidle' })
+await p2.waitForSelector('.composer', { timeout: 15000 })
+await p2.locator('.icon-btn[aria-label="展开栏目"]').click()
+await p2.waitForTimeout(400)
+await p2.locator('.drawer-foot').click()
+await p2.waitForSelector('.settings-dialog', { timeout: 8000 })
+await p2.waitForTimeout(450)
+await p2.screenshot({ path: `${OUT}/17-settings-desktop.png` })
+console.log('✓ 桌面尺寸设置弹窗已截图')
+await b2.close()
 
 if (errors.length) {
   console.log('\n控制台错误：')

@@ -40,7 +40,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
 ]
 
 export default function SettingsScreen({ settings, onChange, onBack, onWipe }: Props) {
-  const [section, setSection] = useState<SectionId | null>(null)
+  const [section, setSection] = useState<SectionId>('account')
   const [tipOpen, setTipOpen] = useState(false)
   const [toast, setToast] = useState('')
 
@@ -50,48 +50,57 @@ export default function SettingsScreen({ settings, onChange, onBack, onWipe }: P
     setTimeout(() => setToast(''), 1600)
   }
 
-  const current = section ? SECTIONS.find((s) => s.id === section) : null
+  // Esc 关闭
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onBack()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onBack])
 
   return (
-    <div className="screen settings-screen">
-      <header className="topbar">
-        <button
-          className="icon-btn"
-          onClick={() => (section ? setSection(null) : onBack())}
-          aria-label="返回"
-        >
-          ←
-        </button>
-        <div className="topbar-title">
-          <div className="title-line">{current ? current.title : '设置'}</div>
-        </div>
-      </header>
+    <div className="settings-overlay" onClick={onBack}>
+      <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
+        <header className="settings-head">
+          <div className="settings-title">设置</div>
+          <button className="settings-close" onClick={onBack} aria-label="关闭">
+            ✕
+          </button>
+        </header>
 
-      <div className="settings-body">
-        {!section && (
-          <div className="settings-index">
+        <div className="settings-main">
+          <nav className="settings-nav">
             {SECTIONS.map((s) => (
-              <button key={s.id} className="index-row" onClick={() => setSection(s.id)}>
-                <span className="index-main">
-                  <span className="index-title">{s.title}</span>
-                  <span className="index-desc">{s.desc}</span>
-                </span>
-                <span className="index-chev">›</span>
+              <button
+                key={s.id}
+                className={`nav-item${s.id === section ? ' active' : ''}`}
+                onClick={() => setSection(s.id)}
+                title={s.desc}
+              >
+                <span className="nav-dot" />
+                <span className="nav-text">{s.title}</span>
               </button>
             ))}
-          </div>
-        )}
+          </nav>
 
-        {section === 'account' && <AccountSection settings={settings} patch={patch} flash={flash} />}
-        {section === 'personalize' && <PersonalizeSection settings={settings} patch={patch} />}
-        {section === 'plugins' && <PluginsSection />}
-        {section === 'models' && <ModelsSection settings={settings} patch={patch} flash={flash} />}
-        {section === 'context' && (
-          <ContextSection settings={settings} patch={patch} onWipe={onWipe} />
-        )}
-        {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
-        {section === 'paths' && <PathsSection flash={flash} />}
-        {section === 'about' && <AboutSection onTip={() => setTipOpen(true)} />}
+          <div className="settings-pane">
+            {section === 'account' && (
+              <AccountSection settings={settings} patch={patch} flash={flash} />
+            )}
+            {section === 'personalize' && <PersonalizeSection settings={settings} patch={patch} />}
+            {section === 'plugins' && <PluginsSection />}
+            {section === 'models' && (
+              <ModelsSection settings={settings} patch={patch} flash={flash} />
+            )}
+            {section === 'context' && (
+              <ContextSection settings={settings} patch={patch} onWipe={onWipe} />
+            )}
+            {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
+            {section === 'paths' && <PathsSection flash={flash} />}
+            {section === 'about' && <AboutSection onTip={() => setTipOpen(true)} />}
+          </div>
+        </div>
       </div>
 
       {toast && <div className="toast">{toast}</div>}

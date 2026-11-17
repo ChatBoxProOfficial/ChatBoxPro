@@ -128,14 +128,7 @@ export default function App() {
         }}
       />
 
-      {showSettings ? (
-        <SettingsScreen
-          settings={settings}
-          onChange={saveSettings}
-          onBack={() => setShowSettings(false)}
-          onWipe={() => void wipe()}
-        />
-      ) : current ? (
+      {current && (
         <ChatScreen
           key={current.id}
           session={current}
@@ -144,7 +137,16 @@ export default function App() {
           onOpenSidebar={() => setSidebarOpen(true)}
           onExport={(s) => downloadConversation(s)}
         />
-      ) : null}
+      )}
+
+      {showSettings && (
+        <SettingsScreen
+          settings={settings}
+          onChange={saveSettings}
+          onBack={() => setShowSettings(false)}
+          onWipe={() => void wipe()}
+        />
+      )}
     </div>
   )
 }
