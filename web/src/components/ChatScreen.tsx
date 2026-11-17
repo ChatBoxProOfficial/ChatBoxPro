@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { streamChat, uploadFile } from '../api'
+import { streamChat, uploadFile, NEED_KEY_TEXT } from '../api'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import type { Attachment, Message, Session, Settings } from '../types'
@@ -208,8 +208,16 @@ export default function ChatScreen({
     setBusy(false)
     abortRef.current = null
 
+    const isHint = failed === NEED_KEY_TEXT
     const assistant: Message = failed
-      ? { id: newId(), role: 'assistant', content: failed, createdAt: Date.now(), error: true }
+      ? {
+          id: newId(),
+          role: 'assistant',
+          content: failed,
+          createdAt: Date.now(),
+          error: !isHint,
+          hint: isHint,
+        }
       : {
           id: newId(),
           role: 'assistant',
@@ -348,10 +356,10 @@ function MessageRow({ msg }: { msg: Message }) {
     )
   }
   return (
-    <div className={`msg assistant${msg.error ? ' error' : ''}`}>
+    <div className={`msg assistant${msg.error ? ' error' : ''}${msg.hint ? ' hint' : ''}`}>
       <div className="msg-role">DeepSeek</div>
       <div className="msg-body">
-        <Markdown text={msg.content} />
+        {msg.hint ? <p>{msg.content}</p> : <Markdown text={msg.content} />}
       </div>
     </div>
   )

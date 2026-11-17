@@ -21,6 +21,8 @@ export interface Message {
   model?: string
   /** 该条消息是否是一次失败的请求 */
   error?: boolean
+  /** 引导型提示（例如未填 API Key），不算错误、也不进上下文 */
+  hint?: boolean
   attachments?: Attachment[]
 }
 

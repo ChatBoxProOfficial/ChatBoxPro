@@ -40,9 +40,13 @@ export interface StreamHandlers {
   onError: (message: string) => void
 }
 
+/** 没填 Key 时给出的引导文案（不是报错，是提示） */
+export const NEED_KEY_TEXT =
+  '您还没有填写 API Key，请打开左上角栏目进入设置页，填入自己的 Key 并保存，就能正常使用服务了。'
+
 export class MissingKeyError extends Error {
   constructor() {
-    super('还没有填写 API Key')
+    super(NEED_KEY_TEXT)
   }
 }
 
@@ -53,7 +57,7 @@ function toPayload(messages: Message[], settings: Settings) {
     out.push({ role: 'system', content: settings.systemPrompt.trim() })
   }
   for (const m of messages) {
-    if (m.error) continue
+    if (m.error || m.hint) continue
     if (!m.content.trim()) continue
     out.push({ role: m.role, content: m.content })
   }

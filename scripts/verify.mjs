@@ -62,8 +62,9 @@ await page.screenshot({ path: `${OUT}/12-attach.png` })
 await page.fill('.composer-input', '你好，测试一下新界面')
 await page.getByRole('button', { name: '发送' }).click()
 await page.waitForSelector('.msg.assistant', { timeout: 12000 })
+await page.waitForSelector('.msg.assistant.hint, .msg.assistant.error', { timeout: 12000 })
 const errText = await page.locator('.msg.assistant').last().innerText()
-console.log('✓ 无 Key 提示：', errText.replace(/\n/g, ' ').slice(0, 40))
+console.log('✓ 无 Key 提示：', errText.replace(/\n/g, ' ').slice(0, 60))
 await page.screenshot({ path: `${OUT}/13-chat.png` })
 
 // 模型菜单

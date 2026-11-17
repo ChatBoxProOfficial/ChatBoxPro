@@ -193,6 +193,19 @@ body {
   white-space: pre-wrap;
 }
 
+.msg.assistant.hint .msg-body {
+  color: var(--fg);
+  background: var(--bg-2);
+  border: 1px dashed #3a434e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+}
+
+.msg.assistant.hint .msg-body p {
+  margin: 0;
+}
+
 .streaming-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
