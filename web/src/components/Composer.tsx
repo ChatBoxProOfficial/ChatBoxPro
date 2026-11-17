@@ -46,6 +46,7 @@ export default function Composer({
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [popOpen, setPopOpen] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
 
   const canSend = !!value.trim() || attachments.length > 0
 
@@ -137,13 +138,17 @@ export default function Composer({
           {popOpen && (
             <>
               <div className="pop-mask" onClick={() => setPopOpen(false)} />
-              <div className="model-pop" role="dialog">
+              <div className={`model-pop${adjusting ? " adjusting" : ""}`} role="dialog">
                 <div className="pop-label">模型</div>
                 {models.map((m) => (
                   <button
                     key={m}
                     className={`pop-item${m === model ? ' active' : ''}`}
-                    onClick={() => onModelChange(m)}
+                    disabled={adjusting}
+                    onClick={() => {
+                      if (adjusting) return
+                      onModelChange(m)
+                    }}
                   >
                     <span className="pop-item-name">{modelFullName(m)}</span>
                     {m === model && <span className="pop-tick">✓</span>}
@@ -154,17 +159,25 @@ export default function Composer({
 
                 <div className="pop-label effort-head">
                   <span className="effort-head-left">
-                    <span className={`effort-note${effort === 'off' ? ' off' : ''}`}>
-                      {EFFORT_NOTE[effort]}
-                    </span>
+                    <span className={`effort-note ${effort}`}>{EFFORT_NOTE[effort]}</span>
                     <span className="effort-title">思考强度</span>
                   </span>
-                  <span className="effort-model" title={modelFullName(model)}>
-                    {modelFullName(model)}
-                  </span>
+                  {!adjusting && (
+                    <span className="effort-model" title={modelFullName(model)}>
+                      {modelFullName(model)}
+                    </span>
+                  )}
                 </div>
 
-                <EffortSlider value={effort} onChange={onEffortChange} />
+                {adjusting && (
+                  <div className="effort-model-full">{modelFullName(model)}</div>
+                )}
+
+                <EffortSlider
+                  value={effort}
+                  onChange={onEffortChange}
+                  onAdjustChange={setAdjusting}
+                />
               </div>
             </>
           )}

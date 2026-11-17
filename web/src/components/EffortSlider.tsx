@@ -28,6 +28,8 @@ export const EFFORT_NOTE: Record<Effort, string> = {
 interface Props {
   value: Effort
   onChange: (e: Effort) => void
+  /** 开始/结束拖动时回调，用于面板进入「调节中」状态 */
+  onAdjustChange?: (adjusting: boolean) => void
 }
 
 const KNOB = 26 // 白色旋钮宽度（与 CSS 保持一致）
@@ -41,7 +43,7 @@ interface Dot {
   a: number
 }
 
-export default function EffortSlider({ value, onChange }: Props) {
+export default function EffortSlider({ value, onChange, onAdjustChange }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const valueRef = useRef<Effort>(value)
@@ -74,8 +76,11 @@ export default function EffortSlider({ value, onChange }: Props) {
       return KNOB / 2 + (w - KNOB) * (idx / (EFFORTS.length - 1))
     }
 
-    /** 已走过区域的右边界：一直算到旋钮右缘，max 档刚好等于整条宽度 */
+    /** 底色填充到旋钮右缘，max 档铺满整条 */
     const fillRight = () => Math.min(w, knobX() + KNOB / 2)
+
+    /** 粒子的右边界 = 旋钮左缘再退 2px：特效永远进不到按钮范围里 */
+    const dotRight = () => Math.max(0, knobX() - KNOB / 2 - 2)
 
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
@@ -89,7 +94,7 @@ export default function EffortSlider({ value, onChange }: Props) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       dots = Array.from({ length: POOL }, () => ({
         x: rand(0, Math.max(1, knobX())),
-        y: rand(2, Math.max(3, h - 2)),
+        y: rand(h * 0.28, Math.max(h * 0.3, h * 0.72)),
         r: rand(0.7, 2.0),
         spd: rand(0.5, 1.4),
         a: rand(0.5, 0.95),
@@ -103,6 +108,7 @@ export default function EffortSlider({ value, onChange }: Props) {
       const idx = Math.max(0, EFFORTS.indexOf(valueRef.current))
       const kx = knobX()
       const fr = fillRight()
+      const dr = dotRight()
       const speed = SPEED[valueRef.current] ?? 0
       const count = COUNT[valueRef.current] ?? 0
       const [cr, cg, cb] = HUE[valueRef.current]
@@ -118,12 +124,19 @@ export default function EffortSlider({ value, onChange }: Props) {
         ctx.fillStyle = g
         ctx.fillRect(0, 0, fr, h)
 
-        // 旋钮周围的光晕，让白块和粒子连成一体
-        const glow = ctx.createRadialGradient(kx, h / 2, 2, kx, h / 2, KNOB * 1.6)
-        glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.42)`)
-        glow.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
-        ctx.fillStyle = glow
-        ctx.fillRect(kx - KNOB * 1.6, 0, KNOB * 3.2, h)
+        // 旋钮周围的光晕（裁剪到按钮左侧，绝不超过按钮）
+        if (dr > 0) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.rect(0, 0, dr, h)
+          ctx.clip()
+          const glow = ctx.createRadialGradient(kx - 4, h / 2, 2, kx - 4, h / 2, KNOB * 1.5)
+          glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.4)`)
+          glow.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
+          ctx.fillStyle = glow
+          ctx.fillRect(0, 0, dr, h)
+          ctx.restore()
+        }
       }
 
       if (count > 0 && speed > 0) {
@@ -132,15 +145,15 @@ export default function EffortSlider({ value, onChange }: Props) {
           d.x -= d.spd * speed * 0.9
 
           // 飘出左边界或跑到旋钮右边，就回到旋钮处重新开始
-          if (d.x < -3 || d.x > fr + 2) {
-            d.x = fr - rand(0, 8)
-            d.y = rand(2, Math.max(3, h - 2))
+          if (d.x < -3 || d.x > dr) {
+            d.x = dr - rand(0, 8)
+            d.y = rand(h * 0.28, Math.max(h * 0.3, h * 0.72))
             d.r = rand(0.7, 2.0)
             d.a = rand(0.5, 0.95)
           }
 
           if (i >= count) continue
-          if (d.x > fr) continue
+          if (d.x > dr) continue
 
           ctx.beginPath()
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
@@ -187,6 +200,7 @@ export default function EffortSlider({ value, onChange }: Props) {
         aria-valuetext={EFFORT_NOTE[value]}
         onPointerDown={(e) => {
           draggingRef.current = true
+          onAdjustChange?.(true)
           e.currentTarget.setPointerCapture(e.pointerId)
           commit(e.clientX)
         }}
@@ -195,10 +209,12 @@ export default function EffortSlider({ value, onChange }: Props) {
         }}
         onPointerUp={(e) => {
           draggingRef.current = false
+          onAdjustChange?.(false)
           e.currentTarget.releasePointerCapture(e.pointerId)
         }}
         onPointerCancel={() => {
           draggingRef.current = false
+          onAdjustChange?.(false)
         }}
         onKeyDown={(e) => {
           const i = EFFORTS.indexOf(value)

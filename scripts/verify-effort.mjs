@@ -68,6 +68,60 @@ await page.screenshot({ path: `${OUT}/37-effort-high-again.png` })
 const canvasOk = await page.locator('.eslider-canvas').count()
 if (!canvasOk) errors.push('没有粒子画布')
 
+
+// 拖动中的状态：完整模型名 + 模型不可切换 + 特效不越过按钮
+const tb2 = await page.locator('.eslider-track').boundingBox()
+await page.mouse.move(tb2.x + 12, tb2.y + tb2.height / 2)
+await page.mouse.down()
+await page.mouse.move(tb2.x + tb2.width * 0.8, tb2.y + tb2.height / 2, { steps: 6 })
+await page.waitForTimeout(350)
+await page.screenshot({ path: `${OUT}/38-adjusting.png` })
+
+const fullNameShown = await page.locator('.effort-model-full').count()
+const popCls = await page.locator('.model-pop').getAttribute('class')
+const itemDisabled = await page.locator('.pop-item').first().isDisabled()
+console.log('✓ 拖动中：完整模型名', fullNameShown ? '显示' : '缺失', '| 面板类', popCls, '| 模型项禁用', itemDisabled)
+if (!fullNameShown) errors.push('拖动时没有显示完整模型名')
+if (!popCls?.includes('adjusting')) errors.push('面板没有进入 adjusting 状态')
+if (!itemDisabled) errors.push('拖动时仍可切换模型')
+
+// 采样画布：按钮右侧不应有像素
+const leak = await page.evaluate(() => {
+  const c = document.querySelector('.eslider-canvas')
+  const knob = document.querySelector('.eslider-knob')
+  if (!c || !knob) return -1
+  const cr = c.getBoundingClientRect()
+  const kr = knob.getBoundingClientRect()
+  const scale = c.width / cr.width // 画布是设备像素
+  const x = Math.min(c.width - 1, Math.round((kr.right - cr.left) * scale) + 3)
+  const ctx = c.getContext('2d')
+  const data = ctx.getImageData(x, 0, 1, c.height).data
+  let opaque = 0
+  for (let i = 3; i < data.length; i += 4) if (data[i] > 6) opaque++
+  return opaque
+})
+console.log('✓ 按钮右侧不透明像素数:', leak)
+if (leak > 0) errors.push('按钮右侧仍有特效像素（漏光）')
+
+await page.mouse.up()
+await page.waitForTimeout(200)
+
+// 档位颜色
+const colorOf = async (idx) => {
+  await page.locator('.effort-tick').nth(idx).click()
+  await page.waitForTimeout(220)
+  return {
+    cls: await page.locator('.effort-note').getAttribute('class'),
+    bg: await page.locator('.effort-note').evaluate((el) => getComputedStyle(el).backgroundColor),
+    shadow: await page.locator('.effort-note').evaluate((el) => getComputedStyle(el).boxShadow),
+  }
+}
+for (const [i, name] of [[0, 'off'], [1, 'low'], [2, 'high'], [3, 'max']]) {
+  const c = await colorOf(i)
+  console.log('  ' + name + ':', c.cls, c.bg, c.shadow === 'none' ? '(无光晕)' : '(有光晕)')
+}
+await page.screenshot({ path: `${OUT}/39-effort-max-final.png` })
+
 await browser.close()
 
 if (errors.length) {

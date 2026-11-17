@@ -589,19 +589,59 @@ body {
 }
 
 .effort-note {
-  background: #7c4dff22;
-  border: 1px solid #7c4dff55;
-  color: #c9a9ff;
   border-radius: 6px;
   padding: 1px 6px;
   font-size: 10.5px;
   white-space: nowrap;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
+/* 关闭：淡紫 */
 .effort-note.off {
-  background: #2a2f36;
-  border-color: var(--line);
-  color: var(--fg-dim);
+  background: #3a3054;
+  border: 1px solid #5b4b82;
+  color: #d3c4f2;
+}
+
+/* 浮想（低）：紫 */
+.effort-note.low {
+  background: #6c3fe022;
+  border: 1px solid #7c4dff88;
+  color: #c9a9ff;
+}
+
+/* 沉思（高）：紫 + 一点蓝光 */
+.effort-note.high {
+  background: #6d5bd02b;
+  border: 1px solid #7f8cff99;
+  color: #cfd3ff;
+  box-shadow: 0 0 8px #6f8bff55;
+}
+
+/* 最大：蓝 */
+.effort-note.max {
+  background: #2f6dff33;
+  border: 1px solid #4a8cffee;
+  color: #b7d2ff;
+  box-shadow: 0 0 10px #4a8cff77;
+}
+
+/* 调节中：模型不可切换 */
+.model-pop.adjusting .pop-item {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: default;
+}
+
+/* 调节中完整显示模型名 */
+.effort-model-full {
+  font-size: 10.5px;
+  color: #8b93a1;
+  padding: 6px 10px 2px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 .effort-title {
