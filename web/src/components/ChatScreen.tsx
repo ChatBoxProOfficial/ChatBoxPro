@@ -361,6 +361,8 @@ export default function ChatScreen({
         onModelChange={(m) => persist(messages, { model: m })}
         effort={settings.reasoningEffort}
         onEffortChange={(e) => onSettingsChange({ reasoningEffort: e })}
+        teamMode={settings.teamMode}
+        onTeamModeChange={(v) => onSettingsChange({ teamMode: v })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}

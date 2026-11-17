@@ -133,6 +133,18 @@ if (leak > 0) errors.push('按钮右侧仍有特效像素（漏光）')
 await page.mouse.up()
 await page.waitForTimeout(200)
 
+// 子智能体团队协作开关
+const teamSwitch = page.locator('.team-row .switch')
+const teamInput = page.locator('.team-row .switch input')
+const before = await teamInput.isChecked()
+await teamSwitch.click()
+await page.waitForTimeout(200)
+const after = await teamInput.isChecked()
+console.log('✓ 团队协作开关:', before, '→', after)
+if (before === after) errors.push('团队协作开关点了没反应')
+await page.screenshot({ path: `${OUT}/40-team-switch.png` })
+await teamSwitch.click()
+
 // 档位颜色
 const colorOf = async (idx) => {
   await page.locator('.effort-tick').nth(idx).click()

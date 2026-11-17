@@ -66,6 +66,8 @@ export interface Settings {
   reasoningDisplay: 'off' | 'web' | 'dsh'
   /** 思考强度：off 关闭思考 / low / high / max */
   reasoningEffort: 'off' | 'low' | 'high' | 'max'
+  /** 允许启动子智能体团队协作（需连接 DSH 后生效） */
+  teamMode: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -81,6 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
   dshUrl: '',
   reasoningDisplay: 'web',
   reasoningEffort: 'high',
+  teamMode: false,
 }
 
 /** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */

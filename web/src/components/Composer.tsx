@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { modelFullName, modelLabel, type Attachment, type Settings } from '../types'
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
+import Switch from './Switch'
 
 type Effort = Settings['reasoningEffort']
 
@@ -15,6 +16,8 @@ interface Props {
   onModelChange: (m: string) => void
   effort: Effort
   onEffortChange: (e: Effort) => void
+  teamMode: boolean
+  onTeamModeChange: (v: boolean) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
   onRemoveAttachment: (id: string) => void
@@ -38,6 +41,8 @@ export default function Composer({
   onModelChange,
   effort,
   onEffortChange,
+  teamMode,
+  onTeamModeChange,
   attachments,
   onPickFiles,
   onRemoveAttachment,
@@ -172,11 +177,9 @@ export default function Composer({
                     <span className={`effort-note ${effort}`}>{EFFORT_NOTE[effort]}</span>
                     <span className="effort-title">思考强度</span>
                   </span>
-                  {!adjusting && (
-                    <span className="effort-model" title={modelFullName(model)}>
-                      {modelFullName(model)}
-                    </span>
-                  )}
+                  <span className="effort-model" title={modelFullName(model)}>
+                    {modelFullName(model)}
+                  </span>
                 </div>
 
                 <EffortSlider
@@ -184,6 +187,16 @@ export default function Composer({
                   onChange={onEffortChange}
                   onAdjustChange={setAdjusting}
                 />
+
+                <div className="pop-divider" />
+
+                <div className="team-row">
+                  <span className="team-main">
+                    <span className="team-title">子智能体团队协作</span>
+                    <span className="team-desc">允许拆分子任务并行处理（需连接 DSH）</span>
+                  </span>
+                  <Switch checked={teamMode} onChange={onTeamModeChange} />
+                </div>
               </div>
             </>
           )}

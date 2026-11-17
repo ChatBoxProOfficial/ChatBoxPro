@@ -464,7 +464,7 @@ body {
   background: var(--bg-2);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 8px;
+  padding: 6px;
   box-shadow: 0 18px 48px #000c;
   z-index: 41;
 }
@@ -475,7 +475,7 @@ body {
   justify-content: space-between;
   font-size: 11px;
   color: var(--fg-dim);
-  padding: 4px 8px 6px;
+  padding: 2px 8px 4px;
   letter-spacing: 0.3px;
 }
 
@@ -500,7 +500,7 @@ body {
   background: transparent;
   border: none;
   color: var(--fg);
-  padding: 9px 10px;
+  padding: 6px 10px;
   border-radius: 9px;
   font-size: 13px;
   cursor: pointer;
@@ -534,7 +534,7 @@ body {
 
 /* 思考强度：大号圆角方块 + 白色大旋钮 + 紫色粒子 */
 .effort-slider {
-  padding: 2px 10px 6px;
+  padding: 2px 10px 2px;
 }
 
 .eslider-track {
@@ -636,7 +636,7 @@ body {
 
 /* 模型区固定高度：调节前后弹窗大小不变 */
 .model-area {
-  min-height: 104px;
+  min-height: 86px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -644,7 +644,7 @@ body {
 
 /* 调节中：模型列表收起，改为顶部放大的模型名 */
 .adjust-model {
-  padding: 8px 10px 10px;
+  padding: 4px 10px 6px;
 }
 
 .adjust-model-row {
@@ -699,7 +699,7 @@ body {
   justify-content: space-between;
   font-size: 10.5px;
   color: #6b7481;
-  margin-top: 6px;
+  margin-top: 4px;
   padding: 0 2px;
 }
 
@@ -1775,4 +1775,31 @@ button:disabled {
     padding-left: max(10px, calc(50vw - 420px));
     padding-right: max(10px, calc(50vw - 420px));
   }
+}
+
+/* 子智能体团队协作开关行 */
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 10px 4px;
+}
+
+.team-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.team-title {
+  font-size: 12.5px;
+  color: var(--fg);
+}
+
+.team-desc {
+  font-size: 10px;
+  color: #6f7987;
+  line-height: 1.4;
 }
