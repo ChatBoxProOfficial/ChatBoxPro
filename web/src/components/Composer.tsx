@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { EFFORTS, modelFullName, modelLabel, type Attachment, type Settings } from '../types'
+import { modelFullName, modelLabel, type Attachment, type Settings } from '../types'
+import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 
 type Effort = Settings['reasoningEffort']
 
@@ -26,13 +27,6 @@ function humanSize(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
-const EFFORT_TEXT: Record<Effort, string> = {
-  off: '关闭思考',
-  low: '低',
-  high: '高',
-  max: '最高',
-}
-
 export default function Composer({
   value,
   onChange,
@@ -54,7 +48,6 @@ export default function Composer({
   const [popOpen, setPopOpen] = useState(false)
 
   const canSend = !!value.trim() || attachments.length > 0
-  const effortIndex = Math.max(0, EFFORTS.indexOf(effort))
 
   return (
     <div className={`composer${collapsed ? ' collapsed' : ''}`}>
@@ -159,36 +152,19 @@ export default function Composer({
 
                 <div className="pop-divider" />
 
-                <div className="pop-label">
-                  思考强度
-                  <span className={`effort-value${effort === 'off' ? ' off' : ''}`}>
-                    {EFFORT_TEXT[effort]}
+                <div className="pop-label effort-head">
+                  <span className="effort-head-left">
+                    <span className={`effort-note${effort === 'off' ? ' off' : ''}`}>
+                      {EFFORT_NOTE[effort]}
+                    </span>
+                    <span className="effort-title">思考强度</span>
+                  </span>
+                  <span className="effort-model" title={modelFullName(model)}>
+                    {modelFullName(model)}
                   </span>
                 </div>
 
-                <div className="effort-slider">
-                  <input
-                    type="range"
-                    min={0}
-                    max={EFFORTS.length - 1}
-                    step={1}
-                    value={effortIndex}
-                    onChange={(e) => onEffortChange(EFFORTS[Number(e.target.value)])}
-                    aria-label="思考强度"
-                  />
-                  <div className="effort-ticks">
-                    {EFFORTS.map((e, i) => (
-                      <span
-                        key={e}
-                        className={`effort-tick${i <= effortIndex ? ' on' : ''}${
-                          e === effort ? ' active' : ''
-                        }`}
-                      >
-                        {e}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <EffortSlider value={effort} onChange={onEffortChange} />
               </div>
             </>
           )}
