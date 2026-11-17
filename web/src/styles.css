@@ -619,12 +619,17 @@ body {
   box-shadow: 0 0 8px #6f8bff55;
 }
 
-/* 最大：左紫右蓝渐变 */
+/* 最大：左半纯紫、从中间往右渐变成蓝，整体仍是半透明底（和别的档位一致） */
 .effort-note.max {
-  background: linear-gradient(90deg, #7c4dff 0%, #4a8cff 100%);
-  border: 1px solid #6f9bffee;
-  color: #ffffff;
-  box-shadow: 0 0 10px #6a7bff88;
+  background: linear-gradient(
+    90deg,
+    rgba(124, 77, 255, 0.24) 0%,
+    rgba(124, 77, 255, 0.24) 46%,
+    rgba(74, 140, 255, 0.26) 100%
+  );
+  border: 1px solid #7f8cffcc;
+  color: #e6e9ff;
+  box-shadow: 0 0 8px #6f8bff44;
 }
 
 /* 调节中：模型不可切换 */
