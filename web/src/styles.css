@@ -562,12 +562,11 @@ body {
 
 .eslider-knob {
   position: absolute;
-  top: 50%;
-  width: 24px;
-  height: 24px;
-  margin-top: -12px;
+  top: 0;
+  width: 26px;
+  height: 100%;
   transform: translateX(-50%);
-  border-radius: 8px;
+  border-radius: 9px;
   background: #ffffff;
   box-shadow:
     0 2px 7px #000000bb,

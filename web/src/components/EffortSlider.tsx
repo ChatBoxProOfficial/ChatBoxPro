@@ -30,7 +30,7 @@ interface Props {
   onChange: (e: Effort) => void
 }
 
-const KNOB = 24 // 白色旋钮边长（与 CSS 保持一致）
+const KNOB = 26 // 白色旋钮宽度（与 CSS 保持一致）
 const POOL = 56 // 粒子池大小
 
 interface Dot {
@@ -74,6 +74,9 @@ export default function EffortSlider({ value, onChange }: Props) {
       return KNOB / 2 + (w - KNOB) * (idx / (EFFORTS.length - 1))
     }
 
+    /** 已走过区域的右边界：一直算到旋钮右缘，max 档刚好等于整条宽度 */
+    const fillRight = () => Math.min(w, knobX() + KNOB / 2)
+
     const rand = (a: number, b: number) => a + Math.random() * (b - a)
 
     const resize = () => {
@@ -99,6 +102,7 @@ export default function EffortSlider({ value, onChange }: Props) {
     const draw = () => {
       const idx = Math.max(0, EFFORTS.indexOf(valueRef.current))
       const kx = knobX()
+      const fr = fillRight()
       const speed = SPEED[valueRef.current] ?? 0
       const count = COUNT[valueRef.current] ?? 0
       const [cr, cg, cb] = HUE[valueRef.current]
@@ -106,13 +110,13 @@ export default function EffortSlider({ value, onChange }: Props) {
       ctx.clearRect(0, 0, w, h)
 
       // 已走过区域：紫色/蓝色底，靠近旋钮更亮
-      if (idx > 0 && kx > 1) {
-        const g = ctx.createLinearGradient(0, 0, kx, 0)
+      if (idx > 0 && fr > 1) {
+        const g = ctx.createLinearGradient(0, 0, fr, 0)
         g.addColorStop(0, 'rgba(92, 54, 190, 0.18)')
         g.addColorStop(0.7, 'rgba(120, 76, 224, 0.34)')
         g.addColorStop(1, 'rgba(150, 120, 255, 0.5)')
         ctx.fillStyle = g
-        ctx.fillRect(0, 0, kx, h)
+        ctx.fillRect(0, 0, fr, h)
 
         // 旋钮周围的光晕，让白块和粒子连成一体
         const glow = ctx.createRadialGradient(kx, h / 2, 2, kx, h / 2, KNOB * 1.6)
@@ -128,15 +132,15 @@ export default function EffortSlider({ value, onChange }: Props) {
           d.x -= d.spd * speed * 0.9
 
           // 飘出左边界或跑到旋钮右边，就回到旋钮处重新开始
-          if (d.x < -3 || d.x > kx + 2) {
-            d.x = kx - rand(0, 6)
+          if (d.x < -3 || d.x > fr + 2) {
+            d.x = fr - rand(0, 8)
             d.y = rand(2, Math.max(3, h - 2))
             d.r = rand(0.7, 2.0)
             d.a = rand(0.5, 0.95)
           }
 
           if (i >= count) continue
-          if (d.x > kx) continue
+          if (d.x > fr) continue
 
           ctx.beginPath()
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
