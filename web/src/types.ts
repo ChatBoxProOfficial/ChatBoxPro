@@ -21,6 +21,10 @@ export interface Message {
   model?: string
   /** 该条消息是否是一次失败的请求 */
   error?: boolean
+  /** 思维链（reasoning_content），与正文分开存 */
+  reasoning?: string
+  /** 思考耗时（毫秒），用于「已深度思考（用时 X 秒）」 */
+  reasoningMs?: number
   attachments?: Attachment[]
 }
 
@@ -58,6 +62,8 @@ export interface Settings {
   compact: boolean
   /** DeepSeek Harness 服务器地址（暂未完成深度对接） */
   dshUrl: string
+  /** 思维链展示方式：off 关闭 / web 仿网页版 / dsh 仿 DSH */
+  reasoningDisplay: 'off' | 'web' | 'dsh'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -71,6 +77,7 @@ export const DEFAULT_SETTINGS: Settings = {
   contextLimit: 0,
   compact: false,
   dshUrl: '',
+  reasoningDisplay: 'web',
 }
 
 export const MODELS = [

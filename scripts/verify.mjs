@@ -112,6 +112,88 @@ await page.waitForSelector('.settings-dialog', { state: 'detached', timeout: 500
 await page.waitForSelector('.composer', { timeout: 5000 })
 console.log('✓ 关闭弹窗回到主界面')
 
+// 思维链展示：先塞一条带 reasoning 的会话，再分别看两种风格
+await page.evaluate(async () => {
+  const openDb = () =>
+    new Promise((res, rej) => {
+      const r = indexedDB.open('chatbox-pro', 1)
+      r.onupgradeneeded = () => {
+        const db = r.result
+        if (!db.objectStoreNames.contains('sessions')) {
+          const s = db.createObjectStore('sessions', { keyPath: 'id' })
+          s.createIndex('updatedAt', 'updatedAt')
+        }
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv')
+      }
+      r.onsuccess = () => res(r.result)
+      r.onerror = () => rej(r.error)
+    })
+  const db = await openDb()
+  const now = Date.now()
+  const session = {
+    id: 'demo-reasoning',
+    title: '思维链演示',
+    storage: 'local',
+    model: 'deepseek-reasoner',
+    createdAt: now - 60000,
+    updatedAt: now,
+    messages: [
+      { id: 'm1', role: 'user', content: '天空为什么是蓝色的？', createdAt: now - 5000 },
+      {
+        id: 'm2',
+        role: 'assistant',
+        content:
+          '因为大气里的分子对短波长光的散射更强（**瑞利散射**），蓝光被散射到各个方向的概率比红光高得多。\n\n所以白天抬头，进到眼睛里的散射光以蓝光为主。',
+        createdAt: now,
+        reasoning:
+          '先确定现象：白天天空偏蓝，日落偏红。\n再想机制：瑞利散射强度与波长的四次方成反比，蓝光波长更短，散射更强。\n还要解释日落：路径变长，蓝光被散射殆尽，剩下红橙光。\n最后组织语言，先给结论再给原因。',
+        reasoningMs: 3200,
+        model: 'deepseek-reasoner',
+      },
+    ],
+  }
+  await new Promise((res, rej) => {
+    const t = db.transaction('sessions', 'readwrite')
+    const rq = t.objectStore('sessions').put(session)
+    rq.onsuccess = () => res()
+    rq.onerror = () => rej(rq.error)
+  })
+})
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForSelector('.composer', { timeout: 15000 })
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(450)
+await page.getByText('思维链演示').first().click()
+await page.waitForSelector('.thinking-head', { timeout: 8000 })
+await page.screenshot({ path: `${OUT}/19-reasoning-web.png` })
+console.log('✓ 思维链（网页版）已渲染')
+
+// 展开看内容
+await page.locator('.thinking-head').click()
+await page.waitForSelector('.thinking-body', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/20-reasoning-web-open.png` })
+console.log('✓ 网页版展开思维链正文')
+
+// 换成 DSH 风格
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(400)
+await page.locator('.drawer-foot').click()
+await page.waitForSelector('.settings-dialog', { timeout: 8000 })
+await page.getByRole('button', { name: '管理模型', exact: true }).click()
+await page.waitForSelector('.radio-list', { timeout: 5000 })
+await page.getByText('2 号：仿 DSH').click()
+await page.screenshot({ path: `${OUT}/21-reasoning-setting.png` })
+await page.locator('.settings-close').click()
+await page.waitForTimeout(400)
+await page.waitForSelector('.thinking-dsh', { timeout: 8000 })
+await page.screenshot({ path: `${OUT}/22-reasoning-dsh.png` })
+console.log('✓ 思维链（DSH 风格）已渲染')
+
+await page.locator('.dsh-head').click()
+await page.waitForSelector('.dsh-body', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/23-reasoning-dsh-open.png` })
+console.log('✓ DSH 风格展开思维链正文')
+
 await browser.close()
 
 // 桌面尺寸下的设置弹窗（两栏布局）

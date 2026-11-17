@@ -312,6 +312,55 @@ function ModelsSection({
       </section>
 
       <section className="card">
+        <h3>思维链展示</h3>
+        <label className="switch-row">
+          <span>开启思维链展示</span>
+          <input
+            type="checkbox"
+            checked={settings.reasoningDisplay !== 'off'}
+            onChange={(e) => patch({ reasoningDisplay: e.target.checked ? 'web' : 'off' })}
+          />
+        </label>
+        <p className="muted small">
+          仅对推理模型（DeepSeek R1 等返回 reasoning_content 的模型）有效。
+        </p>
+
+        {settings.reasoningDisplay !== 'off' && (
+          <div className="radio-list">
+            <label className="radio-row">
+              <input
+                type="radio"
+                name="reasoning-style"
+                checked={settings.reasoningDisplay === 'web'}
+                onChange={() => patch({ reasoningDisplay: 'web' })}
+              />
+              <span className="radio-main">
+                <span className="radio-title">1 号：仿 DeepSeek 网页版</span>
+                <span className="radio-desc">
+                  折叠条「已深度思考（用时 X 秒）」；思考时自动展开，正文出现后自动收起，可点开回看
+                </span>
+              </span>
+            </label>
+
+            <label className="radio-row">
+              <input
+                type="radio"
+                name="reasoning-style"
+                checked={settings.reasoningDisplay === 'dsh'}
+                onChange={() => patch({ reasoningDisplay: 'dsh' })}
+              />
+              <span className="radio-main">
+                <span className="radio-title">2 号：仿 DSH</span>
+                <span className="radio-desc">
+                  紧凑的「思考过程」小折叠块，默认收起，带耗时标记
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+      </section>
+
+      <section className="card">
         <h3>添加自定义模型</h3>
         <p className="muted small">填模型 id（跟 API 里一致），添加后即可选用。</p>
         <div className="row">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { streamChat, uploadFile } from '../api'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
+import Reasoning from './Reasoning'
 import type { Attachment, Message, Session, Settings } from '../types'
 import { newId } from '../types'
 
@@ -37,6 +38,8 @@ export default function ChatScreen({
   const reasonRef = useRef('')
   const rafRef = useRef<number | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const startAtRef = useRef(0)
+  const firstContentAtRef = useRef(0)
   const listRef = useRef<HTMLDivElement | null>(null)
   const sessionRef = useRef(session)
   sessionRef.current = session
@@ -169,6 +172,8 @@ export default function ChatScreen({
     setBusy(true)
     accRef.current = ''
     reasonRef.current = ''
+    startAtRef.current = Date.now()
+    firstContentAtRef.current = 0
     setStreamText('')
     setReasonText('')
     persist(next)
@@ -182,8 +187,12 @@ export default function ChatScreen({
       { ...settings, model: session.model || settings.model },
       {
         onDelta: (chunk, kind) => {
-          if (kind === 'content') accRef.current += chunk
-          else reasonRef.current += chunk
+          if (kind === 'content') {
+            if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
+            accRef.current += chunk
+          } else {
+            reasonRef.current += chunk
+          }
           scheduleFlush()
         },
         onDone: () => {},
@@ -201,6 +210,11 @@ export default function ChatScreen({
 
     const acc = accRef.current
     const reasons = reasonRef.current
+    const startedAt = startAtRef.current
+    const firstContentAt = firstContentAtRef.current
+    const reasoningMs = reasons
+      ? (firstContentAt || Date.now()) - (startedAt || Date.now())
+      : 0
     accRef.current = ''
     reasonRef.current = ''
     setStreamText('')
@@ -219,14 +233,11 @@ export default function ChatScreen({
       : {
           id: newId(),
           role: 'assistant',
-          content: reasons
-            ? `> 思考过程\n\n${reasons
-                .split('\n')
-                .map((l) => `> ${l}`)
-                .join('\n')}\n\n${acc}`
-            : acc,
+          content: acc,
           createdAt: Date.now(),
           model: session.model,
+          reasoning: reasons || undefined,
+          reasoningMs: reasons ? reasoningMs : undefined,
         }
 
     const withReply = [...next, assistant]
@@ -297,14 +308,23 @@ export default function ChatScreen({
             </button>
           )}
           {shown.map((m) => (
-            <MessageRow key={m.id} msg={m} />
+            <MessageRow key={m.id} msg={m} reasoningMode={settings.reasoningDisplay} />
           ))}
 
           {(busy || streamText || reasonText) && (
             <div className="msg assistant">
               <div className="msg-role">DeepSeek</div>
               <div className="msg-body">
-                {reasonText && <pre className="reasoning">{reasonText}</pre>}
+                {settings.reasoningDisplay !== 'off' && reasonText && (
+                  <Reasoning
+                    key={settings.reasoningDisplay}
+                    reasoning={reasonText}
+                    mode={settings.reasoningDisplay}
+                    streaming={busy}
+                    hasContent={!!streamText}
+                    durationMs={Date.now() - startAtRef.current}
+                  />
+                )}
                 {streamText ? (
                   <div className="streaming-text">{streamText}</div>
                 ) : (
@@ -346,7 +366,13 @@ export default function ChatScreen({
   )
 }
 
-function MessageRow({ msg }: { msg: Message }) {
+function MessageRow({
+  msg,
+  reasoningMode,
+}: {
+  msg: Message
+  reasoningMode: 'off' | 'web' | 'dsh'
+}) {
   if (msg.role === 'user') {
     return (
       <div className="msg user">
@@ -358,6 +384,14 @@ function MessageRow({ msg }: { msg: Message }) {
     <div className={`msg assistant${msg.error ? ' error' : ''}`}>
       <div className="msg-role">DeepSeek</div>
       <div className="msg-body">
+        {msg.reasoning && reasoningMode !== 'off' && (
+          <Reasoning
+            key={reasoningMode}
+            reasoning={msg.reasoning}
+            mode={reasoningMode}
+            durationMs={msg.reasoningMs}
+          />
+        )}
         <Markdown text={msg.content} />
       </div>
     </div>
