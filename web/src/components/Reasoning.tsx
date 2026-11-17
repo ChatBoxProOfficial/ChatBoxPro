@@ -79,7 +79,9 @@ export default function Reasoning({
         <span className="thinking-label">
           {streaming && !hasContent
             ? '思考中…'
-            : `已深度思考（用时 ${secs(durationMs)} 秒）`}
+            : durationMs
+              ? `已深度思考（用时 ${secs(durationMs)} 秒）`
+              : '已深度思考'}
         </span>
         <span className={`thinking-chev${open ? ' open' : ''}`}>›</span>
       </button>

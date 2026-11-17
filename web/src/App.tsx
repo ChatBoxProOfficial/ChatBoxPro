@@ -5,7 +5,14 @@ import Sidebar from './components/Sidebar'
 import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadConversation } from './exportFile'
-import { DEFAULT_SETTINGS, newId, normalizeModelId, type Session, type Settings } from './types'
+import {
+  DEFAULT_SETTINGS,
+  newId,
+  normalizeModelId,
+  type Message,
+  type Session,
+  type Settings,
+} from './types'
 
 const SETTINGS_KEY = 'settings'
 
@@ -37,6 +44,26 @@ function migrateSettings(saved: Partial<Settings>): Settings {
     merged.enabledModels = Array.from(new Set([merged.model, ...merged.enabledModels]))
   }
   return merged
+}
+
+/**
+ * 老版本把思维链拼进了正文（`> 思考过程` 引用块）。
+ * 读到这种历史消息时拆回 reasoning + content，新界面才能按当前风格渲染。
+ */
+function migrateMessages(msgs: Message[]): { messages: Message[]; changed: boolean } {
+  let changed = false
+  const out = msgs.map((m) => {
+    if (m.role !== 'assistant' || m.reasoning) return m
+    const hit = /^>\s*思考过程\s*\n\n([\s\S]*?)\n\n([\s\S]*)$/.exec(m.content)
+    if (!hit) return m
+    changed = true
+    const reasoning = hit[1]
+      .split('\n')
+      .map((l) => l.replace(/^>\s?/, ''))
+      .join('\n')
+    return { ...m, reasoning, content: hit[2] }
+  })
+  return { messages: out, changed }
 }
 
 export default function App() {
@@ -80,6 +107,11 @@ export default function App() {
     if (!s) return
     if (!Array.isArray(s.messages)) s.messages = []
     s.model = normalizeModelId(s.model)
+    const migrated = migrateMessages(s.messages)
+    if (migrated.changed) {
+      s.messages = migrated.messages
+      void db.putSession(s)
+    }
     setCurrent(s)
     setSidebarOpen(false)
     setShowSettings(false)
