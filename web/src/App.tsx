@@ -117,11 +117,15 @@ export default function App() {
     setShowSettings(false)
   }, [])
 
-  const newConversation = useCallback(() => {
-    setCurrent(draftSession(settings.model))
+  const newConversation = useCallback(async () => {
+    // 点「建立一个新的对话」就立刻落库，而不是等发送第一条消息
+    const s = draftSession(settings.model)
+    await db.putSession(s)
+    await refresh()
+    setCurrent(s)
     setSidebarOpen(false)
     setShowSettings(false)
-  }, [settings.model])
+  }, [settings.model, refresh])
 
   const persistSession = useCallback(
     (s: Session) => {
@@ -170,7 +174,7 @@ export default function App() {
         sessions={sessions}
         currentId={current?.id ?? null}
         userName={settings.userName}
-        onNewConversation={newConversation}
+        onNewConversation={() => void newConversation()}
         onOpenSession={(id) => void openSession(id)}
         onDeleteSession={(id) => void removeSession(id)}
         onOpenSettings={() => {
