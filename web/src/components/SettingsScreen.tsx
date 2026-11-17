@@ -329,10 +329,13 @@ function ModelsSection({
             <select
               value={settings.reasoningEffort}
               onChange={(e) =>
-                patch({ reasoningEffort: e.target.value as 'low' | 'high' | 'max' })
+                patch({
+                  reasoningEffort: e.target.value as 'off' | 'low' | 'high' | 'max',
+                })
               }
             >
-              <option value="low">low — 最快最省</option>
+              <option value="off">off — 关闭思考（最快最省）</option>
+              <option value="low">low — 轻量思考</option>
               <option value="high">high — 默认</option>
               <option value="max">max — 最难的任务</option>
             </select>

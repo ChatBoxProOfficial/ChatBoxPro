@@ -298,18 +298,22 @@ body {
 }
 
 /* ------------------------------ 输入栏 ------------------------------ */
+/* 悬浮的圆角方块：不再铺满底部，四周留出空隙 */
 .composer {
+  position: relative;
   flex: 0 0 auto;
-  background: var(--bg-2);
-  border-top: 1px solid var(--line);
-  padding: 8px 10px calc(env(safe-area-inset-bottom) + 10px);
+  background: transparent;
+  padding: 6px 12px calc(env(safe-area-inset-bottom) + 12px);
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .attach-tray {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 0 2px 8px;
+  padding: 0 6px 8px;
 }
 
 .attach-chip {
@@ -356,8 +360,15 @@ body {
   gap: 6px;
   background: var(--bg-3);
   border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 5px 6px 5px 8px;
+  border-radius: 20px;
+  padding: 6px 7px 6px 9px;
+  box-shadow: 0 8px 24px #00000055;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.composer-bar:focus-within {
+  border-color: #3f6fbf;
+  box-shadow: 0 8px 26px #00000066, 0 0 0 3px #4a8cff22;
 }
 
 .tool-btn {
@@ -395,7 +406,7 @@ body {
   color: var(--fg);
   font: inherit;
   line-height: 1.45;
-  padding: 6px 2px;
+  padding: 7px 2px;
   max-height: 132px;
   min-height: 32px;
   field-sizing: content;
@@ -419,21 +430,23 @@ body {
   border: none;
   color: var(--fg-dim);
   font-size: 12.5px;
-  padding: 0 4px;
+  padding: 0 6px;
   height: 32px;
   border-radius: 10px;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.model-chip:active {
+.model-chip:hover,
+.model-chip.open {
   background: var(--bg-4);
+  color: var(--fg);
 }
 
 .caret {
   font-size: 9px;
   opacity: 0.75;
-  margin-left: 2px;
+  margin-left: 3px;
 }
 
 .pop-mask {
@@ -442,35 +455,108 @@ body {
   z-index: 40;
 }
 
-.pop-menu {
+/* 模型 + 思考强度 面板 */
+.model-pop {
   position: absolute;
   right: 0;
-  bottom: 42px;
+  bottom: 46px;
+  width: 302px;
   background: var(--bg-2);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 4px;
-  min-width: 150px;
-  box-shadow: 0 10px 30px #000a;
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 18px 48px #000c;
   z-index: 41;
 }
 
+.pop-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--fg-dim);
+  padding: 4px 8px 6px;
+  letter-spacing: 0.3px;
+}
+
+.effort-value {
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.effort-value.off {
+  color: var(--fg-dim);
+  font-weight: 400;
+}
+
 .pop-item {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
   color: var(--fg);
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 9px 10px;
+  border-radius: 9px;
   font-size: 13px;
   cursor: pointer;
 }
 
-.pop-item:hover,
+.pop-item:hover {
+  background: var(--bg-3);
+}
+
 .pop-item.active {
   background: var(--bg-3);
+}
+
+.pop-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-tick {
+  color: var(--accent);
+  font-size: 12px;
+  flex: 0 0 auto;
+}
+
+.pop-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 6px 2px;
+}
+
+.effort-slider {
+  padding: 2px 10px 6px;
+}
+
+.effort-slider input[type='range'] {
+  width: 100%;
+  margin: 6px 0 2px;
+  accent-color: var(--accent);
+}
+
+.effort-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #6b7481;
+  margin-top: 2px;
+}
+
+.effort-tick.on {
+  color: #9fb4d6;
+}
+
+.effort-tick.active {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .send-circle {

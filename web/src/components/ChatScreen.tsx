@@ -12,6 +12,7 @@ interface Props {
   onPersist: (s: Session) => void
   onOpenSidebar: () => void
   onExport: (s: Session) => void
+  onSettingsChange: (p: Partial<Settings>) => void
 }
 
 const INITIAL_WINDOW = 30
@@ -22,6 +23,7 @@ export default function ChatScreen({
   onPersist,
   onOpenSidebar,
   onExport,
+  onSettingsChange,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(session.messages)
   const [visibleCount, setVisibleCount] = useState(() =>
@@ -357,6 +359,8 @@ export default function ChatScreen({
         model={session.model || settings.model}
         models={settings.enabledModels.length ? settings.enabledModels : [settings.model]}
         onModelChange={(m) => persist(messages, { model: m })}
+        effort={settings.reasoningEffort}
+        onEffortChange={(e) => onSettingsChange({ reasoningEffort: e })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}

@@ -187,6 +187,7 @@ export default function App() {
           onPersist={persistSession}
           onOpenSidebar={() => setSidebarOpen(true)}
           onExport={(s) => downloadConversation(s)}
+          onSettingsChange={(p) => saveSettings({ ...settings, ...p })}
         />
       )}
 

@@ -64,8 +64,8 @@ export interface Settings {
   dshUrl: string
   /** 思维链展示方式：off 关闭 / web 仿网页版 / dsh 仿 DSH */
   reasoningDisplay: 'off' | 'web' | 'dsh'
-  /** 思考强度：low / high / max（思考模式开启时有效） */
-  reasoningEffort: 'low' | 'high' | 'max'
+  /** 思考强度：off 关闭思考 / low / high / max */
+  reasoningEffort: 'off' | 'low' | 'high' | 'max'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -83,11 +83,22 @@ export const DEFAULT_SETTINGS: Settings = {
   reasoningEffort: 'high',
 }
 
-/** 当前 DeepSeek API 提供的模型（2026-11） */
+/** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */
 export const MODELS = [
-  { id: 'deepseek-flash', label: 'DeepSeek-V4.1 Flash' },
-  { id: 'deepseek-v4-pro', label: 'DeepSeek-V4 Pro' },
+  {
+    id: 'deepseek-flash',
+    label: 'DeepSeek-V4.1 Flash',
+    full: 'DeepSeek-V4.1-Flash-1017',
+  },
+  { id: 'deepseek-v4-pro', label: 'DeepSeek-V4 Pro', full: 'DeepSeek-V4-Pro-0813' },
 ]
+
+/** 思考强度档位（与官方一致：off / low / high / max） */
+export const EFFORTS = ['off', 'low', 'high', 'max'] as const
+
+export function modelFullName(id: string): string {
+  return MODELS.find((m) => m.id === id)?.full ?? id
+}
 
 /** 旧模型名 → 新模型名（历史会话/旧配置迁移用） */
 const LEGACY: Record<string, string> = {

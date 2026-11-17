@@ -98,9 +98,9 @@ export async function streamChat(
         // 明确告诉服务端要不要思考：不传的话默认是开启的，
         // 关掉显示时顺手关掉思考，省 token
         thinking: {
-          type: settings.reasoningDisplay === 'off' ? 'disabled' : 'enabled',
+          type: settings.reasoningEffort === 'off' ? 'disabled' : 'enabled',
         },
-        ...(settings.reasoningDisplay === 'off'
+        ...(settings.reasoningEffort === 'off'
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
       }),

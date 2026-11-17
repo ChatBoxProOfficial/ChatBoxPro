@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { modelLabel, type Attachment } from '../types'
+import { EFFORTS, modelFullName, modelLabel, type Attachment, type Settings } from '../types'
+
+type Effort = Settings['reasoningEffort']
 
 interface Props {
   value: string
@@ -10,6 +12,8 @@ interface Props {
   model: string
   models: string[]
   onModelChange: (m: string) => void
+  effort: Effort
+  onEffortChange: (e: Effort) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
   onRemoveAttachment: (id: string) => void
@@ -22,6 +26,13 @@ function humanSize(n: number): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`
 }
 
+const EFFORT_TEXT: Record<Effort, string> = {
+  off: '关闭思考',
+  low: '低',
+  high: '高',
+  max: '最高',
+}
+
 export default function Composer({
   value,
   onChange,
@@ -31,6 +42,8 @@ export default function Composer({
   model,
   models,
   onModelChange,
+  effort,
+  onEffortChange,
   attachments,
   onPickFiles,
   onRemoveAttachment,
@@ -38,9 +51,10 @@ export default function Composer({
 }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null)
   const [collapsed, setCollapsed] = useState(false)
-  const [modelOpen, setModelOpen] = useState(false)
+  const [popOpen, setPopOpen] = useState(false)
 
   const canSend = !!value.trim() || attachments.length > 0
+  const effortIndex = Math.max(0, EFFORTS.indexOf(effort))
 
   return (
     <div className={`composer${collapsed ? ' collapsed' : ''}`}>
@@ -119,29 +133,62 @@ export default function Composer({
 
         <div className="model-wrap">
           <button
-            className="model-chip"
-            onClick={() => setModelOpen((v) => !v)}
-            title="切换模型"
+            className={`model-chip${popOpen ? ' open' : ''}`}
+            onClick={() => setPopOpen((v) => !v)}
+            title="模型与思考强度"
           >
             {modelLabel(model)}
             <span className="caret">▾</span>
           </button>
-          {modelOpen && (
+
+          {popOpen && (
             <>
-              <div className="pop-mask" onClick={() => setModelOpen(false)} />
-              <div className="pop-menu">
+              <div className="pop-mask" onClick={() => setPopOpen(false)} />
+              <div className="model-pop" role="dialog">
+                <div className="pop-label">模型</div>
                 {models.map((m) => (
                   <button
                     key={m}
                     className={`pop-item${m === model ? ' active' : ''}`}
-                    onClick={() => {
-                      onModelChange(m)
-                      setModelOpen(false)
-                    }}
+                    onClick={() => onModelChange(m)}
                   >
-                    {modelLabel(m)}
+                    <span className="pop-item-name">{modelFullName(m)}</span>
+                    {m === model && <span className="pop-tick">✓</span>}
                   </button>
                 ))}
+
+                <div className="pop-divider" />
+
+                <div className="pop-label">
+                  思考强度
+                  <span className={`effort-value${effort === 'off' ? ' off' : ''}`}>
+                    {EFFORT_TEXT[effort]}
+                  </span>
+                </div>
+
+                <div className="effort-slider">
+                  <input
+                    type="range"
+                    min={0}
+                    max={EFFORTS.length - 1}
+                    step={1}
+                    value={effortIndex}
+                    onChange={(e) => onEffortChange(EFFORTS[Number(e.target.value)])}
+                    aria-label="思考强度"
+                  />
+                  <div className="effort-ticks">
+                    {EFFORTS.map((e, i) => (
+                      <span
+                        key={e}
+                        className={`effort-tick${i <= effortIndex ? ' on' : ''}${
+                          e === effort ? ' active' : ''
+                        }`}
+                      >
+                        {e}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </>
           )}
