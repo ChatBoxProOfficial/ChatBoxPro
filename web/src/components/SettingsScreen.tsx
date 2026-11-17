@@ -123,6 +123,19 @@ export default function SettingsScreen({ settings, onSave, onBack, onWipe }: Pro
         </section>
 
         <section className="card">
+          <h3>账号</h3>
+          <p className="muted small">只用于侧边栏底部显示，不上传服务器。</p>
+          <label className="field">
+            <span>显示名称</span>
+            <input
+              value={draft.userName}
+              onChange={(e) => setDraft({ ...draft, userName: e.target.value })}
+              placeholder="我"
+            />
+          </label>
+        </section>
+
+        <section className="card">
           <h3>数据</h3>
           <p className="muted small">
             「仅本机」的会话只保存在这台设备的浏览器数据库里，换设备、清除数据都会丢失。

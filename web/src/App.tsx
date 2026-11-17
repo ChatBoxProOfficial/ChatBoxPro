@@ -1,20 +1,32 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import ChatScreen from './components/ChatScreen'
-import ListScreen from './components/ListScreen'
 import SettingsScreen from './components/SettingsScreen'
+import Sidebar from './components/Sidebar'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadConversation } from './exportFile'
 import { DEFAULT_SETTINGS, newId, type Session, type Settings } from './types'
 
-type View = 'list' | 'chat' | 'settings'
-
 const SETTINGS_KEY = 'settings'
 
+function draftSession(model: string): Session {
+  const now = Date.now()
+  return {
+    id: newId(),
+    title: '新对话',
+    storage: 'local',
+    model,
+    createdAt: now,
+    updatedAt: now,
+    messages: [],
+  }
+}
+
 export default function App() {
-  const [view, setView] = useState<View>('list')
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [current, setCurrent] = useState<Session | null>(null)
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [ready, setReady] = useState(false)
   const [initError, setInitError] = useState('')
 
@@ -24,7 +36,6 @@ export default function App() {
 
   useEffect(() => {
     void (async () => {
-      // 本地数据库打不开时（某些 WebView 会禁用 IndexedDB），不要一直转圈
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('本地存储初始化超时')), 6000),
       )
@@ -33,10 +44,13 @@ export default function App() {
           kvGet<Settings>(SETTINGS_KEY, DEFAULT_SETTINGS),
           timeout,
         ])
-        setSettings({ ...DEFAULT_SETTINGS, ...saved })
+        const merged = { ...DEFAULT_SETTINGS, ...saved }
+        setSettings(merged)
         await Promise.race([refresh(), timeout])
+        setCurrent(draftSession(merged.model))
       } catch (e) {
         setInitError((e as Error).message || '初始化失败')
+        setCurrent(draftSession(DEFAULT_SETTINGS.model))
       } finally {
         setReady(true)
       }
@@ -48,28 +62,15 @@ export default function App() {
     if (!s) return
     if (!Array.isArray(s.messages)) s.messages = []
     setCurrent(s)
-    setView('chat')
+    setSidebarOpen(false)
+    setShowSettings(false)
   }, [])
 
-  const createSession = useCallback(
-    async (storage: 'local' | 'server') => {
-      if (storage === 'server') return
-      const s: Session = {
-        id: newId(),
-        title: '新对话',
-        storage,
-        model: settings.model,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        messages: [],
-      }
-      await db.putSession(s)
-      await refresh()
-      setCurrent(s)
-      setView('chat')
-    },
-    [refresh, settings.model],
-  )
+  const newConversation = useCallback(() => {
+    setCurrent(draftSession(settings.model))
+    setSidebarOpen(false)
+    setShowSettings(false)
+  }, [settings.model])
 
   const persistSession = useCallback(
     (s: Session) => {
@@ -83,14 +84,10 @@ export default function App() {
     async (id: string) => {
       await db.deleteSession(id)
       await refresh()
+      if (current?.id === id) setCurrent(draftSession(settings.model))
     },
-    [refresh],
+    [refresh, current?.id, settings.model],
   )
-
-  const exportById = useCallback(async (id: string) => {
-    const s = (await db.getSession(id)) as Session | undefined
-    if (s) downloadConversation(s)
-  }, [])
 
   const saveSettings = useCallback((s: Settings) => {
     setSettings(s)
@@ -100,64 +97,13 @@ export default function App() {
   const wipe = useCallback(async () => {
     for (const s of await db.listSessions()) await db.deleteSession(s.id)
     await refresh()
-  }, [refresh])
+    setCurrent(draftSession(settings.model))
+  }, [refresh, settings.model])
 
-  const content = useMemo(() => {
-    if (!ready) return <div className="boot">加载中…</div>
-    if (view === 'chat' && current) {
-      return (
-        <ChatScreen
-          session={current}
-          settings={{ ...settings, model: current.model || settings.model }}
-          onPersist={persistSession}
-          onBack={() => {
-            setView('list')
-            void refresh()
-          }}
-          onOpenSettings={() => setView('settings')}
-          onExport={(s) => downloadConversation(s)}
-        />
-      )
-    }
-    if (view === 'settings') {
-      return (
-        <SettingsScreen
-          settings={settings}
-          onSave={saveSettings}
-          onBack={() => setView(current ? 'chat' : 'list')}
-          onWipe={wipe}
-        />
-      )
-    }
-    return (
-      <ListScreen
-        sessions={sessions}
-        onOpen={openSession}
-        onNew={createSession}
-        onDelete={removeSession}
-        onOpenSettings={() => setView('settings')}
-        onExport={exportById}
-        serverReady={false}
-      />
-    )
-  }, [
-    ready,
-    view,
-    current,
-    settings,
-    sessions,
-    persistSession,
-    saveSettings,
-    wipe,
-    openSession,
-    createSession,
-    removeSession,
-    exportById,
-    refresh,
-  ])
+  if (!ready) return <div className="boot">加载中…</div>
 
   return (
-    <div className="app">
+    <div className="app-shell">
       {initError && (
         <div className="banner">
           本地存储不可用：{initError}
@@ -167,7 +113,39 @@ export default function App() {
           </span>
         </div>
       )}
-      {content}
+
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        sessions={sessions}
+        currentId={current?.id ?? null}
+        userName={settings.userName}
+        onNewConversation={newConversation}
+        onOpenSession={(id) => void openSession(id)}
+        onDeleteSession={(id) => void removeSession(id)}
+        onOpenSettings={() => {
+          setSidebarOpen(false)
+          setShowSettings(true)
+        }}
+      />
+
+      {showSettings ? (
+        <SettingsScreen
+          settings={settings}
+          onSave={saveSettings}
+          onBack={() => setShowSettings(false)}
+          onWipe={() => void wipe()}
+        />
+      ) : current ? (
+        <ChatScreen
+          key={current.id}
+          session={current}
+          settings={settings}
+          onPersist={persistSession}
+          onOpenSidebar={() => setSidebarOpen(true)}
+          onExport={(s) => downloadConversation(s)}
+        />
+      ) : null}
     </div>
   )
 }

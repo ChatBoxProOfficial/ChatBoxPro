@@ -1,16 +1,16 @@
 /**
- * 用本机已安装的 Edge（channel: msedge）做无头验证：
- * 打开界面、走一遍主要流程、截图、收集控制台错误。
+ * 用本机 Edge（channel: msedge）做无头验证：主界面、侧边栏、发消息、设置。
  *
  * 运行：node scripts/verify.mjs
- * 前提：npm run build 之后，node server/index.mjs 已在 8787 端口运行。
+ * 前提：npm run build 之后，node server/index.mjs 已在 8787 运行。
  */
 import { chromium } from 'playwright'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 
 const BASE = process.env.VERIFY_URL || 'http://127.0.0.1:8787/'
 const OUT = 'shots'
 mkdirSync(OUT, { recursive: true })
+writeFileSync(`${OUT}/sample.txt`, '这是用于验证上传的文件\n')
 
 const errors = []
 const browser = await chromium.launch({ channel: 'msedge', headless: true })
@@ -25,42 +25,61 @@ const page = await ctx.newPage()
 page.on('console', (m) => {
   if (m.type() !== 'error') return
   const t = m.text()
-  // 可选的资源（打赏二维码还没放进去）不算问题
   if (/404/.test(t) && m.location()?.url?.includes('tip-qr')) return
   errors.push(t)
 })
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
 
 await page.goto(BASE, { waitUntil: 'networkidle' })
-await page.waitForSelector('.list-screen', { timeout: 15000 })
-await page.screenshot({ path: `${OUT}/01-list.png` })
-console.log('✓ 列表页渲染')
+await page.waitForSelector('.welcome', { timeout: 15000 })
+const greeting = await page.locator('.welcome-title').innerText()
+console.log('✓ 主界面：', greeting)
+await page.screenshot({ path: `${OUT}/10-home.png` })
 
-// 新建会话
-await page.getByRole('button', { name: /新对话（仅本机）/ }).click()
-await page.waitForSelector('.chat-screen', { timeout: 10000 })
-await page.screenshot({ path: `${OUT}/02-chat-empty.png` })
-console.log('✓ 进入对话页')
+// 侧边栏
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForSelector('.drawer.show', { timeout: 5000 })
+await page.waitForTimeout(450) // 等抽屉滑入动画结束再截图
+await page.screenshot({ path: `${OUT}/11-sidebar.png` })
+console.log('✓ 侧边栏打开')
 
-// 未填 key 时发送，应出现明确报错而不是沉默
-await page.fill('.composer textarea', '你好，测试一下')
+const hasNewConv = await page.getByRole('button', { name: /建立一个新的对话/ }).count()
+console.log('✓ 新建对话入口：', hasNewConv ? '有' : '缺失')
+
+const foot = await page.locator('.drawer-foot').innerText()
+console.log('✓ 底部账号：', foot.replace(/\n/g, ' / '))
+
+// 关侧边栏，测附件上传
+await page.locator('.drawer-mask').click({ position: { x: 360, y: 400 } })
+await page.waitForTimeout(300)
+await page.setInputFiles('input[type=file]', `${OUT}/sample.txt`)
+await page.waitForTimeout(1200)
+const chip = await page.locator('.attach-chip').count()
+console.log('✓ 附件上传：', chip ? '成功显示 chip' : '没有 chip')
+await page.screenshot({ path: `${OUT}/12-attach.png` })
+
+// 输入并发送（没填 key，应给出明确提示）
+await page.fill('.composer-input', '你好，测试一下新界面')
 await page.getByRole('button', { name: '发送' }).click()
-await page.waitForSelector('.msg.assistant', { timeout: 10000 })
+await page.waitForSelector('.msg.assistant', { timeout: 12000 })
 const errText = await page.locator('.msg.assistant').last().innerText()
-console.log('✓ 无 Key 时的提示：', errText.slice(0, 60).replace(/\n/g, ' '))
-await page.screenshot({ path: `${OUT}/03-chat-nokey.png` })
+console.log('✓ 无 Key 提示：', errText.replace(/\n/g, ' ').slice(0, 40))
+await page.screenshot({ path: `${OUT}/13-chat.png` })
 
-// 设置页
-await page.getByRole('button', { name: '设置' }).click()
-await page.waitForSelector('.settings-screen', { timeout: 10000 })
-await page.screenshot({ path: `${OUT}/04-settings.png`, fullPage: true })
-console.log('✓ 设置页渲染')
+// 模型菜单
+await page.locator('.model-chip').click()
+await page.waitForSelector('.pop-menu', { timeout: 5000 })
+await page.screenshot({ path: `${OUT}/14-model.png` })
+console.log('✓ 模型菜单弹出')
+await page.locator('.pop-mask').click({ position: { x: 10, y: 10 } })
 
-// 投喂弹窗
-await page.getByRole('button', { name: '支持一下' }).click()
-await page.waitForSelector('.modal', { timeout: 5000 })
-await page.screenshot({ path: `${OUT}/05-tip.png` })
-console.log('✓ 投喂弹窗渲染')
+// 设置（从侧边栏底部）
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(400)
+await page.locator('.drawer-foot').click()
+await page.waitForSelector('.settings-screen', { timeout: 8000 })
+await page.screenshot({ path: `${OUT}/15-settings.png`, fullPage: true })
+console.log('✓ 设置页打开')
 
 await browser.close()
 

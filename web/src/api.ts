@@ -1,5 +1,38 @@
 import { loadApiKey } from './secureStore'
-import type { Message, Settings } from './types'
+import type { Attachment, Message, Settings } from './types'
+
+/**
+ * 上传附件到服务器 inbox（DSH 那边的「手机文件进工作区」就走这条）。
+ * 用原始字节 + query 里的文件名，服务端不用解析 multipart。
+ */
+export async function uploadFile(
+  file: File,
+  baseUrl: string,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<Pick<Attachment, 'stored' | 'path' | 'size'>> {
+  const url = `${baseUrl}/upload?name=${encodeURIComponent(file.name)}`
+  const buf = await file.arrayBuffer()
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/octet-stream' },
+    body: buf,
+  })
+  onProgress?.(buf.byteLength, buf.byteLength)
+
+  if (!resp.ok) {
+    let msg = `上传失败（${resp.status}）`
+    try {
+      const j = await resp.json()
+      msg = j?.error?.message || msg
+    } catch {
+      /* 保持默认 */
+    }
+    throw new Error(msg)
+  }
+  const j = await resp.json()
+  return { stored: j.stored, path: j.path, size: j.size }
+}
 
 export interface StreamHandlers {
   onDelta: (text: string, kind: 'content' | 'reasoning') => void

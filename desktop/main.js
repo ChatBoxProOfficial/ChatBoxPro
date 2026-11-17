@@ -51,6 +51,8 @@ async function startEmbeddedServer() {
   process.env.CHATBOX_DIST = dist
   process.env.PORT = String(PORT)
   process.env.HOST = '127.0.0.1'
+  // 附件落到用户数据目录，安装目录可能不可写
+  process.env.CHATBOX_INBOX = path.join(app.getPath('userData'), 'inbox')
   await import(pathToFileURL(entry).href)
   embeddedServer = true
   // 等端口真正可连

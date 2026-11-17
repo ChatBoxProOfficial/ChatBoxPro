@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { streamChat } from '../api'
+import { streamChat, uploadFile } from '../api'
 import { Markdown } from './Markdown'
-import type { Message, Session, Settings } from '../types'
+import Composer from './Composer'
+import type { Attachment, Message, Session, Settings } from '../types'
 import { newId } from '../types'
 
 interface Props {
   session: Session
   settings: Settings
   onPersist: (s: Session) => void
-  onBack: () => void
-  onOpenSettings: () => void
+  onOpenSidebar: () => void
   onExport: (s: Session) => void
 }
 
@@ -19,8 +19,7 @@ export default function ChatScreen({
   session,
   settings,
   onPersist,
-  onBack,
-  onOpenSettings,
+  onOpenSidebar,
   onExport,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(session.messages)
@@ -28,6 +27,7 @@ export default function ChatScreen({
     Math.min(INITIAL_WINDOW, Math.max(session.messages.length, 1)),
   )
   const [input, setInput] = useState('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [busy, setBusy] = useState(false)
   const [streamText, setStreamText] = useState('')
   const [reasonText, setReasonText] = useState('')
@@ -41,16 +41,19 @@ export default function ChatScreen({
   const sessionRef = useRef(session)
   sessionRef.current = session
 
-  // 每一条发生变化的会话都写回存储
+  const isEmpty = messages.length === 0
+
   const persist = useCallback(
     (msgs: Message[], extra?: Partial<Session>) => {
       const base = sessionRef.current
       const firstUser = msgs.find((m) => m.role === 'user' && m.content.trim())
+      // 标题只用正文，不要把自动追加的附件清单也算进去
+      const titleSource = firstUser ? firstUser.content.split('\n\n[附件]')[0].trim() : ''
       const title =
         base.title && base.title !== '新对话'
           ? base.title
-          : firstUser
-            ? firstUser.content.trim().slice(0, 24)
+          : titleSource
+            ? titleSource.slice(0, 24)
             : '新对话'
       const next: Session = {
         ...base,
@@ -65,7 +68,7 @@ export default function ChatScreen({
     [onPersist],
   )
 
-  /** 把流式增量按帧合批，避免每个 token 触发一次 React 渲染 */
+  /** 流式增量按帧合批，避免每 token 一次 React 渲染 */
   const scheduleFlush = useCallback(() => {
     if (rafRef.current !== null) return
     rafRef.current = requestAnimationFrame(() => {
@@ -91,35 +94,74 @@ export default function ChatScreen({
 
   useLayoutEffect(() => {
     if (atBottom) scrollToBottom(false)
-    // 仅在消息数量变化时跟随
   }, [messages.length, streamText.length, atBottom, scrollToBottom])
 
   const onScroll = useCallback(() => {
     const el = listRef.current
     if (!el) return
-    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 80
-    setAtBottom(near)
+    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
     if (el.scrollTop < 40 && visibleCount < messages.length) {
-      // 顶部回补历史
-      const next = Math.min(visibleCount + 30, messages.length)
       const prevHeight = el.scrollHeight
-      setVisibleCount(next)
+      setVisibleCount((c) => Math.min(c + 30, messages.length))
       requestAnimationFrame(() => {
         el.scrollTop = el.scrollHeight - prevHeight + el.scrollTop
       })
     }
   }, [visibleCount, messages.length])
 
+  const pickFiles = useCallback(
+    async (files: FileList) => {
+      const base = settings.baseUrl
+      for (const file of Array.from(files)) {
+        const id = newId()
+        const item: Attachment = {
+          id,
+          name: file.name,
+          size: file.size,
+          uploading: true,
+        }
+        setAttachments((prev) => [...prev, item])
+        try {
+          const res = await uploadFile(file, base)
+          setAttachments((prev) =>
+            prev.map((a) => (a.id === id ? { ...a, ...res, uploading: false } : a)),
+          )
+        } catch (e) {
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a.id === id ? { ...a, uploading: false, error: (e as Error).message } : a,
+            ),
+          )
+        }
+      }
+    },
+    [settings.baseUrl],
+  )
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id))
+  }, [])
+
   const send = useCallback(async () => {
     const text = input.trim()
-    if (!text || busy) return
-    setInput('')
+    if ((!text && attachments.length === 0) || busy) return
+
+    const ready = attachments.filter((a) => !a.uploading && !a.error)
+    const attachmentNote = ready.length
+      ? `\n\n[附件]\n${ready.map((a) => `- ${a.name}${a.stored ? `（inbox: ${a.stored}）` : ''}`).join('\n')}`
+      : ''
+
     const userMsg: Message = {
       id: newId(),
       role: 'user',
-      content: text,
+      content: text + attachmentNote,
       createdAt: Date.now(),
+      attachments: ready.length ? ready : undefined,
     }
+
+    setInput('')
+    setAttachments([])
+
     const next = [...messages, userMsg]
     setMessages(next)
     setVisibleCount((c) => Math.min(Math.max(c + 1, 1), next.length))
@@ -137,7 +179,7 @@ export default function ChatScreen({
 
     await streamChat(
       next,
-      { ...settings },
+      { ...settings, model: session.model || settings.model },
       {
         onDelta: (chunk, kind) => {
           if (kind === 'content') accRef.current += chunk
@@ -167,34 +209,26 @@ export default function ChatScreen({
     abortRef.current = null
 
     const assistant: Message = failed
-      ? {
-          id: newId(),
-          role: 'assistant',
-          content: failed,
-          createdAt: Date.now(),
-          error: true,
-        }
+      ? { id: newId(), role: 'assistant', content: failed, createdAt: Date.now(), error: true }
       : {
           id: newId(),
           role: 'assistant',
-          content: acc,
+          content: reasons
+            ? `> 思考过程\n\n${reasons
+                .split('\n')
+                .map((l) => `> ${l}`)
+                .join('\n')}\n\n${acc}`
+            : acc,
           createdAt: Date.now(),
-          model: settings.model,
+          model: session.model,
         }
-
-    if (reasons && !failed) {
-      assistant.content = `> 思考过程\n\n${reasons
-        .split('\n')
-        .map((l) => `> ${l}`)
-        .join('\n')}\n\n${acc}`
-    }
 
     const withReply = [...next, assistant]
     setMessages(withReply)
     setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
     setAtBottom(true)
     persist(withReply)
-  }, [input, busy, messages, settings, persist, scheduleFlush])
+  }, [input, attachments, busy, messages, settings, session.model, persist, scheduleFlush])
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -207,87 +241,100 @@ export default function ChatScreen({
   return (
     <div className="screen chat-screen">
       <header className="topbar">
-        <button className="icon-btn" onClick={onBack} aria-label="返回">
-          ←
+        <button className="icon-btn" onClick={onOpenSidebar} aria-label="展开栏目" title="展开栏目">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path
+              d="M4 7h16M4 12h16M4 17h16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
         </button>
         <div className="topbar-title">
-          <div className="title-line">{session.title}</div>
-          <div className="sub-line">
-            {session.storage === 'local' ? '仅本机' : '云端同步'} · {settings.model}
-          </div>
+          <div className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</div>
+          {!isEmpty && <div className="sub-line">{session.model}</div>}
         </div>
-        <button className="icon-btn" onClick={() => onExport(sessionRef.current)} aria-label="导出">
-          ⤓
-        </button>
-        <button className="icon-btn" onClick={onOpenSettings} aria-label="设置">
-          ⚙
-        </button>
-      </header>
-
-      <div className="msg-list" ref={listRef} onScroll={onScroll}>
-        {start > 0 && (
+        {!isEmpty && (
           <button
-            className="load-more"
-            onClick={() => {
-              const el = listRef.current
-              const prev = el?.scrollHeight ?? 0
-              setVisibleCount((c) => Math.min(c + 30, messages.length))
-              requestAnimationFrame(() => {
-                if (el) el.scrollTop = el.scrollHeight - prev + el.scrollTop
-              })
-            }}
+            className="icon-btn"
+            onClick={() => onExport(sessionRef.current)}
+            aria-label="导出"
+            title="导出对话"
           >
-            上滚加载更早的 {start} 条
+            ⤓
           </button>
         )}
-        {shown.map((m) => (
-          <MessageRow key={m.id} msg={m} />
-        ))}
+      </header>
 
-        {(busy || streamText || reasonText) && (
-          <div className="msg assistant">
-            <div className="msg-role">DeepSeek</div>
-            <div className="msg-body">
-              {reasonText && <pre className="reasoning">{reasonText}</pre>}
-              {streamText ? (
-                <div className="streaming-text">{streamText}</div>
-              ) : (
-                !reasonText && <span className="cursor">▍</span>
-              )}
+      {isEmpty ? (
+        <div className="welcome">
+          <h1 className="welcome-title">您好，ChatBox Pro 欢迎您</h1>
+          <p className="welcome-sub">有什么可以帮你的？</p>
+        </div>
+      ) : (
+        <div className="msg-list" ref={listRef} onScroll={onScroll}>
+          {start > 0 && (
+            <button
+              className="load-more"
+              onClick={() => {
+                const el = listRef.current
+                const prev = el?.scrollHeight ?? 0
+                setVisibleCount((c) => Math.min(c + 30, messages.length))
+                requestAnimationFrame(() => {
+                  if (el) el.scrollTop = el.scrollHeight - prev + el.scrollTop
+                })
+              }}
+            >
+              上滚加载更早的 {start} 条
+            </button>
+          )}
+          {shown.map((m) => (
+            <MessageRow key={m.id} msg={m} />
+          ))}
+
+          {(busy || streamText || reasonText) && (
+            <div className="msg assistant">
+              <div className="msg-role">DeepSeek</div>
+              <div className="msg-body">
+                {reasonText && <pre className="reasoning">{reasonText}</pre>}
+                {streamText ? (
+                  <div className="streaming-text">{streamText}</div>
+                ) : (
+                  !reasonText && <span className="cursor">▍</span>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
-      {!atBottom && (
-        <button className="to-bottom" onClick={() => { setAtBottom(true); scrollToBottom(true) }}>
+      {!isEmpty && !atBottom && (
+        <button
+          className="to-bottom"
+          onClick={() => {
+            setAtBottom(true)
+            scrollToBottom(true)
+          }}
+        >
           ↓ 回到最新
         </button>
       )}
 
-      <div className="composer">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault()
-              void send()
-            }
-          }}
-          placeholder="发消息…（Enter 发送，Shift+Enter 换行）"
-          rows={1}
-        />
-        {busy ? (
-          <button className="send stop" onClick={stop}>
-            停止
-          </button>
-        ) : (
-          <button className="send" onClick={() => void send()} disabled={!input.trim()}>
-            发送
-          </button>
-        )}
-      </div>
+      <Composer
+        value={input}
+        onChange={setInput}
+        onSend={() => void send()}
+        onStop={stop}
+        busy={busy}
+        model={session.model || settings.model}
+        onModelChange={(m) => persist(messages, { model: m })}
+        attachments={attachments}
+        onPickFiles={(f) => void pickFiles(f)}
+        onRemoveAttachment={removeAttachment}
+        placeholder={isEmpty ? '问点什么…' : '发消息…'}
+      />
     </div>
   )
 }

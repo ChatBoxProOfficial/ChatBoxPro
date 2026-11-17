@@ -12,7 +12,7 @@
  */
 import http from 'node:http'
 import https from 'node:https'
-import { createReadStream, existsSync, statSync } from 'node:fs'
+import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,6 +25,10 @@ const DIST = process.env.CHATBOX_DIST
 const PORT = Number(process.env.PORT || 8787)
 const HOST = process.env.HOST || '0.0.0.0'
 const UPSTREAM = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
+// 上传文件的落地目录（桌面端会指到 userData/inbox，避免装到只读目录里）
+const INBOX = process.env.CHATBOX_INBOX
+  ? resolve(process.env.CHATBOX_INBOX)
+  : join(ROOT, 'inbox')
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -111,6 +115,53 @@ function upstreamRequest(pathname, { method, headers, body }) {
     if (body) req.write(body)
     req.end()
   })
+}
+
+/**
+ * 上传附件：请求体就是文件原始字节，文件名放 query 里。
+ * 比手写 multipart 解析可靠，客户端只发一次 ArrayBuffer。
+ */
+async function handleUpload(req, res) {
+  const url = new URL(req.url || '/', 'http://localhost')
+  const rawName = url.searchParams.get('name') || 'file'
+  const safe = rawName.replace(/[\\/:*?"<>|\r\n\t]/g, '_').replace(/^\.+/, '').slice(0, 120)
+
+  let body
+  try {
+    body = await readBody(req, 64 * 1024 * 1024) // 单文件上限 64 MB
+  } catch {
+    return send(res, 413, JSON.stringify({ error: { message: '文件太大（上限 64MB）' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+  if (!body.length) {
+    return send(res, 400, JSON.stringify({ error: { message: '空文件' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  try {
+    mkdirSync(INBOX, { recursive: true })
+    // 加时间戳前缀，避免同名覆盖
+    const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14)
+    const fileName = `${stamp}-${safe}`
+    const target = join(INBOX, fileName)
+    writeFileSync(target, body)
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(
+      JSON.stringify({
+        ok: true,
+        name: rawName,
+        stored: fileName,
+        path: target,
+        size: body.length,
+      }),
+    )
+  } catch (e) {
+    send(res, 500, JSON.stringify({ error: { message: `保存失败：${e.message}` } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
 }
 
 async function handleChat(req, res) {
@@ -204,6 +255,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)
+    return
+  }
+  if (url.pathname === '/api/upload') {
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed')
+    void handleUpload(req, res)
     return
   }
   if (url.pathname.startsWith('/api/')) return send(res, 404, 'no such api')

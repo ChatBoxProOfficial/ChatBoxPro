@@ -2,6 +2,7 @@
   --bg: #0f1113;
   --bg-2: #171a1e;
   --bg-3: #1f2329;
+  --bg-4: #262b32;
   --line: #2a2f36;
   --fg: #e8eaed;
   --fg-dim: #9aa3ad;
@@ -34,11 +35,19 @@ body {
   overscroll-behavior-y: none;
 }
 
-.app,
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
 .screen {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .boot {
@@ -57,12 +66,12 @@ body {
   flex: 0 0 auto;
 }
 
-/* ---------- 顶栏 ---------- */
+/* ------------------------------- 顶栏 ------------------------------- */
 .topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: calc(env(safe-area-inset-top) + 8px) 10px 8px;
+  gap: 6px;
+  padding: calc(env(safe-area-inset-top) + 8px) 8px 8px;
   background: var(--bg-2);
   border-bottom: 1px solid var(--line);
   flex: 0 0 auto;
@@ -84,115 +93,58 @@ body {
 .sub-line {
   font-size: 11px;
   color: var(--fg-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .icon-btn {
   background: transparent;
   border: none;
   color: var(--fg);
-  font-size: 18px;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
   cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
 }
 
 .icon-btn:active {
   background: var(--bg-3);
 }
 
-/* ---------- 会话列表 ---------- */
-.new-bar {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  flex: 0 0 auto;
-}
-
-.session-list {
+/* ------------------------------ 欢迎页 ------------------------------ */
+.welcome {
   flex: 1;
-  overflow-y: auto;
-  padding: 0 10px calc(env(safe-area-inset-bottom) + 12px);
-  -webkit-overflow-scrolling: touch;
-}
-
-.session-item {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: var(--bg-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  margin-bottom: 8px;
-  cursor: pointer;
-  /* 长列表性能：屏幕外的条目跳过布局与绘制 */
-  content-visibility: auto;
-  contain-intrinsic-size: 72px;
-}
-
-.session-item:active {
-  background: var(--bg-3);
-}
-
-.si-main {
-  flex: 1;
-  min-width: 0;
-}
-
-.si-title {
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.si-meta {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  font-size: 11px;
-  color: var(--fg-dim);
-  margin-top: 4px;
-}
-
-.tag {
-  padding: 1px 6px;
-  border-radius: 6px;
-  font-size: 10px;
-}
-
-.tag.local {
-  background: #23303f;
-  color: #7fb0e0;
-}
-
-.tag.server {
-  background: #1f3a2c;
-  color: #72c99a;
-}
-
-.si-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.empty {
+  justify-content: center;
+  padding: 24px;
   text-align: center;
-  padding: 60px 20px;
-  color: var(--fg-dim);
+  min-height: 0;
 }
 
-/* ---------- 消息区 ---------- */
+.welcome-title {
+  font-size: 23px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  letter-spacing: 0.2px;
+}
+
+.welcome-sub {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: 13.5px;
+}
+
+/* ------------------------------ 消息区 ------------------------------ */
 .msg-list {
   flex: 1;
   overflow-y: auto;
   padding: 12px 10px 8px;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  min-height: 0;
 }
 
 .load-more {
@@ -208,7 +160,6 @@ body {
 
 .msg {
   margin-bottom: 14px;
-  /* 关键：长会话里被滚出视口的消息不再参与布局/绘制 */
   content-visibility: auto;
   contain-intrinsic-size: auto 120px;
 }
@@ -273,15 +224,12 @@ body {
 .md > *:first-child {
   margin-top: 0;
 }
-
 .md > *:last-child {
   margin-bottom: 0;
 }
-
 .md p {
   margin: 0.5em 0;
 }
-
 .md pre {
   background: #0b0d0f;
   border: 1px solid var(--line);
@@ -291,38 +239,32 @@ body {
   font-size: 12.5px;
   line-height: 1.5;
 }
-
 .md code {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 0.92em;
 }
-
 .md :not(pre) > code {
   background: #23272d;
   padding: 1px 5px;
   border-radius: 5px;
 }
-
 .md ul,
 .md ol {
   padding-left: 1.3em;
   margin: 0.5em 0;
 }
-
 .md blockquote {
   margin: 0.5em 0;
   padding-left: 10px;
   border-left: 2px solid var(--line);
   color: var(--fg-dim);
 }
-
 .md table {
   border-collapse: collapse;
   font-size: 13px;
   display: block;
   overflow-x: auto;
 }
-
 .md th,
 .md td {
   border: 1px solid var(--line);
@@ -332,7 +274,7 @@ body {
 .to-bottom {
   position: absolute;
   right: 14px;
-  bottom: 96px;
+  bottom: 120px;
   background: var(--bg-3);
   border: 1px solid var(--line);
   color: var(--fg);
@@ -342,112 +284,417 @@ body {
   box-shadow: 0 4px 16px #0006;
 }
 
-/* ---------- 输入区 ---------- */
+/* ------------------------------ 输入栏 ------------------------------ */
 .composer {
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  padding: 8px 10px calc(env(safe-area-inset-bottom) + 8px);
+  flex: 0 0 auto;
   background: var(--bg-2);
   border-top: 1px solid var(--line);
-  flex: 0 0 auto;
+  padding: 8px 10px calc(env(safe-area-inset-bottom) + 10px);
 }
 
-.composer textarea {
-  flex: 1;
-  resize: none;
+.attach-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 2px 8px;
+}
+
+.attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--bg-3);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--fg);
-  padding: 9px 11px;
-  font: inherit;
-  max-height: 140px;
-  min-height: 40px;
-  field-sizing: content;
+  border-radius: 999px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+  max-width: 100%;
 }
 
-.composer textarea:focus {
-  outline: none;
-  border-color: var(--accent-dim);
+.attach-chip.bad {
+  border-color: #5a2b2b;
+  color: #ffb3b3;
 }
 
-button {
-  font: inherit;
+.attach-name {
+  max-width: 46vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attach-size {
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+
+.attach-x {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  font-size: 11px;
+  padding: 2px 4px;
   cursor: pointer;
 }
 
-button:disabled {
-  opacity: 0.45;
+.composer-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 5px 6px 5px 8px;
+}
+
+.tool-btn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--fg-dim);
+  cursor: pointer;
+}
+
+.tool-btn:active {
+  background: var(--bg-4);
+  color: var(--fg);
+}
+
+.tool-btn.text {
+  width: auto;
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--fg-dim);
+  border-radius: 12px;
+}
+
+.composer-input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font: inherit;
+  line-height: 1.45;
+  padding: 6px 2px;
+  max-height: 132px;
+  min-height: 32px;
+  field-sizing: content;
+}
+
+.composer-input:focus {
+  outline: none;
+}
+
+.composer-input::placeholder {
+  color: #6f7782;
+}
+
+.model-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.model-chip {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  font-size: 12.5px;
+  padding: 0 4px;
+  height: 32px;
+  border-radius: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.model-chip:active {
+  background: var(--bg-4);
+}
+
+.caret {
+  font-size: 9px;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+.pop-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.pop-menu {
+  position: absolute;
+  right: 0;
+  bottom: 42px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: 150px;
+  box-shadow: 0 10px 30px #000a;
+  z-index: 41;
+}
+
+.pop-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pop-item:hover,
+.pop-item.active {
+  background: var(--bg-3);
+}
+
+.send-circle {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.send-circle:disabled {
+  background: #2f3a4a;
+  color: #7d8899;
   cursor: default;
 }
 
-.primary {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-weight: 500;
-}
-
-.ghost {
-  background: var(--bg-3);
-  color: var(--fg);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 9px 14px;
-}
-
-.danger {
-  background: transparent;
-  color: var(--danger);
-  border: 1px solid #5a2b2b;
-  border-radius: 10px;
-  padding: 8px 14px;
-}
-
-.wide {
-  width: 100%;
-}
-
-.mini {
-  background: var(--bg-3);
-  border: 1px solid var(--line);
-  color: var(--fg-dim);
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  font-size: 13px;
-}
-
-.mini.danger {
-  color: var(--danger);
-  border-color: #4a2626;
-}
-
-.send {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 0 16px;
-  height: 40px;
-  font-weight: 600;
-}
-
-.send.stop {
+.send-circle.stop {
   background: #3a2a2a;
   color: #ffb3b3;
 }
 
-/* ---------- 设置 ---------- */
+.stop-square {
+  width: 11px;
+  height: 11px;
+  background: currentColor;
+  border-radius: 2px;
+}
+
+/* ------------------------------ 侧边栏 ------------------------------ */
+.drawer-mask {
+  position: fixed;
+  inset: 0;
+  background: #0008;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+  z-index: 60;
+}
+
+.drawer-mask.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(310px, 84vw);
+  background: var(--bg-2);
+  border-right: 1px solid var(--line);
+  transform: translateX(-102%);
+  transition: transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+.drawer.show {
+  transform: translateX(0);
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 14px 14px;
+}
+
+.drawer-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+.drawer-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.new-conv {
+  margin: 0 12px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.new-conv:active {
+  background: var(--bg-4);
+}
+
+.new-conv .plus {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.drawer-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px 10px;
+  min-height: 0;
+}
+
+.drawer-empty {
+  color: var(--fg-dim);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.conv-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: 52px;
+}
+
+.conv-item:hover,
+.conv-item.active {
+  background: var(--bg-3);
+}
+
+.conv-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.conv-title {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conv-meta {
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin-top: 2px;
+}
+
+.conv-del {
+  background: transparent;
+  border: none;
+  color: var(--fg-dim);
+  font-size: 11px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.conv-item:hover .conv-del {
+  opacity: 1;
+}
+
+.conv-del:hover {
+  color: var(--danger);
+}
+
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--line);
+  color: var(--fg);
+  padding: 12px 14px calc(env(safe-area-inset-bottom) + 12px);
+  text-align: left;
+  cursor: pointer;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #5aa2ff, #2f5fd0);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.account {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.account-name {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-sub {
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.gear {
+  color: var(--fg-dim);
+  font-size: 15px;
+}
+
+/* ------------------------------ 设置 ------------------------------ */
 .settings-body {
   flex: 1;
   overflow-y: auto;
   padding: 12px 10px 16px;
   -webkit-overflow-scrolling: touch;
+  min-height: 0;
 }
 
 .card {
@@ -505,7 +752,8 @@ input[type='range'] {
 }
 
 .field textarea,
-.field select {
+.field select,
+.field input {
   width: 100%;
 }
 
@@ -527,15 +775,12 @@ input[type='range'] {
 .muted {
   color: var(--fg-dim);
 }
-
 .small {
   font-size: 12px;
 }
-
 .warn {
   color: #e0b45a;
 }
-
 .ok {
   color: #62c98e;
 }
@@ -547,7 +792,52 @@ input[type='range'] {
   border-top: 1px solid var(--line);
 }
 
-/* ---------- 弹窗 ---------- */
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-weight: 500;
+}
+.ghost {
+  background: var(--bg-3);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 14px;
+}
+.danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid #5a2b2b;
+  border-radius: 10px;
+  padding: 8px 14px;
+}
+.wide {
+  width: 100%;
+}
+.mini {
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* ------------------------------ 弹窗 ------------------------------ */
 .modal-mask {
   position: fixed;
   inset: 0;
@@ -555,7 +845,7 @@ input[type='range'] {
   display: grid;
   place-items: center;
   padding: 20px;
-  z-index: 50;
+  z-index: 80;
 }
 
 .modal {
@@ -591,7 +881,6 @@ input[type='range'] {
 }
 
 @media (min-width: 720px) {
-  .session-list,
   .settings-body {
     padding-left: max(10px, calc(50vw - 360px));
     padding-right: max(10px, calc(50vw - 360px));
