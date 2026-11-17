@@ -39,6 +39,41 @@ npm run dev             # 再起 Vite（5173，/api 代理到 8787）
 
 手机测试：与电脑同一 Wi-Fi，打开 `http://<电脑内网IP>:8787/`。
 
+### 常驻与开机自启
+
+- 双击 `start.bat` 可手动起服务（窗口关掉即停）。
+- 已注册计划任务 **ChatBox Pro**：登录 Windows 后自动在后台启动，端口 8787。
+  - 查看：`Get-ScheduledTask -TaskName "ChatBox Pro"`
+  - 停止：`Stop-ScheduledTask -TaskName "ChatBox Pro"`
+  - 首次运行会在防火墙里放行 8787（已添加规则 `ChatBox Pro 8787`）。
+
+## 桌面端：双击就能打开
+
+桌面上有一个 **ChatBox Pro** 快捷方式，双击后会：
+
+1. 检查 8787 上的内置服务，没起就在后台拉起来（无黑框）；
+2. 用一个没有地址栏、没有标签页的独立窗口打开界面。
+
+它用的是 **Edge 的「应用模式」**（WebView 壳），不是普通浏览器窗口。
+
+想重建快捷方式 / 换图标：
+
+```bash
+npm run shortcut
+```
+
+### Electron 原生壳（可选，本机被环境挡住）
+
+`desktop/` 下是完整的 Electron 壳，打包命令：
+
+```bash
+npm run pack:desktop     # 产出 release/ChatBox Pro-win32-x64/ChatBoxPro.exe
+```
+
+**注意**：在这台机器上 Electron 无法启动（进程立刻退出，退出码 `0x80000003`，
+连 `--enable-logging` 都来不及出日志；同一台机器的 Edge / notepad 都正常）。
+排查过程见 `docs/桌面壳排查.md`。所以在它可用之前，桌面入口走 Edge 应用模式。
+
 ## 首次使用
 
 1. 打开页面 → 右上角齿轮 → **API Key**，粘贴 `sk-...` 并保存（加密存在本机）；

@@ -1,0 +1,8 @@
+{
+  "name": "chatbox-pro-desktop",
+  "productName": "ChatBox Pro",
+  "version": "0.1.0",
+  "description": "ChatBox Pro 桌面端",
+  "main": "main.js",
+  "private": true
+}

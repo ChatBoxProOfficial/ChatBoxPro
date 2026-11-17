@@ -18,7 +18,10 @@ import { fileURLToPath } from 'node:url'
 
 const HERE = fileURLToPath(new URL('.', import.meta.url))
 const ROOT = resolve(HERE, '..')
-const DIST = join(ROOT, 'dist')
+// 桌面壳会把前端一起打包，可用 CHATBOX_DIST 指定静态目录
+const DIST = process.env.CHATBOX_DIST
+  ? resolve(process.env.CHATBOX_DIST)
+  : join(ROOT, 'dist')
 const PORT = Number(process.env.PORT || 8787)
 const HOST = process.env.HOST || '0.0.0.0'
 const UPSTREAM = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'

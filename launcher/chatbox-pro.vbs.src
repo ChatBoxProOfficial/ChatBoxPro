@@ -1,0 +1,113 @@
+' ChatBox Pro 启动器
+'
+' 双击本文件（或桌面上的快捷方式）会：
+'   1. 检查内置服务是否已在运行；
+'   2. 没运行就先在后台把它拉起来（无控制台窗口）；
+'   3. 用 Edge 的「应用模式」打开一个没有地址栏、没有标签页的独立窗口。
+'
+' 需要真正的原生壳时用 electron 版本（见 README 的桌面端一节）。
+
+Option Explicit
+
+Dim fso, sh, root, nodeExe, serverJs, url, i
+
+Set fso = CreateObject("Scripting.FileSystemObject")
+Set sh = CreateObject("WScript.Shell")
+
+root = fso.GetParentFolderName(WScript.ScriptFullName)
+serverJs = fso.BuildPath(root, "server\index.mjs")
+url = "http://127.0.0.1:8787/"
+
+If Not fso.FileExists(serverJs) Then
+  MsgBox "找不到 server\index.mjs，请确认 ChatBox Pro 目录完整。", 16, "ChatBox Pro"
+  WScript.Quit 1
+End If
+
+nodeExe = FindNode()
+If nodeExe = "" Then
+  MsgBox "找不到 Node.js。请安装 Node.js 24 或更高版本后再试。", 16, "ChatBox Pro"
+  WScript.Quit 1
+End If
+
+' 1) 服务没起就拉起来
+If Not IsUp(url & "api/health") Then
+  sh.CurrentDirectory = root
+  sh.Run """" & nodeExe & """ """ & serverJs & """", 0, False
+  For i = 1 To 40
+    WScript.Sleep 250
+    If IsUp(url & "api/health") Then Exit For
+  Next
+End If
+
+If Not IsUp(url & "api/health") Then
+  MsgBox "后台服务没能启动。可以手动运行 start.bat 看看报什么错。", 48, "ChatBox Pro"
+End If
+
+' 2) 打开应用窗口
+Dim edge, profile, cmd
+edge = FindEdge()
+If edge = "" Then
+  ' 没有 Edge 就退回默认浏览器（至少能用）
+  sh.Run url, 1, False
+  WScript.Quit 0
+End If
+
+profile = fso.BuildPath(sh.ExpandEnvironmentStrings("%LOCALAPPDATA%"), "ChatBoxPro\edge-profile")
+If Not fso.FolderExists(profile) Then fso.CreateFolder profile
+
+cmd = """" & edge & """ --app=""" & url & """ --user-data-dir=""" & profile & """" & _
+      " --window-size=1200,860 --no-first-run --no-default-browser-check"
+
+sh.Run cmd, 1, False
+
+
+' ---------------------------------------------------------------- helpers ---
+
+Function IsUp(target)
+  Dim http
+  On Error Resume Next
+  Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+  http.setTimeouts 800, 800, 800, 800
+  http.Open "GET", target, False
+  http.Send
+  If Err.Number = 0 Then
+    IsUp = (http.Status = 200)
+  Else
+    IsUp = False
+  End If
+  On Error GoTo 0
+End Function
+
+Function FindNode()
+  Dim candidates, c
+  candidates = Array( _
+    "C:\Program Files\nodejs\node.exe", _
+    "C:\Program Files (x86)\nodejs\node.exe", _
+    sh.ExpandEnvironmentStrings("%LOCALAPPDATA%") & "\Programs\nodejs\node.exe", _
+    sh.ExpandEnvironmentStrings("%ProgramData%") & "\chocolatey\bin\node.exe" _
+  )
+  FindNode = ""
+  For Each c In candidates
+    If fso.FileExists(c) Then
+      FindNode = c
+      Exit Function
+    End If
+  Next
+  ' 退而求其次：PATH 里找
+  FindNode = ""
+End Function
+
+Function FindEdge()
+  Dim candidates, c
+  candidates = Array( _
+    "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", _
+    "C:\Program Files\Microsoft\Edge\Application\msedge.exe" _
+  )
+  FindEdge = ""
+  For Each c In candidates
+    If fso.FileExists(c) Then
+      FindEdge = c
+      Exit Function
+    End If
+  Next
+End Function
