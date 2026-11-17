@@ -4,7 +4,7 @@ import { EFFORTS, type Settings } from '../types'
 type Effort = Settings['reasoningEffort']
 
 /** 每个档位对应的粒子速度倍率（越大越快） */
-const SPEED: Record<Effort, number> = { off: 0.15, low: 0.7, high: 1.5, max: 2.8 }
+const SPEED: Record<Effort, number> = { off: 0, low: 0.55, high: 1.15, max: 2.1 }
 
 /** 档位备注：off 关闭 / low 浮想 / high 沉思 / max 最大 token 消耗 */
 export const EFFORT_NOTE: Record<Effort, string> = {
@@ -19,7 +19,17 @@ interface Props {
   onChange: (e: Effort) => void
 }
 
-const KNOB = 38 // 白色旋钮直径
+const KNOB = 26 // 白色旋钮直径（与 CSS 保持一致）
+const DOTS = 44 // 粒子数量
+
+interface Dot {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  r: number
+  life: number
+}
 
 export default function EffortSlider({ value, onChange }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -30,7 +40,10 @@ export default function EffortSlider({ value, onChange }: Props) {
 
   const frac = Math.max(0, EFFORTS.indexOf(value)) / (EFFORTS.length - 1)
 
-  /** 紫色粒子：只在旋钮走过的区域里动，档位越高跑得越快 */
+  /**
+   * 粒子从旋钮位置向外飘散、边飘边淡出，飘完就在旋钮处重生。
+   * 这样看起来粒子是「被旋钮甩出来」的，而不是两套各自为政的东西。
+   */
   useEffect(() => {
     const canvas = canvasRef.current
     const track = trackRef.current
@@ -40,61 +53,95 @@ export default function EffortSlider({ value, onChange }: Props) {
 
     const dpr = Math.min(2, window.devicePixelRatio || 1)
     let raf = 0
-    let parts: Array<{ x: number; y: number; vx: number; vy: number; r: number; a: number }> = []
+    let dots: Dot[] = []
+    let w = 0
+    let h = 0
+
+    const knobX = () => {
+      const idx = Math.max(0, EFFORTS.indexOf(valueRef.current))
+      return KNOB / 2 + (w - KNOB) * (idx / (EFFORTS.length - 1))
+    }
+
+    const spawn = (atX: number, spread = 1): Dot => ({
+      x: atX + (Math.random() - 0.5) * 6 * spread,
+      y: h / 2 + (Math.random() - 0.5) * h * 0.55,
+      vx: -(0.12 + Math.random() * 0.5),
+      vy: (Math.random() - 0.5) * 0.25,
+      r: 0.6 + Math.random() * 1.5,
+      life: 0.35 + Math.random() * 0.65,
+    })
 
     const resize = () => {
-      const w = track.clientWidth
-      const h = track.clientHeight
+      w = track.clientWidth
+      h = track.clientHeight
       canvas.width = Math.max(1, Math.round(w * dpr))
       canvas.height = Math.max(1, Math.round(h * dpr))
       canvas.style.width = `${w}px`
       canvas.style.height = `${h}px`
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      parts = Array.from({ length: 52 }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        vx: 0.15 + Math.random() * 0.75,
-        vy: (Math.random() - 0.5) * 0.6,
-        r: 0.7 + Math.random() * 1.9,
-        a: 0.3 + Math.random() * 0.6,
-      }))
+      const kx = knobX()
+      dots = Array.from({ length: DOTS }, () => {
+        const d = spawn(kx)
+        d.x = Math.random() * Math.max(1, kx)
+        d.life = Math.random()
+        return d
+      })
     }
     resize()
     const ro = new ResizeObserver(resize)
     ro.observe(track)
 
     const draw = () => {
-      const w = track.clientWidth
-      const h = track.clientHeight
       const idx = Math.max(0, EFFORTS.indexOf(valueRef.current))
-      const f = idx / (EFFORTS.length - 1)
-      const fillW = idx === 0 ? 0 : KNOB / 2 + (w - KNOB) * f
+      const kx = knobX()
+      const speed = SPEED[valueRef.current] ?? 0
+      const active = idx > 0
 
       ctx.clearRect(0, 0, w, h)
 
-      // 已走过的区域：紫色渐变底
-      if (fillW > 1) {
-        const g = ctx.createLinearGradient(0, 0, Math.max(fillW, 1), 0)
-        g.addColorStop(0, 'rgba(108, 63, 224, 0.42)')
-        g.addColorStop(1, 'rgba(172, 116, 255, 0.72)')
+      // 已走过区域的紫色底（从旋钮向左渐隐）
+      if (active && kx > 1) {
+        const g = ctx.createLinearGradient(0, 0, kx, 0)
+        g.addColorStop(0, 'rgba(92, 54, 190, 0.22)')
+        g.addColorStop(0.75, 'rgba(126, 78, 226, 0.4)')
+        g.addColorStop(1, 'rgba(178, 122, 255, 0.55)')
         ctx.fillStyle = g
-        ctx.fillRect(0, 0, fillW, h)
+        ctx.fillRect(0, 0, kx, h)
       }
 
-      const speed = SPEED[valueRef.current] ?? 1
-      for (const p of parts) {
-        p.x += p.vx * speed
-        p.y += p.vy * speed
-        if (p.x > fillW + 8) {
-          p.x = -6
-          p.y = Math.random() * h
-        }
-        if (p.y < -6) p.y = h + 6
-        if (p.y > h + 6) p.y = -6
-        if (p.x <= fillW) {
+      // 旋钮周围的紫色光晕，让白点和粒子连成一体
+      if (active) {
+        const glow = ctx.createRadialGradient(kx, h / 2, 2, kx, h / 2, KNOB * 1.5)
+        glow.addColorStop(0, 'rgba(178, 122, 255, 0.45)')
+        glow.addColorStop(1, 'rgba(178, 122, 255, 0)')
+        ctx.fillStyle = glow
+        ctx.fillRect(kx - KNOB * 1.5, 0, KNOB * 3, h)
+      }
+
+      // 粒子
+      if (active) {
+        const boost = 0.55 + speed * 0.85
+        for (const d of dots) {
+          d.x += d.vx * boost
+          d.y += d.vy * boost
+          d.life -= 0.0042 * (1 + speed)
+
+          const out = d.x < -4 || d.life <= 0 || d.x > kx + 4
+          if (out) {
+            const nd = spawn(kx, 0.6)
+            d.x = nd.x
+            d.y = nd.y
+            d.vx = nd.vx
+            d.vy = nd.vy
+            d.r = nd.r
+            d.life = nd.life
+          }
+
+          const alpha = Math.max(0, Math.min(1, d.life)) * 0.85
+          if (alpha <= 0.02) continue
           ctx.beginPath()
-          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(219, 186, 255, ${p.a})`
+          ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(226, 199, 255, ${alpha})`
           ctx.fill()
         }
       }
