@@ -10,6 +10,9 @@ const root = resolve(import.meta.dirname, '..')
 const desktop = resolve(root, 'desktop')
 const icon = resolve(root, 'assets', 'chatbox-pro.ico')
 
+// 国内直连 GitHub 经常断，默认走镜像；已装好的 Electron 运行时也在本地缓存里
+process.env.ELECTRON_MIRROR ||= 'https://npmmirror.com/mirrors/electron/'
+
 if (!existsSync(resolve(desktop, 'app', 'index.html'))) {
   console.error('desktop/app 不存在，先运行 npm run build:desktop')
   process.exit(1)
