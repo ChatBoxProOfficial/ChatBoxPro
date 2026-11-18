@@ -159,6 +159,23 @@ export default function App() {
     [refresh, current?.id, settings.model],
   )
 
+  // 应用自定义背景
+  useEffect(() => {
+    const root = document.documentElement
+    const hasBg = Boolean(settings.backgroundImage)
+    root.dataset.bg = hasBg ? 'on' : 'off'
+    const alpha = Math.min(100, Math.max(0, settings.backgroundOpacity)) / 100
+    root.style.setProperty('--panel-alpha', String(alpha))
+  }, [settings.backgroundImage, settings.backgroundOpacity])
+
+  // 应用自定义背景
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.bg = settings.backgroundImage ? 'on' : 'off'
+    const alpha = Math.min(100, Math.max(0, settings.backgroundOpacity)) / 100
+    root.style.setProperty('--panel-alpha', String(alpha))
+  }, [settings.backgroundImage, settings.backgroundOpacity])
+
   // 应用主题（浅色 / 深色 / 跟随系统）
   useEffect(() => {
     const mq = window.matchMedia('(prefers-color-scheme: light)')
@@ -234,6 +251,13 @@ export default function App() {
 
   return (
     <div className={`app-shell${settings.compact ? ' compact' : ''}`}>
+      {settings.backgroundImage && (
+        <div
+          className="app-bg"
+          style={{ backgroundImage: `url("${settings.backgroundImage}")` }}
+          aria-hidden="true"
+        />
+      )}
       {initError && (
         <div className="banner">
           本地存储不可用：{initError}

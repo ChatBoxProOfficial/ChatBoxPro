@@ -6,6 +6,7 @@ import type { SessionSummary } from '../db'
 import type { Session } from '../types'
 import { confirmDialog } from './Confirm'
 import Switch from './Switch'
+import { imageToDataUrl } from '../image'
 
 interface Props {
   settings: Settings
@@ -138,7 +139,9 @@ export default function SettingsScreen({
             {section === 'account' && (
               <AccountSection settings={settings} patch={patch} flash={flash} />
             )}
-            {section === 'personalize' && <PersonalizeSection settings={settings} patch={patch} />}
+            {section === 'personalize' && (
+              <PersonalizeSection settings={settings} patch={patch} flash={flash} />
+            )}
             {section === 'plugins' && <PluginsSection />}
             {section === 'models' && (
               <ModelsSection settings={settings} patch={patch} flash={flash} />
@@ -336,7 +339,15 @@ function BalanceRow({ baseUrl }: { baseUrl: string }) {
   )
 }
 
-function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Patch }) {
+function PersonalizeSection({
+  settings,
+  patch,
+  flash,
+}: {
+  settings: Settings
+  patch: Patch
+  flash: (s: string) => void
+}) {
   return (
     <section className="card">
       <div className="switch-row">
@@ -347,6 +358,58 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
         />
       </div>
       <p className="muted small">缩小字号与行距，提升单屏信息密度。</p>
+
+      <div className="field" style={{ marginTop: 14 }}>
+        <span>背景图</span>
+        <div className="row">
+          <input
+            className="hidden-file"
+            id="bg-file"
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              if (!file) return
+              try {
+                const url = await imageToDataUrl(file, 1920, 0.8)
+                patch({ backgroundImage: url })
+              } catch {
+                flash('这张图片读不出来')
+              }
+            }}
+          />
+          <button
+            className="ghost"
+            onClick={() => document.getElementById('bg-file')?.click()}
+          >
+            {settings.backgroundImage ? '更换图片' : '选择图片'}
+          </button>
+          {settings.backgroundImage && (
+            <button className="ghost" onClick={() => patch({ backgroundImage: '' })}>
+              清除
+            </button>
+          )}
+        </div>
+        {settings.backgroundImage && (
+          <div className="bg-preview">
+            <img src={settings.backgroundImage} alt="背景预览" />
+          </div>
+        )}
+      </div>
+
+      <label className="field" style={{ marginTop: 14 }}>
+        <span>面板不透明度 {settings.backgroundOpacity}%</span>
+        <input
+          type="range"
+          min={30}
+          max={100}
+          step={1}
+          value={settings.backgroundOpacity}
+          onChange={(e) => patch({ backgroundOpacity: Number(e.target.value) })}
+        />
+      </label>
+      <p className="muted small">数值越低，背景图越明显；越高，界面越不透明。</p>
 
       <div className="field" style={{ marginTop: 14 }}>
         <span>主题</span>

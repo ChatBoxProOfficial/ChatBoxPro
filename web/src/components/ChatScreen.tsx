@@ -1106,7 +1106,7 @@ function MessageRow({
         )}
         <div className="bubble">{msg.content.split('\n\n[附件]')[0]}</div>
         {onEdit && (
-          <div className="msg-actions left">
+          <div className="msg-toolbar">
             <button className="msg-action" onClick={onEdit} title="编辑这条消息">
               编辑
             </button>
@@ -1160,19 +1160,25 @@ function MessageRow({
         )}
       </div>
 
-      <div className="msg-actions left">
+      <div className="msg-toolbar">
         <button className="msg-action" onClick={() => copyText(msg.content)}>
           复制
         </button>
         {isLastAssistant && onContinue && (
-          <button className="msg-action" onClick={onContinue}>
-            继续
-          </button>
+          <>
+            <span className="toolbar-sep" />
+            <button className="msg-action" onClick={onContinue}>
+              继续
+            </button>
+          </>
         )}
         {isLastAssistant && onRegenerate && (
-          <button className="msg-action" onClick={onRegenerate}>
-            重新生成
-          </button>
+          <>
+            <span className="toolbar-sep" />
+            <button className="msg-action" onClick={onRegenerate}>
+              重新生成
+            </button>
+          </>
         )}
       </div>
     </div>
