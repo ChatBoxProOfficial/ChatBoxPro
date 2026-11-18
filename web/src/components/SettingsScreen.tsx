@@ -1305,7 +1305,10 @@ function AboutSection({
         </p>
         <div className="qr-wrap" onClick={onTip} title="点击放大">
           <img className="qr-thumb" src="tip-qr.png" alt="收款码" />
-          <span className="muted small">收款码 · 点击放大</span>
+          <span className="qr-text">
+            <span className="qr-pitch">支持一下作者吧，作者要饿死了</span>
+            <span className="muted small">收款码 · 点击放大</span>
+          </span>
         </div>
       </section>
 
@@ -1393,6 +1396,9 @@ function TipDialog({ onClose }: { onClose: () => void }) {
     <div className="modal-mask" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h3>支持作者</h3>
+        <p className="qr-pitch" style={{ margin: '0 0 10px' }}>
+          支持一下作者吧，作者要饿死了
+        </p>
         <p className="muted small">自愿支持，不影响任何功能。感谢！</p>
         {imgOk ? (
           <img className="qr" src="tip-qr.png" alt="收款二维码" onError={() => setImgOk(false)} />

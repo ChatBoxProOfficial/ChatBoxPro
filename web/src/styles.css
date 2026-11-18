@@ -4007,3 +4007,18 @@ button:disabled {
 :root[data-theme='light'] .mail-link:hover {
   color: #1a1f24;
 }
+
+/* 收款码旁的求支持文案 */
+.qr-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.qr-pitch {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  line-height: 1.5;
+}

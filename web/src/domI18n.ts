@@ -141,6 +141,10 @@ export const TEXT: Record<string, Entry> = {
     en: 'DeepSeek API was used as an assistant during development, so DeepSeek counts as one of the contributors.',
     ja: '制作時に DeepSeek API を補助として使用したため、DeepSeek も制作メンバーの一員です。',
   },
+  '支持一下作者吧，作者要饿死了': {
+    en: 'Please support the author — the author is starving',
+    ja: '作者を支援してください——作者が飢えています',
+  },
   '收款码 · 点击放大': { en: 'Payment QR · click to enlarge', ja: '支払い QR · クリックで拡大' },
   置顶: { en: 'Pin', ja: 'ピン留め' },
   取消置顶: { en: 'Unpin', ja: 'ピン留め解除' },
