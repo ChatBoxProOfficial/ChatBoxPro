@@ -37,7 +37,23 @@ const server = http.createServer(async (req, res) => {
 
   const chunks = []
   for await (const c of req) chunks.push(c)
-  const body = Buffer.concat(chunks).toString('utf8')
+  const raw = Buffer.concat(chunks)
+
+  // 文件解析接口
+  if (req.url?.startsWith('/files')) {
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(
+      JSON.stringify({
+        id: 'file-mock-1',
+        object: 'file',
+        bytes: raw.length,
+        filename: 'mock',
+      }),
+    )
+    return
+  }
+
+  const body = raw.toString('utf8')
   try {
     writeFileSync(LOG, body)
   } catch {

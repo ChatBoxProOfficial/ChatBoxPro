@@ -71,17 +71,75 @@ export class MissingKeyError extends Error {
   }
 }
 
+/** 把需要解析的文件上传到官方 Files API，拿到 file_id */
+export async function uploadDocument(
+  file: File,
+  baseUrl: string,
+  purpose: string,
+): Promise<{ fileId: string }> {
+  const key = await loadApiKey()
+  if (!key) throw new Error('还没有填写 API Key')
+  const buf = await file.arrayBuffer()
+  const url = `${baseUrl}/files?name=${encodeURIComponent(file.name)}&purpose=${encodeURIComponent(purpose)}`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-deepseek-key': key,
+    },
+    body: buf,
+  })
+  const text = await resp.text()
+  if (!resp.ok) {
+    let msg = `解析失败（${resp.status}）`
+    try {
+      msg = JSON.parse(text)?.error?.message || msg
+    } catch {
+      /* 保留默认 */
+    }
+    throw new Error(msg)
+  }
+  const json = JSON.parse(text)
+  if (!json?.id) throw new Error('解析失败：没有返回 file_id')
+  return { fileId: json.id }
+}
+
+/** 组装一条用户元信息：日期,星期,平台,语言 */
+function buildReminder(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+  const week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][d.getDay()]
+  return `${date},${week},,App,中文`
+}
+
 /** 把界面上的消息整理成接口需要的载荷 */
 function toPayload(messages: Message[], settings: Settings) {
   const out: Array<{ role: string; content: string }> = []
   if (settings.systemPrompt.trim()) {
     out.push({ role: 'system', content: settings.systemPrompt.trim() })
   }
+  const reminder = settings.reminder ? buildReminder() : ''
   const kept = messages.filter((m) => !m.error && m.content.trim())
   // 上下文管理：只带最近 N 条（0 = 全部）
   const limit = settings.contextLimit > 0 ? settings.contextLimit : kept.length
   for (const m of kept.slice(-limit)) {
-    out.push({ role: m.role, content: m.content })
+    if (reminder && m.role === 'user') {
+      out.push({ role: 'latest_reminder', content: reminder })
+    }
+    const files = (m.attachments || []).filter((a) => a.fileId)
+    if (m.role === 'user' && files.length > 0) {
+      // 有需要解析的文件：内容改成块数组
+      out.push({
+        role: 'user',
+        content: [
+          ...files.map((f) => ({ type: 'file', file_id: f.fileId })),
+          { type: 'text', text: m.content },
+        ],
+      } as never)
+    } else {
+      out.push({ role: m.role, content: m.content })
+    }
   }
   return out
 }
@@ -125,6 +183,8 @@ export async function streamChat(
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
         stream_options: { include_usage: true },
+        // 模型内容安全（官方风控）
+        ...(settings.safety ? { safety_check: { level: 'high' } } : {}),
         // 让服务端顺手起个会话标题（仅 flash 支持）
         ...(settings.model === 'deepseek-flash' ? { title: { enabled: true } } : {}),
         // 联网搜索 / 阅读链接：声明后由 DeepSeek 服务端执行，客户端不跑工具

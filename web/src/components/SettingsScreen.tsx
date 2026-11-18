@@ -266,6 +266,17 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
         </div>
       </div>
 
+      <div className="switch-row" style={{ marginTop: 10 }}>
+        <span>附带用户元信息</span>
+        <Switch
+          checked={settings.reminder}
+          onChange={(v) => patch({ reminder: v })}
+        />
+      </div>
+      <p className="muted small">
+        每轮把当前日期、平台、语言告诉模型（官方 latest_reminder），回答更贴合时间。
+      </p>
+
       <label className="field" style={{ marginTop: 14 }}>
         <span>系统提示词</span>
         <textarea

@@ -20,6 +20,8 @@ interface Props {
   onTeamModeChange: (v: boolean) => void
   webSearch: boolean
   onWebSearchChange: (v: boolean) => void
+  safety: boolean
+  onSafetyChange: (v: boolean) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
   onRemoveAttachment: (id: string) => void
@@ -47,6 +49,8 @@ export default function Composer({
   onTeamModeChange,
   webSearch,
   onWebSearchChange,
+  safety,
+  onSafetyChange,
   attachments,
   onPickFiles,
   onRemoveAttachment,
@@ -221,6 +225,14 @@ export default function Composer({
                     <span className="team-desc">需要最新信息时自动搜索并标注来源（仅 deepseek-flash）</span>
                   </span>
                   <Switch checked={webSearch} onChange={onWebSearchChange} />
+                </div>
+
+                <div className="team-row">
+                  <span className="team-main">
+                    <span className="team-title">内容安全</span>
+                    <span className="team-desc">开启官方风控，命中风险内容时拒答</span>
+                  </span>
+                  <Switch checked={safety} onChange={onSafetyChange} />
                 </div>
               </div>
             </>

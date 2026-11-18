@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { streamChat, uploadFile } from '../api'
+import { streamChat, uploadDocument, uploadFile } from '../api'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -157,10 +157,26 @@ export default function ChatScreen({
         }
         setAttachments((prev) => [...prev, item])
         try {
-          const res = await uploadFile(file, base)
-          setAttachments((prev) =>
-            prev.map((a) => (a.id === id ? { ...a, ...res, uploading: false } : a)),
-          )
+          const DOC_EXT = /\.(pdf|docx?|pptx?|xlsx?|epub|mobi|png|jpe?g|webp|gif|bmp|tiff?)$/i
+          if (DOC_EXT.test(file.name)) {
+            // PDF / Office / 图片：交给官方解析，拿到 file_id
+            const isImage = /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(file.name)
+            const isSheet = /\.(xlsx?|epub|mobi)$/i.test(file.name)
+            const purpose = isImage || isSheet ? 'text_recognition' : 'rich_layout_recognition'
+            const parsed = await uploadDocument(file, base, purpose)
+            setAttachments((prev) =>
+              prev.map((a) =>
+                a.id === id
+                  ? { ...a, ...parsed, purpose, uploading: false }
+                  : a,
+              ),
+            )
+          } else {
+            const res = await uploadFile(file, base)
+            setAttachments((prev) =>
+              prev.map((a) => (a.id === id ? { ...a, ...res, uploading: false } : a)),
+            )
+          }
         } catch (e) {
           setAttachments((prev) =>
             prev.map((a) =>
@@ -516,6 +532,8 @@ export default function ChatScreen({
         onTeamModeChange={(v) => onSettingsChange({ teamMode: v })}
         webSearch={settings.webSearch}
         onWebSearchChange={(v) => onSettingsChange({ webSearch: v })}
+        safety={settings.safety}
+        onSafetyChange={(v) => onSettingsChange({ safety: v })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}

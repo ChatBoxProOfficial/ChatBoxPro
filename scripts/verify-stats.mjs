@@ -39,8 +39,8 @@ await page.waitForSelector('.composer', { timeout: 5000 })
 // 发一条消息
 await page.fill('.composer-input', '天空为什么是蓝色？')
 await page.getByRole('button', { name: '发送' }).click()
-await page.waitForSelector('.msg-meta', { timeout: 20000 })
-const meta = await page.locator('.msg-meta').last().innerText()
+await page.waitForSelector('.msg-head', { timeout: 20000 })
+const meta = await page.locator('.msg-head').last().innerText()
 console.log('✓ 消息底部元信息:', meta.replace(/\n/g, ' '))
 if (!/\d/.test(meta)) errors.push('消息底部没有耗时/用量')
 

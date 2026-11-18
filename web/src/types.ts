@@ -13,6 +13,10 @@ export interface Attachment {
   error?: string
   /** 文本类文件的内容（截断后），随消息一起发给模型 */
   text?: string
+  /** 通过 Files API 解析后的文件 id（PDF/Office/图片等） */
+  fileId?: string
+  /** 解析方式 */
+  purpose?: string
 }
 
 export interface Usage {
@@ -103,6 +107,10 @@ export interface Settings {
   webSearch: boolean
   /** 主题：浅色 / 深色 / 跟随系统 */
   theme: 'light' | 'dark' | 'system'
+  /** 模型内容安全（官方 safety_check） */
+  safety: boolean
+  /** 每轮附带用户元信息（日期/平台/语言） */
+  reminder: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -121,6 +129,8 @@ export const DEFAULT_SETTINGS: Settings = {
   teamMode: false,
   webSearch: false,
   theme: 'system',
+  safety: false,
+  reminder: true,
 }
 
 /** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */

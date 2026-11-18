@@ -118,6 +118,66 @@ function upstreamRequest(pathname, { method, headers, body }) {
 }
 
 /**
+ * 文件解析：把客户端传来的原始字节，按官方 Files API 需要的 multipart 转上去。
+ * purpose 必须放在 file 之前（官方要求）。
+ */
+async function handleFileParse(req, res) {
+  const url = new URL(req.url || '/', 'http://localhost')
+  const filename = (url.searchParams.get('name') || 'file').replace(/[\r\n"]/g, '_')
+  const purpose = url.searchParams.get('purpose') || 'text_recognition'
+  const key = String(req.headers['x-deepseek-key'] || '').trim()
+  if (!key) {
+    return send(res, 401, JSON.stringify({ error: { message: '缺少 API Key' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  let buf
+  try {
+    buf = await readBody(req, 100 * 1024 * 1024) // 官方上限 100 MiB
+  } catch {
+    return send(res, 413, JSON.stringify({ error: { message: '文件太大' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const boundary = '----dshtransfer' + Math.random().toString(16).slice(2)
+  const head =
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="purpose"\r\n\r\n` +
+    `${purpose}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+    `Content-Type: application/octet-stream\r\n\r\n`
+  const tail = `\r\n--${boundary}--\r\n`
+  const body = Buffer.concat([Buffer.from(head, 'utf8'), buf, Buffer.from(tail, 'utf8')])
+
+  try {
+    const up = await upstreamRequest('/files', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${key}`,
+        'content-type': `multipart/form-data; boundary=${boundary}`,
+        'content-length': String(body.length),
+      },
+      body,
+    })
+    let data = ''
+    up.on('data', (c) => (data += c))
+    up.on('end', () => {
+      res.writeHead(up.statusCode || 502, {
+        'content-type': 'application/json; charset=utf-8',
+      })
+      res.end(data)
+    })
+  } catch (e) {
+    send(res, 502, JSON.stringify({ error: { message: `文件解析失败：${e.message}` } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+}
+
+/**
  * 上传附件：请求体就是文件原始字节，文件名放 query 里。
  * 比手写 multipart 解析可靠，客户端只发一次 ArrayBuffer。
  */
@@ -191,6 +251,8 @@ async function handleChat(req, res) {
     stream: true,
     // 思考模式开关与强度（DeepSeek 新接口参数）
     ...(signal.thinking ? { thinking: signal.thinking } : {}),
+    // 模型内容安全
+    ...(signal.safety_check ? { safety_check: signal.safety_check } : {}),
     // 让服务端生成会话标题
     ...(signal.title ? { title: signal.title } : {}),
     // 让流式响应带上 usage
@@ -277,6 +339,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)
+    return
+  }
+  if (url.pathname === '/api/files') {
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed')
+    void handleFileParse(req, res)
     return
   }
   if (url.pathname === '/api/upload') {
