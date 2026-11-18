@@ -232,7 +232,7 @@ async function handleChat(req, res) {
 
   let payload
   try {
-    payload = await readBody(req)
+    payload = await readBody(req, 64 * 1024 * 1024)
   } catch {
     return send(res, 413, 'payload too large')
   }

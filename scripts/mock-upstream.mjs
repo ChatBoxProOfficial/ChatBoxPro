@@ -21,6 +21,7 @@ const REASONING = [
   "I will answer with the mechanism first, then the sunset contrast.\n",
 ]
 const CONTENT = [
+  '我看到你发的图片了：里面是一张蓝色天空的照片。\n\n',
   '因为大气分子对**短波长光**的散射更强（瑞利散射），',
   '蓝光被散射到各个方向的比例远高于红光。',
   '\n\n所以白天抬头时，进入眼睛的散射光以蓝光为主。',

@@ -128,6 +128,21 @@ function toPayload(messages: Message[], settings: Settings) {
       out.push({ role: 'latest_reminder', content: reminder })
     }
     const files = (m.attachments || []).filter((a) => a.fileId)
+    const images = (m.attachments || []).filter((a) => a.imageUrl)
+    if (m.role === 'user' && (files.length > 0 || images.length > 0)) {
+      out.push({
+        role: 'user',
+        content: [
+          ...images.map((a) => ({
+            type: 'image_url',
+            image_url: { url: a.imageUrl },
+          })),
+          ...files.map((f) => ({ type: 'file', file_id: f.fileId })),
+          { type: 'text', text: m.content },
+        ],
+      } as never)
+      continue
+    }
     if (m.role === 'user' && files.length > 0) {
       // 有需要解析的文件：内容改成块数组
       out.push({

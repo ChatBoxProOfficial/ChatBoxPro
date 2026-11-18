@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
+import { imageToDataUrl } from '../image'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -140,6 +141,26 @@ export default function ChatScreen({
         const id = newId()
         // 文本类文件直接把内容读出来，才能真正发给模型
         let text: string | undefined
+        // 图片：压成 data URL，直接以多模态方式发给模型
+        if (file.type.startsWith('image/')) {
+          let imageUrl: string | undefined
+          try {
+            imageUrl = await imageToDataUrl(file)
+          } catch {
+            imageUrl = undefined
+          }
+          const imgItem: Attachment = {
+            id,
+            name: file.name,
+            size: file.size,
+            uploading: false,
+            imageUrl,
+            error: imageUrl ? undefined : '图片读取失败',
+          }
+          setAttachments((prev) => [...prev, imgItem])
+          continue
+        }
+
         const isText = TEXT_EXT.test(file.name) || file.type.startsWith('text/')
         if (isText && file.size <= 2 * 1024 * 1024) {
           try {
@@ -606,6 +627,15 @@ function MessageRow({
   if (msg.role === 'user') {
     return (
       <div className="msg user">
+        {msg.attachments?.some((a) => a.imageUrl) && (
+          <div className="bubble-images">
+            {msg.attachments
+              .filter((a) => a.imageUrl)
+              .map((a) => (
+                <img key={a.id} src={a.imageUrl} alt={a.name} className="bubble-img" />
+              ))}
+          </div>
+        )}
         <div className="bubble">{msg.content.split('\n\n[附件]')[0]}</div>
         {onEdit && (
           <div className="msg-actions left">

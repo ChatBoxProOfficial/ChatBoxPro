@@ -17,6 +17,8 @@ export interface Attachment {
   fileId?: string
   /** 解析方式 */
   purpose?: string
+  /** 图片：压缩后的 data URL（真正让模型看图） */
+  imageUrl?: string
 }
 
 export interface Usage {

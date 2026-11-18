@@ -2355,3 +2355,20 @@ button:disabled {
   align-self: flex-start;
   margin-top: 4px;
 }
+
+/* 用户消息里的图片缩略 */
+.bubble-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.bubble-img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+}
