@@ -218,14 +218,6 @@ export const TEXT: Record<string, Entry> = {
     en: 'Allow the model to write files in the workspace. Every write needs your diff confirmation.',
     ja: '作業ディレクトリ内のファイル書き込みを許可します。各書き込みは diff 確認が必要です。',
   },
-  '允许模型在工作目录内执行命令。每次执行均需确认完整命令。': {
-    en: 'Allow commands inside the workspace. Every command needs your confirmation.',
-    ja: '作業ディレクトリ内でのコマンド実行を許可します。各実行は確認が必要です。',
-  },
-  '高危命令（format、del /f、shutdown 等）一律拒绝。': {
-    en: 'High-risk commands (format, del /f, shutdown, etc.) are always blocked.',
-    ja: '危険なコマンド（format、del /f、shutdown など）は常に拒否します。',
-  },
   '经解析的 PDF / Office 文件保留在服务端账户中，可在此清理。': {
     en: 'Parsed PDF/Office files stay in your server account and can be cleaned up here.',
     ja: '解析済みの PDF / Office はサーバー側に保存され、ここで削除できます。',
@@ -267,6 +259,291 @@ export const TEXT: Record<string, Entry> = {
   轮数: { en: 'Turns', ja: 'ターン' },
   缓存命中: { en: 'Cache hit', ja: 'キャッシュ命中' },
   上下文: { en: 'Context', ja: 'コンテキスト' },
+
+  // ---------- 聊天界面 ----------
+  '正在搜索…': { en: 'Searching…', ja: '検索中…' },
+  '↓ 回到最新': { en: '↓ Back to latest', ja: '↓ 最新へ' },
+  '更早对话的摘要': { en: 'Summary of earlier conversation', ja: '以前の会話の要約' },
+  参考来源: { en: 'Sources', ja: '参考元' },
+  '（子智能体没有输出）': { en: '(sub-agent returned nothing)', ja: '（サブエージェントの出力なし）' },
+  '（子智能体达到步数上限 6）': {
+    en: '(sub-agent reached the 6-step limit)',
+    ja: '（サブエージェントが6ステップ上限に達しました）',
+  },
+  新对话: { en: 'New chat', ja: '新しい会話' },
+  图片读取失败: { en: 'Failed to read image', ja: '画像を読み込めません' },
+  '子智能体未开启（模型面板 → 子智能体团队协作）': {
+    en: 'Sub-agents are off (model panel → sub-agent collaboration)',
+    ja: 'サブエージェントは無効です（モデルパネル → サブエージェント連携）',
+  },
+  缺少子任务描述: { en: 'Missing subtask description', ja: 'サブタスクの説明がありません' },
+  '执行命令权限未开启（设置 → 保存路径 → 允许执行命令）': {
+    en: 'Command execution is off (Settings → File & Paths → Allow commands)',
+    ja: 'コマンド実行は無効です（設定 → ファイルとパス → コマンド実行を許可）',
+  },
+  缺少命令: { en: 'Missing command', ja: 'コマンドがありません' },
+  用户拒绝了这次命令执行: { en: 'You declined this command', ja: 'このコマンドは拒否されました' },
+  '写文件权限未开启（设置 → 保存路径 → 允许写文件）': {
+    en: 'File writes are off (Settings → File & Paths → Allow file writes)',
+    ja: 'ファイル書き込みは無効です（設定 → ファイルとパス → ファイル書き込みを許可）',
+  },
+  缺少文件路径: { en: 'Missing file path', ja: 'ファイルパスがありません' },
+  '用户拒绝了这次写入，文件未改动': {
+    en: 'You declined this write; the file is unchanged',
+    ja: 'この書き込みは拒否されました。ファイルは変更されていません。',
+  },
+  '（内容已附在下方）': { en: ' (content included below)', ja: '（内容は下に添付）' },
+  展开: { en: 'Expand', ja: '展開' },
+  收起: { en: 'Collapse', ja: '折りたたむ' },
+  当前模型: { en: 'Current model', ja: '現在のモデル' },
+  子智能体团队协作: { en: 'Sub-agent collaboration', ja: 'サブエージェント連携' },
+  允许主模型派生只读子智能体处理子任务: {
+    en: 'Let the main model spawn read-only sub-agents for subtasks',
+    ja: 'メインモデルが読み取り専用サブエージェントにサブタスクを任せられます',
+  },
+  联网搜索: { en: 'Web search', ja: 'ウェブ検索' },
+  '需要最新信息时自动搜索并标注来源（仅 deepseek-flash）': {
+    en: 'Search automatically and cite sources when fresh info is needed (deepseek-flash only)',
+    ja: '最新情報が必要なとき自動検索し出典を表示（deepseek-flash のみ）',
+  },
+  内容安全: { en: 'Content safety', ja: 'コンテンツ安全' },
+  '开启官方风控，命中风险内容时拒答': {
+    en: 'Enable official risk control; risky content is refused',
+    ja: '公式のリスク制御を有効化。危険な内容は拒否されます。',
+  },
+  本地工具: { en: 'Local tools', ja: 'ローカルツール' },
+  '允许模型调用时间、计算、搜索、抓网页（本机执行）': {
+    en: 'Let the model use time, math, search and page fetching (run locally)',
+    ja: 'モデルが時刻・計算・検索・ページ取得を利用できます（端末上で実行）',
+  },
+  '上传中…': { en: 'Uploading…', ja: 'アップロード中…' },
+  失败: { en: 'Failed', ja: '失敗' },
+  '搜索中…': { en: 'Searching…', ja: '検索中…' },
+  '（标题匹配）': { en: '(title match)', ja: '（タイトル一致）' },
+  删除对话: { en: 'Delete conversation', ja: '会話を削除' },
+
+  // 统计
+  会话统计: { en: 'Conversation stats', ja: '会話の統計' },
+  对话轮数: { en: 'Turns', ja: 'ターン数' },
+  执行步数: { en: 'Steps', ja: 'ステップ数' },
+  累计用时: { en: 'Total time', ja: '合計時間' },
+  平均每步: { en: 'Average per step', ja: '1ステップ平均' },
+  首字延迟: { en: 'First token', ja: '初回トークン' },
+  缓存命中率: { en: 'Cache hit rate', ja: 'キャッシュ命中率' },
+  上下文占用: { en: 'Context usage', ja: 'コンテキスト使用率' },
+  估算费用: { en: 'Estimated cost', ja: '推定コスト' },
+  'Token 用量': { en: 'Token usage', ja: 'トークン使用量' },
+  '输入（未命中缓存）': { en: 'Input (cache miss)', ja: '入力（キャッシュ未命中）' },
+  输出: { en: 'Output', ja: '出力' },
+  其中思考: { en: 'of which reasoning', ja: 'うち思考' },
+  合计: { en: 'Total', ja: '合計' },
+  '这个会话还没有拿到用量数据（旧消息不计）。': {
+    en: 'No usage data for this conversation yet (old messages excluded).',
+    ja: 'この会話の使用量データはまだありません（古いメッセージは対象外）。',
+  },
+  '按最近一次请求的输入 token 计算；模型上下文上限 1M。': {
+    en: 'Based on the latest request input tokens; model context limit is 1M.',
+    ja: '直近リクエストの入力トークンで計算。モデルの上限は 1M。',
+  },
+  高峰: { en: 'Peak', ja: 'ピーク' },
+  闲时: { en: 'Off-peak', ja: 'オフピーク' },
+
+  // 子智能体面板
+  '还没有派出子智能体。': { en: 'No sub-agents spawned yet.', ja: 'サブエージェントはまだ起動していません。' },
+  主模型交给它的任务: { en: 'Task given by the main model', ja: 'メインモデルからのタスク' },
+  它的思考: { en: 'Its reasoning', ja: 'その思考' },
+  它调用的工具: { en: 'Tools it called', ja: '呼び出したツール' },
+  它的输出: { en: 'Its output', ja: 'その出力' },
+  已完成: { en: 'Done', ja: '完了' },
+  出错: { en: 'Error', ja: 'エラー' },
+  行: { en: 'lines', ja: '行' },
+
+  // 审批
+  允许写入: { en: 'Allow write', ja: '書き込みを許可' },
+  新建文件: { en: 'New file', ja: '新規ファイル' },
+  修改文件: { en: 'Modify file', ja: 'ファイルを変更' },
+  执行命令: { en: 'Run command', ja: 'コマンド実行' },
+  '这条命令会在你的电脑上真实执行。请确认它不会删除文件、修改系统设置或访问敏感数据。': {
+    en: 'This command runs on your computer. Make sure it does not delete files, change system settings or access sensitive data.',
+    ja: 'このコマンドは実際に端末上で実行されます。ファイル削除・システム設定変更・機密データへのアクセスがないか確認してください。',
+  },
+  运行: { en: 'Run', ja: '実行' },
+  '（未设置）': { en: '(not set)', ja: '（未設定）' },
+  关闭窗口: { en: 'Close', ja: '閉じる' },
+
+  // 滑块徽标 / 思考
+  浮想: { en: 'Light', ja: 'ひらめき' },
+  沉思: { en: 'Deep', ja: '熟考' },
+  '最大 token 消耗': { en: 'Max token use', ja: '最大トークン消費' },
+  正在思考: { en: 'Thinking…', ja: '思考中…' },
+  思考过程: { en: 'Reasoning', ja: '思考プロセス' },
+  思考中: { en: 'Thinking…', ja: '思考中…' },
+  已深度思考: { en: 'Reasoned deeply', ja: '深く思考しました' },
+
+  '有什么可以帮你的？': { en: 'How can I help you?', ja: '何をお手伝いしましょうか？' },
+  '开启后请求思维链（reasoning_content）。关闭时同时禁用模型思考模式，降低 token 消耗。': {
+    en: 'Requests reasoning_content when enabled. Disabling also turns off model thinking to reduce tokens.',
+    ja: '有効にすると reasoning_content を要求します。無効にすると思考モードも停止し、トークンを節約します。',
+  },
+  '折叠条目显示「已深度思考（用时 X 秒）」；思考时自动展开，正文生成后收起，可随时展开查看。': {
+    en: 'Shows a collapsed “Reasoned deeply (Xs)” row; expands while thinking, collapses once the answer starts.',
+    ja: '「深く思考しました（X秒）」の折りたたみ行を表示。思考中は自動展開し、本文が出ると折りたたみます。',
+  },
+  '紧凑的「思考过程」折叠块，默认收起，附耗时标记。': {
+    en: 'Compact “Reasoning” block, collapsed by default, with elapsed time.',
+    ja: 'コンパクトな「思考プロセス」ブロック。既定では折りたたみ、所要時間を表示。',
+  },
+  '运行 DSH 服务的主机地址，例如 http://192.168.1.48:3081': {
+    en: 'Host running DSH, e.g. http://192.168.1.48:3081',
+    ja: 'DSH を動かしているホスト。例：http://192.168.1.48:3081',
+  },
+  '· 复用 DSH 的会话与文件能力': { en: '· Reuse DSH sessions and file access', ja: '· DSH の会話とファイル機能を再利用' },
+  '· 移动端上传的文件可直接进入 DSH 工作区': {
+    en: '· Files uploaded on mobile go straight into the DSH workspace',
+    ja: '· モバイルでアップロードしたファイルを DSH ワークスペースへ',
+  },
+  '· 在移动端查看 DSH 执行代码的实时过程': {
+    en: '· Watch DSH run code in real time on mobile',
+    ja: '· モバイルで DSH のコード実行をリアルタイム表示',
+  },
+  '深度对接（会话同步、文件写入工作区）仍在开发中。': {
+    en: 'Deeper integration (session sync, writing files into the workspace) is still in development.',
+    ja: '深い連携（会話同期・ワークスペースへのファイル書き込み）は開発中です。',
+  },
+  '附件与导出文件均存放于以下目录。': {
+    en: 'Attachments and exports are stored in the folder below.',
+    ja: '添付ファイルとエクスポートは次のフォルダーに保存されます。',
+  },
+  '（浏览器环境不可用）': { en: ' (unavailable in browser)', ja: '（ブラウザでは利用不可）' },
+  '。留空则禁用文件读取能力。': { en: '. Leave empty to disable file reading.', ja: '。空欄ならファイル読み取りは無効です。' },
+  '允许模型在工作目录内执行命令。每次执行均需确认完整命令。': {
+    en: 'Allow commands inside the workspace. Every command needs your confirmation.',
+    ja: '作業ディレクトリ内でのコマンド実行を許可します。各実行は確認が必要です。',
+  },
+  '高危命令（format、del /f、shutdown 等）一律拒绝。': {
+    en: 'High-risk commands (format, del /f, shutdown, etc.) are always blocked.',
+    ja: '危険なコマンド（format、del /f、shutdown など）は常に拒否します。',
+  },
+}
+
+/** 带变量的句子：按模式翻译 */
+const PATTERNS: Array<{
+  re: RegExp
+  en: (m: RegExpMatchArray) => string
+  ja: (m: RegExpMatchArray) => string
+}> = [
+  {
+    re: /^已深度思考（用时 (.+) 秒）$/,
+    en: (m) => `Reasoned deeply (${m[1]}s)`,
+    ja: (m) => `深く思考しました（${m[1]}秒）`,
+  },
+  {
+    re: /^(\d+) 条 · (.+)$/,
+    en: (m) => `${m[1]} messages · ${m[2]}`,
+    ja: (m) => `${m[1]} 件 · ${m[2]}`,
+  },
+  {
+    re: /^(\d+) 条$/,
+    en: (m) => `${m[1]} messages`,
+    ja: (m) => `${m[1]} 件`,
+  },
+  {
+    re: /^条 · (.+)$/,
+    en: (m) => `messages · ${m[1]}`,
+    ja: (m) => `件 · ${m[1]}`,
+  },
+  {
+    re: /^条$/,
+    en: () => 'messages',
+    ja: () => '件',
+  },
+  {
+    re: /^缓存 (.+)$/,
+    en: (m) => `cache ${m[1]}`,
+    ja: (m) => `キャッシュ ${m[1]}`,
+  },
+  {
+    re: /^(\d+) 步$/,
+    en: (m) => `${m[1]} steps`,
+    ja: (m) => `${m[1]} ステップ`,
+  },
+  {
+    re: /^完成：(\d+) 条 → (\d+) 条$/,
+    en: (m) => `Done: ${m[1]} → ${m[2]} messages`,
+    ja: (m) => `完了：${m[1]} 件 → ${m[2]} 件`,
+  },
+  {
+    re: /^失败：(.+)$/,
+    en: (m) => `Failed: ${m[1]}`,
+    ja: (m) => `失敗：${m[1]}`,
+  },
+  {
+    re: /^安全冷却：请等待 (\d+) 秒$/,
+    en: (m) => `Cooling down: wait ${m[1]}s`,
+    ja: (m) => `クールダウン：${m[1]}秒お待ちください`,
+  },
+  {
+    re: /^(.+) 秒冷却期内按钮保持禁用，用于防止误操作。$/,
+    en: (m) => `The button stays disabled for ${m[1]} seconds to prevent accidental clicks.`,
+    ja: (m) => `誤操作防止のため${m[1]}秒間ボタンは無効です。`,
+  },
+  {
+    re: /^删除「(.+)」？已引用它的历史对话将读不到内容。$/,
+    en: (m) => `Delete “${m[1]}”? Conversations referencing it will lose the content.`,
+    ja: (m) => `「${m[1]}」を削除しますか？参照している会話は内容を読めなくなります。`,
+  },
+  {
+    re: /^「(.+)」将被永久删除，无法恢复。$/,
+    en: (m) => `“${m[1]}” will be permanently deleted.`,
+    ja: (m) => `「${m[1]}」は完全に削除されます。`,
+  },
+  {
+    re: /^允许模型在工作目录内执行命令。每次执行均需确认完整命令。\s*高危命令（format、del \/f、shutdown 等）一律拒绝。$/,
+    en: () =>
+      'Allow commands inside the workspace. Every command needs your confirmation. High-risk commands (format, del /f, shutdown, etc.) are always blocked.',
+    ja: () =>
+      '作業ディレクトリ内でのコマンド実行を許可します。各実行は確認が必要です。危険なコマンド（format、del /f、shutdown など）は常に拒否します。',
+  },
+  {
+    re: /^版本 (.+) · 本机模式 · 会话数据不离开设备$/,
+    en: (m) => `Version ${m[1]} · Local mode · data stays on this device`,
+    ja: (m) => `バージョン ${m[1]} · ローカルモード · データは端末内に保持`,
+  },
+  {
+    re: /^(.+)（(\d+) 条）$/,
+    en: (m) => `${m[1]} (${m[2]} messages)`,
+    ja: (m) => `${m[1]}（${m[2]} 件）`,
+  },
+]
+
+const ATTRS = ['placeholder', 'title', 'aria-label']
+const attrOriginals = new WeakMap<Element, Record<string, string>>()
+
+function translateAttrs(root: ParentNode) {
+  const els = root.querySelectorAll('[placeholder], [title], [aria-label]')
+  els.forEach((el) => {
+    if (el.closest(SKIP_SELECTOR)) return
+    let store = attrOriginals.get(el)
+    if (!store) {
+      store = {}
+      for (const a of ATTRS) {
+        const v = el.getAttribute(a)
+        if (v) store[a] = v
+      }
+      attrOriginals.set(el, store)
+    }
+    for (const a of ATTRS) {
+      const original = store[a]
+      if (!original) continue
+      if (currentLang === 'zh') {
+        if (el.getAttribute(a) !== original) el.setAttribute(a, original)
+        continue
+      }
+      const entry = TEXT[original.trim()]
+      const target = entry ? (currentLang === 'en' ? entry.en : entry.ja) : original
+      if (el.getAttribute(a) !== target) el.setAttribute(a, target)
+    }
+  })
 }
 
 const SKIP_SELECTOR = '.md, .bubble, textarea, input, pre, code, .msg.tool, [data-no-i18n]'
@@ -284,6 +561,16 @@ function translateTextNode(node: Text) {
   if (currentLang === 'zh') {
     if (node.nodeValue !== raw) node.nodeValue = raw
     return
+  }
+
+  for (const pat of PATTERNS) {
+    const m = trimmed.match(pat.re)
+    if (m) {
+      const target = currentLang === 'en' ? pat.en(m) : pat.ja(m)
+      const next = raw.replace(trimmed, target)
+      if (node.nodeValue !== next) node.nodeValue = next
+      return
+    }
   }
 
   let entry = TEXT[trimmed]
@@ -328,6 +615,7 @@ function walk(root: Node) {
     n = walker.nextNode()
   }
   for (const t of nodes) translateTextNode(t)
+  translateAttrs(root as ParentNode)
 }
 
 /** 应用/切换语言（幂等，可反复调用） */
