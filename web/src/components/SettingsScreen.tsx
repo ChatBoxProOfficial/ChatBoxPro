@@ -37,14 +37,14 @@ type SectionId =
   | 'about'
 
 const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
-  { id: 'account', title: 'ChatBox Pro 账号与模型', desc: 'API Key、默认模型、温度' },
-  { id: 'personalize', title: '个性化', desc: '紧凑模式、系统提示词' },
-  { id: 'plugins', title: '插件', desc: '扩展功能' },
-  { id: 'models', title: '管理模型', desc: '启用哪些模型、自定义模型' },
-  { id: 'context', title: '上下文管理', desc: '历史条数、清空本机会话' },
-  { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务器地址与连接测试' },
-  { id: 'paths', title: '管理模型保存路径', desc: '附件与导出的存放位置' },
-  { id: 'about', title: '关于 ChatBox Pro', desc: '版本、投喂作者' },
+  { id: 'account', title: 'ChatBox Pro 账号与模型', desc: 'API Key、默认模型与温度' },
+  { id: 'personalize', title: '个性化', desc: '紧凑模式、主题与系统提示词' },
+  { id: 'plugins', title: '插件', desc: '扩展能力' },
+  { id: 'models', title: '管理模型', desc: '启用模型与自定义模型' },
+  { id: 'context', title: '上下文管理', desc: '上下文压缩、历史条数与数据管理' },
+  { id: 'dsh', title: '连接 DeepSeek Harness', desc: '服务端地址与连通性检测' },
+  { id: 'paths', title: '文件与路径', desc: '存放位置与工具权限' },
+  { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
 ]
 
 export default function SettingsScreen({
@@ -180,7 +180,7 @@ function AccountSection({
       <section className="card">
         <h3>DeepSeek API Key</h3>
         <p className="muted small">
-          只加密保存在这台设备上；请求经服务器中转，服务器不记录、不落盘。
+          仅以加密形式存储于本机。请求经中转转发，服务端不记录、不落盘。
         </p>
         {key && !editing ? (
           <div className="key-row">
@@ -193,7 +193,7 @@ function AccountSection({
               onClick={async () => {
                 const ok = await confirmDialog({
                   title: '清除 API Key',
-                  message: '这台设备上保存的 Key 会被删除，之后需要重新填写才能发送消息。',
+                  message: '本机保存的 API Key 将被删除，删除后需重新填写才能发送消息。',
                   confirmText: '清除',
                   danger: true,
                 })
@@ -266,7 +266,7 @@ function BalanceRow({ baseUrl }: { baseUrl: string }) {
     try {
       const r = await fetchBalance(baseUrl)
       setState(r.cny || null)
-      if (!r.available) setErr('账户余额不足')
+      if (!r.available) setErr('账户余额不足，请充值后重试')
     } catch (e) {
       setErr((e as Error).message)
     } finally {
@@ -275,7 +275,10 @@ function BalanceRow({ baseUrl }: { baseUrl: string }) {
   }
 
   useEffect(() => {
-    void load()
+    void (async () => {
+      const key = await loadApiKey()
+      if (key) await load()
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -309,7 +312,7 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
           onChange={(v) => patch({ compact: v })}
         />
       </div>
-      <p className="muted small">更小的字号与行距，一屏能看更多内容。</p>
+      <p className="muted small">缩小字号与行距，提升单屏信息密度。</p>
 
       <div className="field" style={{ marginTop: 14 }}>
         <span>主题</span>
@@ -338,7 +341,7 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
         />
       </div>
       <p className="muted small">
-        每轮把当前日期、平台、语言告诉模型（官方 latest_reminder），回答更贴合时间。
+        每轮请求附带当前日期、平台与语言信息（latest_reminder），使回答符合当前时空上下文。
       </p>
 
       <label className="field" style={{ marginTop: 14 }}>
@@ -347,7 +350,7 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
           rows={4}
           value={settings.systemPrompt}
           onChange={(e) => patch({ systemPrompt: e.target.value })}
-          placeholder="例如：回答尽量简洁"
+          placeholder="例如：回答保持简洁，先给结论"
         />
       </label>
     </section>
@@ -359,9 +362,9 @@ function PluginsSection() {
     <section className="card">
       <h3>插件</h3>
       <p className="muted small">
-        之后会支持插件：主题、快捷指令、会话导入导出等。现在还没有可安装的插件。
+        插件系统尚未开放，后续将支持主题、快捷指令与会话导入导出等扩展。
       </p>
-      <div className="empty-slot">暂无插件</div>
+      <div className="empty-slot">暂无可安装插件</div>
     </section>
   )
 }
@@ -396,7 +399,7 @@ function ModelsSection({
     <>
       <section className="card">
         <h3>启用的模型</h3>
-        <p className="muted small">勾选后会出现在输入栏的模型菜单里。</p>
+        <p className="muted small">勾选的模型会出现在输入栏的模型选择菜单中。</p>
         <div className="model-list">
           {all.map((id) => (
             <div key={id} className="switch-row">
@@ -420,7 +423,7 @@ function ModelsSection({
           />
         </div>
         <p className="muted small">
-          开启后会向接口请求思维链（reasoning_content）；关闭则同时关闭模型的思考模式，更省 token。
+          开启后请求思维链（reasoning_content）。关闭时同时禁用模型思考模式，降低 token 消耗。
         </p>
 
         {settings.reasoningDisplay !== 'off' && (
@@ -434,10 +437,10 @@ function ModelsSection({
                 })
               }
             >
-              <option value="off">off — 关闭思考（最快最省）</option>
+              <option value="off">off — 关闭思考（最低开销）</option>
               <option value="low">low — 轻量思考</option>
-              <option value="high">high — 默认</option>
-              <option value="max">max — 最难的任务</option>
+              <option value="high">high — 默认强度</option>
+              <option value="max">max — 面向复杂任务</option>
             </select>
           </label>
         )}
@@ -452,9 +455,9 @@ function ModelsSection({
                 onChange={() => patch({ reasoningDisplay: 'web' })}
               />
               <span className="radio-main">
-                <span className="radio-title">1 号：仿 DeepSeek 网页版</span>
+                <span className="radio-title">样式一：DeepSeek 网页版</span>
                 <span className="radio-desc">
-                  折叠条「已深度思考（用时 X 秒）」；思考时自动展开，正文出现后自动收起，可点开回看
+                  折叠条目显示「已深度思考（用时 X 秒）」；思考时自动展开，正文生成后收起，可随时展开查看。
                 </span>
               </span>
             </label>
@@ -467,9 +470,9 @@ function ModelsSection({
                 onChange={() => patch({ reasoningDisplay: 'dsh' })}
               />
               <span className="radio-main">
-                <span className="radio-title">2 号：仿 DSH</span>
+                <span className="radio-title">样式二：DSH</span>
                 <span className="radio-desc">
-                  紧凑的「思考过程」小折叠块，默认收起，带耗时标记
+                  紧凑的「思考过程」折叠块，默认收起，附耗时标记。
                 </span>
               </span>
             </label>
@@ -479,12 +482,12 @@ function ModelsSection({
 
       <section className="card">
         <h3>添加自定义模型</h3>
-        <p className="muted small">填模型 id（跟 API 里一致），添加后即可选用。</p>
+        <p className="muted small">填写与 API 一致的模型 ID，添加后即可选用。</p>
         <div className="row">
           <input
             value={newModel}
             onChange={(e) => setNewModel(e.target.value)}
-            placeholder="例如 deepseek-chat-v2"
+            placeholder="例如 deepseek-v4-pro"
           />
           <button
             className="ghost"
@@ -560,14 +563,14 @@ function ContextSection({
       <section className="card">
         <h3>自动压缩上下文</h3>
         <div className="switch-row">
-          <span>超过阈值时自动压缩</span>
+          <span>上下文占用超阈值时自动压缩</span>
           <Switch
             checked={settings.autoCompact}
             onChange={(v) => patch({ autoCompact: v })}
           />
         </div>
         <p className="muted small">
-          每轮回答后检查上下文占用，超过阈值就把较早的消息交给模型压成摘要，只保留最近 8 条。
+          每轮回答结束后检测上下文占用率。超过阈值时，将早期消息压缩为摘要，仅保留最近 8 条。
         </p>
         <label className="field">
           <span>触发阈值</span>
@@ -576,9 +579,9 @@ function ContextSection({
             onChange={(e) => patch({ compactThreshold: Number(e.target.value) })}
             disabled={!settings.autoCompact}
           >
-            <option value={40}>40% — 很早就压，省 token</option>
-            <option value={60}>60% — 平衡（默认）</option>
-            <option value={80}>80% — 尽量保留原文</option>
+            <option value={40}>40% — 提前压缩（最省）</option>
+            <option value={60}>60% — 均衡（推荐）</option>
+            <option value={80}>80% — 保留更多原文</option>
           </select>
         </label>
       </section>
@@ -586,7 +589,7 @@ function ContextSection({
       <section className="card">
         <h3>携带的历史条数</h3>
         <label className="field">
-          <span>每次发送带最近多少条消息（0 = 全部）</span>
+          <span>单次请求携带的最近消息条数（0 表示全部）</span>
           <input
             type="number"
             min={0}
@@ -595,13 +598,13 @@ function ContextSection({
             onChange={(e) => patch({ contextLimit: Math.max(0, Number(e.target.value) || 0) })}
           />
         </label>
-        <p className="muted small">条数越少，消耗的 token 越少，长会话也不容易卡。</p>
+        <p className="muted small">条数越少，token 消耗越低，长会话渲染更稳定。</p>
       </section>
 
       <section className="card">
         <h3>压缩指定对话的上下文</h3>
         <p className="muted small">
-          把较早的消息交给模型压缩成一段摘要，只保留最近几条。适合很长的会话，能省下大量 token。
+          将早期消息交由模型压缩为摘要，仅保留最近若干条，适用于长会话的上下文精简。
         </p>
         <label className="field">
           <span>选择对话</span>
@@ -609,7 +612,7 @@ function ContextSection({
             value={compressId}
             onChange={(e) => setCompressId(e.target.value)}
           >
-            <option value="">选择一个对话…</option>
+            <option value="">请选择会话…</option>
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.title}（{s.count} 条）
@@ -625,7 +628,7 @@ function ContextSection({
               if (!compressId) return
               const ok = await confirmDialog({
                 title: '压缩上下文',
-                message: '较早的消息会被替换成一段摘要，原始内容不再保留（建议先导出备份）。',
+                message: '早期消息将被摘要替换，原文不再保留。建议先导出备份。',
                 confirmText: '压缩',
               })
               if (!ok) return
@@ -641,7 +644,7 @@ function ContextSection({
               }
             }}
           >
-            {compressing ? '压缩中…' : '压缩这个对话'}
+            {compressing ? '压缩中…' : '压缩所选会话'}
           </button>
         </div>
         {compressMsg && <p className="muted small">{compressMsg}</p>}
@@ -650,7 +653,7 @@ function ContextSection({
       <section className="card">
         <h3>本机会话</h3>
         <p className="muted small">
-          「仅本机」的会话只存在这台设备，换设备或清数据就没了。
+          「仅本机」会话仅存储于当前设备。更换设备或清除数据后将无法恢复。
         </p>
         <div className="row">
           <button
@@ -662,10 +665,10 @@ function ContextSection({
               }
             }}
           >
-            导出所有历史对话
+            导出全部历史对话
           </button>
         </div>
-        <p className="muted small">导出一个 JSON 文件，包含全部会话与消息。</p>
+        <p className="muted small">导出单个 JSON 文件，包含全部会话及消息记录。</p>
 
         <div className="row" style={{ marginTop: 12 }}>
           <button
@@ -681,7 +684,7 @@ function ContextSection({
               if (phase === 'cooling') return
               const ok = await confirmDialog({
                 title: '删除本机全部会话',
-                message: '这台设备上的所有对话都会被删除，此操作无法撤销。',
+                message: '本机全部会话将被永久删除，此操作不可撤销。',
                 confirmText: '全部删除',
                 danger: true,
               })
@@ -694,12 +697,12 @@ function ContextSection({
             {phase === 'idle'
               ? '删除本机全部会话'
               : phase === 'cooling'
-                ? `防误触：请等待 ${left} 秒`
+                ? `安全冷却：请等待 ${left} 秒`
                 : '已可删除，点击确认'}
           </button>
         </div>
         {phase === 'cooling' && (
-          <p className="warn small">这 10 秒是防误触冷静期，期间按钮不可用。</p>
+          <p className="warn small">10 秒冷却期内按钮保持禁用，用于防止误操作。</p>
         )}
       </section>
     </>
@@ -721,10 +724,10 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
       await fetch(url, { mode: 'no-cors', signal: ctrl.signal })
       clearTimeout(t)
       setState('ok')
-      setMsg('地址可达')
+      setMsg('连接正常')
     } catch {
       setState('fail')
-      setMsg('连不上，检查地址和网络')
+      setMsg('无法连接，请检查地址与网络')
     }
   }
 
@@ -732,7 +735,7 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
     <>
       <section className="card">
         <h3>服务器地址</h3>
-        <p className="muted small">运行 dsh 的机器地址，例如 http://192.168.1.48:3081。</p>
+        <p className="muted small">运行 DSH 服务的主机地址，例如 http://192.168.1.48:3081</p>
         <div className="row">
           <input
             value={settings.dshUrl}
@@ -744,7 +747,7 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
             placeholder="http://192.168.1.48:3081"
           />
           <button className="ghost" onClick={() => void test()} disabled={!settings.dshUrl.trim()}>
-            {state === 'testing' ? '测试中…' : '测试'}
+            {state === 'testing' ? '检测中…' : '测试'}
           </button>
         </div>
         {msg && (
@@ -758,13 +761,13 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
       <section className="card">
         <h3>接入后能做什么</h3>
         <p className="muted small">
-          · 用 DSH 的会话与文件能力
+          · 复用 DSH 的会话与文件能力
           <br />
-          · 手机上传的文件直接进 DSH 工作区
+          · 移动端上传的文件可直接进入 DSH 工作区
           <br />
-          · 在手机上看 DSH 跑代码的过程
+          · 在移动端查看 DSH 执行代码的实时过程
         </p>
-        <p className="warn small">深度对接（会话同步、文件进工作区）还在开发中。</p>
+        <p className="warn small">深度对接（会话同步、文件写入工作区）仍在开发中。</p>
       </section>
     </>
   )
@@ -789,10 +792,10 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
 
   return (
     <section className="card">
-      <h3>附件与导出的存放位置</h3>
-      <p className="muted small">上传的附件、导出的对话都落在下面这个目录。</p>
+      <h3>存放位置与工具权限</h3>
+      <p className="muted small">附件与导出文件均存放于以下目录。</p>
       <div className="path-box">
-        <code>{inbox || '（还没取到路径）'}</code>
+        <code>{inbox || '（未获取到路径）'}</code>
       </div>
       <div className="row">
         <button
@@ -814,14 +817,14 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
         </button>
       </div>
       <p className="muted small">
-        「打开文件夹」只在桌面端可用。
-        {!window.chatbox && '（浏览器里打开时不可用）'}
+        「打开文件夹」仅在桌面端可用。
+        {!window.chatbox && '（浏览器环境不可用）'}
       </p>
 
-      <h3 style={{ marginTop: 16 }}>工作目录（只读）</h3>
+      <h3 style={{ marginTop: 16 }}>工作目录</h3>
       <p className="muted small">
-        模型可以通过 list_dir / read_file / search_in_files 读取这个目录里的文件。
-        <b>只读</b>，不会修改或删除。留空表示不允许读文件。
+        模型的读取类工具（list_dir / read_file / search_in_files）可访问该目录下的文件。
+        <b>读取不修改</b>。留空则禁用文件读取能力。
       </p>
       <div className="row">
         <input
@@ -839,7 +842,7 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
         />
       </div>
       <p className="warn small">
-        开启后模型可以写工作目录里的文件，<b>每次写入都会弹窗让你确认 diff</b>。
+        允许模型写入工作目录内的文件。每次写入均需人工确认变更（diff）。
       </p>
 
       <div className="switch-row" style={{ marginTop: 10 }}>
@@ -850,12 +853,12 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
         />
       </div>
       <p className="warn small">
-        开启后模型可以在工作目录里执行命令，<b>每次都会弹窗显示完整命令让你确认</b>。
-        危险命令（format、del /f、shutdown 等）会被直接拒绝。
+        允许模型在工作目录内执行命令。每次执行均需确认完整命令。
+        高危命令（format、del /f、shutdown 等）一律拒绝。
       </p>
 
-      <h3 style={{ marginTop: 16 }}>已上传到官方的文件</h3>
-      <p className="muted small">解析过的 PDF/Office 会留在官方账户里，可以在这里清理。</p>
+      <h3 style={{ marginTop: 16 }}>服务端已解析文件</h3>
+      <p className="muted small">经解析的 PDF / Office 文件保留在服务端账户中，可在此清理。</p>
       <FileList />
     </section>
   )
@@ -879,14 +882,17 @@ function FileList() {
   }
 
   useEffect(() => {
-    void load()
+    void (async () => {
+      const key = await loadApiKey()
+      if (key) await load()
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div>
       {err && <p className="warn small">{err}</p>}
-      {files.length === 0 && !loading && <p className="muted small">没有文件</p>}
+      {files.length === 0 && !loading && <p className="muted small">暂无文件</p>}
       {files.map((f) => (
         <div key={f.id} className="file-row">
           <span className="file-name" title={f.filename}>
@@ -898,7 +904,7 @@ function FileList() {
             onClick={async () => {
               const ok = await confirmDialog({
                 title: '删除云端文件',
-                message: `删除「${f.filename}」？已引用它的历史对话将读不到内容。`,
+                message: `删除「${f.filename}」？引用该文件的历史会话将无法读取其内容。`,
                 confirmText: '删除',
                 danger: true,
               })
@@ -927,12 +933,12 @@ function AboutSection({ onTip }: { onTip: () => void }) {
     <section className="card">
       <h3>关于 ChatBox Pro</h3>
       <p className="muted small">
-        版本 0.2.0 · 本机模式（会话不离开设备）
+        版本 0.2.0 · 本机模式 · 会话数据不离开设备
         <br />
-        手机 / 电脑共用一套服务器，自己填自己的 API Key。
+        多端共用同一服务端，用户各自配置自己的 API Key。
       </p>
       <button className="ghost wide" onClick={onTip}>
-        投喂作者
+        支持作者
       </button>
       <p className="muted small" style={{ marginTop: 8 }}>
         自愿支持，不影响任何功能。
@@ -946,12 +952,12 @@ function TipDialog({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-mask" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>投喂作者</h3>
-        <p className="muted small">自愿支持，不影响任何功能。谢谢！</p>
+        <h3>支持作者</h3>
+        <p className="muted small">自愿支持，不影响任何功能。感谢！</p>
         {imgOk ? (
           <img className="qr" src="tip-qr.png" alt="收款二维码" onError={() => setImgOk(false)} />
         ) : (
-          <div className="qr placeholder">收款二维码待添加</div>
+          <div className="qr placeholder">收款二维码暂未配置</div>
         )}
         <button className="ghost wide" onClick={onClose}>
           关闭
