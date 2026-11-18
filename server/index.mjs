@@ -191,6 +191,16 @@ async function handleChat(req, res) {
     stream: true,
     // 思考模式开关与强度（DeepSeek 新接口参数）
     ...(signal.thinking ? { thinking: signal.thinking } : {}),
+    // 服务端联网工具（只放行官方这两个）
+    ...(Array.isArray(signal.tools)
+      ? {
+          tools: signal.tools.filter(
+            (t) =>
+              t &&
+              (t.type === 'deepseek_web_search' || t.type === 'deepseek_read_url'),
+          ),
+        }
+      : {}),
     ...(signal.reasoning_effort ? { reasoning_effort: signal.reasoning_effort } : {}),
   })
 

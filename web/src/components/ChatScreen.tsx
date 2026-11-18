@@ -35,6 +35,7 @@ export default function ChatScreen({
   const [streamText, setStreamText] = useState('')
   const [reasonText, setReasonText] = useState('')
   const [atBottom, setAtBottom] = useState(true)
+  const [searching, setSearching] = useState(false)
 
   const accRef = useRef('')
   const reasonRef = useRef('')
@@ -183,6 +184,8 @@ export default function ChatScreen({
     const ctrl = new AbortController()
     abortRef.current = ctrl
     let failed = ''
+    let citations: Array<{ url: string; title?: string }> = []
+    let usedTools = false
 
     await streamChat(
       next,
@@ -200,6 +203,17 @@ export default function ChatScreen({
         onDone: () => {},
         onError: (msg) => {
           failed = msg
+        },
+        onToolEvent: (evt) => {
+          if (evt.type === 'call_started') setSearching(true)
+          if (evt.type === 'call_completed') {
+            setSearching(false)
+            usedTools = true
+          }
+        },
+        onMeta: (meta) => {
+          if (meta.citations?.length) citations = meta.citations
+          if (meta.usedTools) usedTools = true
         },
       },
       ctrl.signal,
@@ -222,6 +236,7 @@ export default function ChatScreen({
     setStreamText('')
     setReasonText('')
     setBusy(false)
+    setSearching(false)
     abortRef.current = null
 
     const assistant: Message = failed
@@ -240,6 +255,8 @@ export default function ChatScreen({
           model: session.model,
           reasoning: reasons || undefined,
           reasoningMs: reasons ? reasoningMs : undefined,
+          citations: citations.length ? citations : undefined,
+          usedTools: usedTools || undefined,
         }
 
     const withReply = [...next, assistant]
@@ -327,6 +344,12 @@ export default function ChatScreen({
                     durationMs={Date.now() - startAtRef.current}
                   />
                 )}
+                {searching && (
+                  <div className="searching-line">
+                    <span className="searching-dot" />
+                    正在搜索…
+                  </div>
+                )}
                 {streamText ? (
                   <div className="streaming-text">{streamText}</div>
                 ) : (
@@ -363,6 +386,8 @@ export default function ChatScreen({
         onEffortChange={(e) => onSettingsChange({ reasoningEffort: e })}
         teamMode={settings.teamMode}
         onTeamModeChange={(v) => onSettingsChange({ teamMode: v })}
+        webSearch={settings.webSearch}
+        onWebSearchChange={(v) => onSettingsChange({ webSearch: v })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}
@@ -399,6 +424,24 @@ function MessageRow({
           />
         )}
         <Markdown text={msg.content} />
+        {msg.citations && msg.citations.length > 0 && (
+          <div className="citations">
+            <div className="citations-label">参考来源</div>
+            {msg.citations.map((c, i) => (
+              <a
+                key={`${c.url}-${i}`}
+                className="citation-item"
+                href={c.url}
+                target="_blank"
+                rel="noreferrer"
+                title={c.url}
+              >
+                <span className="citation-index">{i + 1}</span>
+                <span className="citation-title">{c.title || c.url}</span>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -38,6 +38,17 @@ export interface StreamHandlers {
   onDelta: (text: string, kind: 'content' | 'reasoning') => void
   onDone: () => void
   onError: (message: string) => void
+  /** 服务端工具事件（搜索开始/结束等） */
+  onToolEvent?: (evt: {
+    type: string
+    action?: string
+    status?: string
+  }) => void
+  /** 结束时附带的信息：引用来源、是否用过工具 */
+  onMeta?: (meta: {
+    citations?: Array<{ url: string; title?: string }>
+    usedTools?: boolean
+  }) => void
 }
 
 /** 没填 Key 时给出的引导文案（不是报错，是提示） */
@@ -103,6 +114,10 @@ export async function streamChat(
         ...(settings.reasoningEffort === 'off'
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
+        // 联网搜索 / 阅读链接：声明后由 DeepSeek 服务端执行，客户端不跑工具
+        ...(settings.webSearch
+          ? { tools: [{ type: 'deepseek_web_search' }, { type: 'deepseek_read_url' }] }
+          : {}),
       }),
       signal,
     })
@@ -146,7 +161,19 @@ export async function streamChat(
           if (!data || data === '[DONE]') continue
           try {
             const json = JSON.parse(data)
-            const delta = json?.choices?.[0]?.delta
+            const choice = json?.choices?.[0]
+            const delta = choice?.delta
+
+            // 服务端工具事件（搜索开始/结束）
+            const evt = choice?.server_tool_event
+            if (evt) {
+              handlers.onToolEvent?.({
+                type: evt.type,
+                action: evt.call?.action?.type,
+                status: evt.call?.status,
+              })
+            }
+
             if (!delta) continue
             // 不同兼容实现字段名略有差异，两个都认
             const reasoning = delta.reasoning_content ?? delta.reasoning
@@ -155,6 +182,22 @@ export async function streamChat(
             }
             if (typeof delta.content === 'string' && delta.content) {
               handlers.onDelta(delta.content, 'content')
+            }
+            // 最后一个 chunk 会带完整的 annotations / server_tool_calls
+            const annotations = delta?.annotations
+            if (Array.isArray(annotations) && annotations.length) {
+              const citations = annotations
+                .map((a: any) => a?.url_citation)
+                .filter(Boolean)
+                .map((c: any) => ({ url: String(c.url || ''), title: c.title }))
+                .filter((c: any) => c.url)
+              const toolCalls = delta?.server_tool_calls
+              handlers.onMeta?.({
+                citations,
+                usedTools: Array.isArray(toolCalls) ? toolCalls.length > 0 : true,
+              })
+            } else if (Array.isArray(delta?.server_tool_calls) && delta.server_tool_calls.length) {
+              handlers.onMeta?.({ usedTools: true })
             }
           } catch {
             /* 半个 JSON 或心跳，跳过 */

@@ -53,14 +53,53 @@ const server = http.createServer(async (req, res) => {
     res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta }] })}\n\n`)
   }
 
+  // 带 server_tool_event 的 chunk（模拟联网搜索）
+  const sendEvt = (evt) => {
+    res.write(`data: ${JSON.stringify({ choices: [{ index: 0, server_tool_event: evt }] })}\n\n`)
+  }
+
   for (const piece of REASONING) {
     send({ reasoning_content: piece })
     await sleep(120)
   }
+  sendEvt({
+    type: 'call_started',
+    step: 0,
+    call: { index: 0, id: 'srvtoolu_mock', type: 'deepseek_web_search', kind: 'search', action: { type: 'search', queries: ['天空为什么是蓝的'] } },
+  })
+  await sleep(400)
+  sendEvt({
+    type: 'call_completed',
+    step: 0,
+    call: {
+      index: 0,
+      id: 'srvtoolu_mock',
+      status: 'completed',
+      sources: [{ type: 'url', url: 'https://example.com/rayleigh', title: '瑞利散射 - 示例百科' }],
+    },
+  })
+  await sleep(120)
+
   for (const piece of CONTENT) {
     send({ content: piece })
     await sleep(80)
   }
+
+  // 最后一个 chunk 带引用
+  send({
+    annotations: [
+      {
+        type: 'url_citation',
+        url_citation: {
+          url: 'https://example.com/rayleigh',
+          title: '瑞利散射 - 示例百科',
+          start_index: 0,
+          end_index: 10,
+        },
+      },
+    ],
+    server_tool_calls: [{ index: 0, calls: [{ id: 'srvtoolu_mock', status: 'completed' }] }],
+  })
   res.write('data: [DONE]\n\n')
   res.end()
 })

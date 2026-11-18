@@ -25,6 +25,10 @@ export interface Message {
   reasoning?: string
   /** 思考耗时（毫秒），用于「已深度思考（用时 X 秒）」 */
   reasoningMs?: number
+  /** 联网搜索用到的参考来源 */
+  citations?: Array<{ url: string; title?: string }>
+  /** 这条回复是否用过搜索/读链接 */
+  usedTools?: boolean
   attachments?: Attachment[]
 }
 
@@ -68,6 +72,8 @@ export interface Settings {
   reasoningEffort: 'off' | 'low' | 'high' | 'max'
   /** 允许启动子智能体团队协作（需连接 DSH 后生效） */
   teamMode: boolean
+  /** 联网搜索（DeepSeek 服务端工具） */
+  webSearch: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -84,6 +90,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reasoningDisplay: 'web',
   reasoningEffort: 'high',
   teamMode: false,
+  webSearch: false,
 }
 
 /** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */

@@ -1856,3 +1856,75 @@ button:disabled {
   color: #6f7987;
   line-height: 1.4;
 }
+
+/* 联网搜索状态与引用 */
+.searching-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #8fa3c4;
+  margin-bottom: 8px;
+}
+
+.searching-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5aa2ff;
+  animation: searchPulse 1s ease-in-out infinite;
+}
+
+@keyframes searchPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.citations {
+  margin-top: 10px;
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.citations-label {
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin-bottom: 2px;
+}
+
+.citation-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: #7fa8dd;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.citation-item:hover .citation-title {
+  text-decoration: underline;
+}
+
+.citation-index {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: #24303f;
+  color: #8fa3c4;
+  font-size: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.citation-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

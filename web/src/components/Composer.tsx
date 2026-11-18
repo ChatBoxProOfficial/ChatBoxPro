@@ -18,6 +18,8 @@ interface Props {
   onEffortChange: (e: Effort) => void
   teamMode: boolean
   onTeamModeChange: (v: boolean) => void
+  webSearch: boolean
+  onWebSearchChange: (v: boolean) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
   onRemoveAttachment: (id: string) => void
@@ -43,6 +45,8 @@ export default function Composer({
   onEffortChange,
   teamMode,
   onTeamModeChange,
+  webSearch,
+  onWebSearchChange,
   attachments,
   onPickFiles,
   onRemoveAttachment,
@@ -209,6 +213,14 @@ export default function Composer({
                     <span className="team-desc">允许拆分子任务并行处理（需连接 DSH）</span>
                   </span>
                   <Switch checked={teamMode} onChange={onTeamModeChange} />
+                </div>
+
+                <div className="team-row">
+                  <span className="team-main">
+                    <span className="team-title">联网搜索</span>
+                    <span className="team-desc">需要最新信息时自动搜索并标注来源（仅 deepseek-flash）</span>
+                  </span>
+                  <Switch checked={webSearch} onChange={onWebSearchChange} />
                 </div>
               </div>
             </>
