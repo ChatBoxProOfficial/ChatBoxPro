@@ -582,7 +582,9 @@ function PersonalizeSection({
 function PluginsSection() {
   return (
     <section className="card">
-      <h3>插件</h3>
+      <h3>
+        插件 <span className="dev-badge">开发中</span>
+      </h3>
       <p className="muted small">
         插件系统尚未开放，后续将支持主题、快捷指令与会话导入导出等扩展。
       </p>
@@ -1011,13 +1013,13 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
       </section>
 
       <section className="card">
-        <h3>接入后能做什么</h3>
+        <h3>接入后能做什么 <span className="dev-badge">开发中</span></h3>
         <p className="muted small">
           · 复用 DSH 的会话与文件能力
           <br />
-          · 移动端上传的文件可直接进入 DSH 工作区
+          · 移动端上传的文件可直接进入 DSH 工作区 <span className="dev-badge">开发中</span>
           <br />
-          · 在移动端查看 DSH 执行代码的实时过程
+          · 在移动端查看 DSH 执行代码的实时过程 <span className="dev-badge">开发中</span>
         </p>
         <p className="warn small">深度对接（会话同步、文件写入工作区）仍在开发中。</p>
       </section>
@@ -1296,7 +1298,7 @@ function AboutSection({
         <p className="muted small">
           {APP_VERSION} · 本机模式 · 会话数据不离开设备
           <br />
-          多端共用同一服务端，用户各自配置自己的 API Key。
+          会话只存在这台设备，暂不支持多端同步。
         </p>
         <button className="ghost wide" onClick={onTip}>
           支持作者

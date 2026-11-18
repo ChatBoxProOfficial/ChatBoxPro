@@ -4022,3 +4022,18 @@ button:disabled {
   color: var(--fg);
   line-height: 1.5;
 }
+
+/* 「开发中」标记 */
+.dev-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(224, 180, 90, 0.5);
+  background: rgba(224, 180, 90, 0.12);
+  color: #e0b45a;
+  font-size: 10px;
+  font-weight: 500;
+  vertical-align: middle;
+  white-space: nowrap;
+}

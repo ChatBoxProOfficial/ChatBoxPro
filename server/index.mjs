@@ -678,10 +678,6 @@ const server = http.createServer((req, res) => {
     void handleGet(req, res, '/user/balance')
     return
   }
-  if (url.pathname === '/api/models') {
-    void handleGet(req, res, '/models')
-    return
-  }
   if (url.pathname === '/api/files/list') {
     void handleGet(req, res, '/files')
     return

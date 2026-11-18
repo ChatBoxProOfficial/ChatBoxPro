@@ -13,6 +13,7 @@ export const TEXT: Record<string, Entry> = {
   个性化: { en: 'Personalization', ja: 'パーソナライズ' },
   '紧凑模式、主题与系统提示词': { en: 'Compact mode, theme, system prompt', ja: 'コンパクト表示・テーマ・システムプロンプト' },
   插件: { en: 'Plugins', ja: 'プラグイン' },
+  开发中: { en: 'In development', ja: '開発中' },
   扩展能力: { en: 'Extensions', ja: '拡張機能' },
   管理模型: { en: 'Model Management', ja: 'モデル管理' },
   启用模型与自定义模型: { en: 'Enabled and custom models', ja: '有効なモデルとカスタムモデル' },
@@ -377,9 +378,9 @@ export const TEXT: Record<string, Entry> = {
     en: 'Parsed PDF/Office files stay in your server account and can be cleaned up here.',
     ja: '解析済みの PDF / Office はサーバー側に保存され、ここで削除できます。',
   },
-  '多端共用同一服务端，用户各自配置自己的 API Key。': {
-    en: 'Multiple devices share one server; each user configures their own API key.',
-    ja: '複数端末で1つのサーバーを共有し、各自が API キーを設定します。',
+  '会话只存在这台设备，暂不支持多端同步。': {
+    en: 'Conversations live on this device only; multi-device sync is not supported yet.',
+    ja: '会話はこの端末にのみ保存され、複数端末の同期には未対応です。',
   },
   字号大小: { en: 'Font size', ja: '文字サイズ' },
   整体缩放: { en: 'Scale', ja: '拡大率' },

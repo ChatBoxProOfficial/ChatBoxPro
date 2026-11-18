@@ -73,10 +73,9 @@ export interface Message {
 
 /**
  * 会话的两种归属：
- * - local  : 只存在这台设备上（IndexedDB），不联网同步
- * - server : 存在服务器上，多设备可同步（后续阶段实现）
+ * 目前只有 local：只存在这台设备上（IndexedDB），不联网同步。
  */
-export type StorageKind = 'local' | 'server'
+export type StorageKind = 'local'
 
 export interface Session {
   /** 是否在对话列表置顶 */
