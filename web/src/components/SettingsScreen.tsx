@@ -37,6 +37,7 @@ type SectionId =
   | 'dsh'
   | 'paths'
   | 'general'
+  | 'modelinfo'
   | 'about'
 
 /** 导航图标（线性风格，20×20） */
@@ -50,6 +51,7 @@ const ICONS: Record<string, string> = {
   paths: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h9A1.5 1.5 0 0 1 21 10v7.5A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z',
   about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.8v.2',
   general: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.4 2.6 2.4 15.4 0 18M12 3c-2.4 2.6-2.4 15.4 0 18',
+  modelinfo: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 19v2H6.5M8 7.5h8M8 11h5',
 }
 
 function SectionIcon({ id }: { id: string }) {
@@ -78,6 +80,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'models', title: '管理模型', desc: '启用模型与自定义模型' },
   { id: 'context', title: '上下文管理', desc: '上下文压缩、历史条数与数据管理' },
   { id: 'general', title: '语言设置', desc: '界面语言与字号' },
+  { id: 'modelinfo', title: '关于模型', desc: '模型信息与官方教程' },
   { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务端地址与连通性检测' },
   { id: 'paths', title: '管理模型保存路径', desc: '存放位置与工具权限' },
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
@@ -116,7 +119,7 @@ export default function SettingsScreen({
     <div className="settings-overlay" onClick={onBack}>
       <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
         <header className="settings-head">
-          <div className="settings-title">{t('nav.general', '设置')}</div>
+          <div className="settings-title">设置</div>
           <button className="settings-close" onClick={onBack} aria-label="关闭">
             ✕
           </button>
@@ -167,6 +170,7 @@ export default function SettingsScreen({
             {section === 'general' && (
               <GeneralSection settings={settings} patch={patch} />
             )}
+            {section === 'modelinfo' && <ModelInfoSection />}
           </div>
         </div>
       </div>
@@ -340,9 +344,19 @@ function BalanceRow({ baseUrl }: { baseUrl: string }) {
         <p className="muted small">{loading ? '查询中…' : err || '暂无数据'}</p>
       )}
       {state && err && <p className="warn small">{err}</p>}
-      <button className="ghost" onClick={() => void load()} disabled={loading}>
-        {loading ? '查询中…' : '刷新余额'}
-      </button>
+      <div className="row">
+        <button className="ghost" onClick={() => void load()} disabled={loading}>
+          {loading ? '查询中…' : '刷新余额'}
+        </button>
+        <a
+          className="ghost link-btn"
+          href="https://platform.deepseek.com/top_up"
+          target="_blank"
+          rel="noreferrer"
+        >
+          前往 DeepSeek 开放平台
+        </a>
+      </div>
     </div>
   )
 }
@@ -1055,6 +1069,42 @@ function FileList() {
         {loading ? '刷新中…' : '刷新列表'}
       </button>
     </div>
+  )
+}
+
+const PLATFORM = 'https://platform.deepseek.com'
+const DOCS = 'https://api-docs.deepseek.com/zh-cn'
+const LINKS: Array<{ title: string; desc: string; url: string }> = [
+  { title: 'DeepSeek 开放平台', desc: '充值、用量、API Key 管理', url: PLATFORM },
+  { title: '模型与价格', desc: '各模型能力、上下文长度、计费标准', url: `${DOCS}/quick_start/pricing` },
+  { title: '快速开始', desc: '第一次调用 API 的最短路径', url: DOCS },
+  { title: '思考模式指南', desc: '如何控制模型的思考强度', url: `${DOCS}/guides/thinking_mode` },
+  { title: '工具调用与联网', desc: '搜索、读链接、函数调用的用法', url: `${DOCS}/guides/web_tools` },
+  { title: '更新日志', desc: '官方最近发布了什么新能力', url: `${DOCS}/updates` },
+]
+
+function ModelInfoSection() {
+  const t = useT()
+  return (
+    <>
+      <section className="card">
+        <h3>{t('nav.modelinfo', '关于模型')}</h3>
+        <p className="muted small">
+          模型的能力、价格与最新变化都以官方文档为准。下面这些入口会跳转到浏览器打开。
+        </p>
+        <div className="link-list">
+          {LINKS.map((l) => (
+            <a key={l.url} className="link-row" href={l.url} target="_blank" rel="noreferrer">
+              <span className="link-main">
+                <span className="link-title">{l.title}</span>
+                <span className="link-desc">{l.desc}</span>
+              </span>
+              <span className="link-arrow">↗</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    </>
   )
 }
 
