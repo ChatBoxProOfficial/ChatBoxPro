@@ -189,8 +189,14 @@ export default function App() {
       const msgs = s.messages || []
       if (msgs.length <= keep) throw new Error('消息太少，不需要压缩')
 
-      const older = msgs.slice(0, msgs.length - keep)
-      const recent = msgs.slice(msgs.length - keep)
+      // 让切割点落在安全的边界上：recent 不能以 tool 消息开头，也不能切断 assistant(tool_calls)+tool
+      let cut = Math.max(0, msgs.length - keep)
+      while (cut > 0 && msgs[cut]?.role === 'tool') cut--
+      while (cut > 0 && msgs[cut - 1]?.role === 'assistant' && msgs[cut - 1]?.toolCalls?.length) {
+        cut--
+      }
+      const older = msgs.slice(0, cut)
+      const recent = msgs.slice(cut)
       const text = await summarize(older, { ...settings, model: s.model || settings.model }, settings.baseUrl)
 
       const summaryMsg: Message = {

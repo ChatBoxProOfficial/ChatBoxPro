@@ -170,16 +170,50 @@ export async function summarize(
 }
 
 /** 把界面上的消息整理成接口需要的载荷 */
+/**
+ * 工具消息必须紧跟在带 tool_calls 的 assistant 后面。
+ * 这里做一次清理：孤立（找不到配对）的 tool 消息直接丢掉，避免 400。
+ */
+function sanitizeToolMessages(list: Message[]): Message[] {
+  const out: Message[] = []
+  let pending = new Set<string>()
+
+  for (const m of list) {
+    if (m.role === 'tool') {
+      const id = m.toolCallId || ''
+      if (pending.has(id)) {
+        out.push(m)
+        pending.delete(id)
+      }
+      continue
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      pending = new Set(m.toolCalls.map((c) => c.id))
+      out.push(m)
+      continue
+    }
+    pending = new Set()
+    out.push(m)
+  }
+  return out
+}
+
 function toPayload(messages: Message[], settings: Settings) {
   const out: Array<{ role: string; content: string }> = []
   if (settings.systemPrompt.trim()) {
     out.push({ role: 'system', content: settings.systemPrompt.trim() })
   }
   const reminder = settings.reminder ? buildReminder() : ''
-  const kept = messages.filter((m) => !m.error && m.content.trim())
-  // 上下文管理：只带最近 N 条（0 = 全部）
+  // 注意：带 tool_calls 的 assistant 即使正文为空也必须保留，否则后面的 tool 会变成孤儿
+  const kept = messages.filter(
+    (m) =>
+      !m.error &&
+      (m.content.trim() || (m.toolCalls && m.toolCalls.length > 0) || m.role === 'tool'),
+  )
+  // 上下文管理：只带最近 N 条（0 = 全部），裁剪后重新配对一次
   const limit = settings.contextLimit > 0 ? settings.contextLimit : kept.length
-  for (const m of kept.slice(-limit)) {
+  const window = sanitizeToolMessages(kept.slice(-limit))
+  for (const m of window) {
     if (m.role === 'summary') {
       out.push({ role: 'system', content: `【更早对话的摘要】\n${m.content}` })
       continue

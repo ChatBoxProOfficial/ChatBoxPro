@@ -139,6 +139,34 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
+  // 模拟官方校验：tool 消息必须紧跟带 tool_calls 的 assistant
+  {
+    let pending = new Set()
+    for (const m of parsed.messages || []) {
+      if (m.role === 'tool') {
+        if (!pending.has(m.tool_call_id)) {
+          res.writeHead(400, { 'content-type': 'application/json' })
+          res.end(
+            JSON.stringify({
+              error: {
+                message:
+                  "Messages with role 'tool' must be a response to a preceding message with 'tool_calls'",
+                type: 'invalid_request_error',
+              },
+            }),
+          )
+          isClosed = true
+          return
+        }
+        pending.delete(m.tool_call_id)
+      } else if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length) {
+        pending = new Set(m.tool_calls.map((c) => c.id))
+      } else {
+        pending = new Set()
+      }
+    }
+  }
+
   const toolNames = (parsed.tools || []).map((t) => t.function?.name)
   const lastUserText = (() => {
     const u = [...(parsed.messages || [])].reverse().find((m) => m.role === 'user')
