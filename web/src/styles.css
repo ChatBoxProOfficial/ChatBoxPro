@@ -3508,3 +3508,32 @@ button:disabled {
   padding: 10px 18px 14px;
   border-top: 1px solid var(--line);
 }
+
+/* API Key 安全提示（黄字） */
+.key-warning {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(224, 180, 90, 0.45);
+  border-left: 3px solid #e0b45a;
+  border-radius: 9px;
+  background: rgba(224, 180, 90, 0.08);
+}
+
+.key-warning-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.key-warning-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.65;
+}
+
+.key-warning-list li {
+  margin-bottom: 4px;
+}
+
+.key-warning-list li:last-child {
+  margin-bottom: 0;
+}

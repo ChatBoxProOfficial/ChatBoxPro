@@ -232,6 +232,16 @@ function AccountSection({
         <p className="muted small">
           仅以加密形式存储于本机。请求经中转转发，服务端不记录、不落盘。
         </p>
+        <div className="key-warning">
+          <p className="warn small key-warning-title">请注意 API Key 的安全</p>
+          <ul className="warn small key-warning-list">
+            <li>不要与他人共享你的 API Key，或将其暴露在浏览器或其他客户端代码中。</li>
+            <li>Key 等同于账户凭证：泄露后他人可用你的额度调用接口，费用由你承担。</li>
+            <li>不要把 Key 粘贴到来源不明的网页、在线工具或截图中，也不要提交到代码仓库。</li>
+            <li>本机保存的 Key 已加密，但在公共电脑上建议用完即「清除」。</li>
+            <li>若怀疑已泄露，请立即到 DeepSeek 开放平台重置 Key，并检查用量与账单。</li>
+          </ul>
+        </div>
         {key && !editing ? (
           <div className="key-row">
             <code>{maskKey(key)}</code>

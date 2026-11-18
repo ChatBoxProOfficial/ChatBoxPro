@@ -57,6 +57,27 @@ export const TEXT: Record<string, Entry> = {
   '搜索、读链接、函数调用的用法': { en: 'Search, link reading, function calling', ja: '検索・リンク読み込み・関数呼び出し' },
   更新日志: { en: 'Changelog', ja: '更新履歴' },
   '官方最近发布了什么新能力': { en: 'What the official platform shipped recently', ja: '公式の最新リリース情報' },
+  '请注意 API Key 的安全': { en: 'Keep your API key safe', ja: 'API キーの安全にご注意ください' },
+  '不要与他人共享你的 API Key，或将其暴露在浏览器或其他客户端代码中。': {
+    en: 'Do not share your API key with others, or expose it in browsers or other client-side code.',
+    ja: 'API キーを他人と共有したり、ブラウザや他のクライアントコードに露出させないでください。',
+  },
+  'Key 等同于账户凭证：泄露后他人可用你的额度调用接口，费用由你承担。': {
+    en: 'A key is an account credential: if leaked, others can call the API on your quota and you pay for it.',
+    ja: 'キーはアカウントの資格情報です。漏洩すると他人があなたの枠で API を呼び、料金はあなたに請求されます。',
+  },
+  '不要把 Key 粘贴到来源不明的网页、在线工具或截图中，也不要提交到代码仓库。': {
+    en: 'Do not paste the key into unknown websites, online tools or screenshots, nor commit it to a repository.',
+    ja: '出所不明のサイト・オンラインツール・スクリーンショットにキーを貼り付けたり、リポジトリにコミットしないでください。',
+  },
+  '本机保存的 Key 已加密，但在公共电脑上建议用完即「清除」。': {
+    en: 'The key is stored encrypted, but on a shared computer clear it right after use.',
+    ja: 'キーは暗号化して保存されますが、共用 PC では使用後すぐ「消去」してください。',
+  },
+  '若怀疑已泄露，请立即到 DeepSeek 开放平台重置 Key，并检查用量与账单。': {
+    en: 'If you suspect a leak, reset the key on the DeepSeek platform and review usage and billing.',
+    ja: '漏洩が疑われる場合は、DeepSeek プラットフォームでキーを再発行し、使用量と請求を確認してください。',
+  },
   文档: { en: 'Documents', ja: 'ドキュメント' },
   用户协议: { en: 'User agreement', ja: 'ユーザー契約' },
   '你与作者之间的约定：许可、义务与责任划分': {
