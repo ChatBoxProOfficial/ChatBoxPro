@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 interface Props {
   /** 思维链全文（流式中是已到达的部分） */
@@ -11,6 +11,8 @@ interface Props {
   hasContent?: boolean
   /** 思考耗时（毫秒） */
   durationMs?: number
+  /** 挂在标题右侧的内容（用量、耗时等） */
+  trailing?: ReactNode
 }
 
 function secs(ms?: number): string {
@@ -31,6 +33,7 @@ export default function Reasoning({
   streaming = false,
   hasContent = false,
   durationMs,
+  trailing,
 }: Props) {
   const [open, setOpen] = useState(false)
   const touched = useRef(false)
@@ -62,7 +65,7 @@ export default function Reasoning({
         <button className={`dsh-head${open ? ' open' : ''}`} onClick={toggle}>
           <span className={`dsh-chev${open ? ' open' : ''}`}>›</span>
           <span className="dsh-title">{streaming ? '正在思考…' : '思考过程'}</span>
-          {!streaming && durationMs ? <span className="dsh-secs">{secs(durationMs)}s</span> : null}
+          {trailing}
         </button>
         {open && <div className="dsh-raw">{reasoning}</div>}
       </div>
@@ -84,6 +87,7 @@ export default function Reasoning({
               : '已深度思考'}
         </span>
         <span className={`thinking-chev${open ? ' open' : ''}`}>›</span>
+        {trailing}
       </button>
       {open && <div className="thinking-body">{reasoning}</div>}
     </div>

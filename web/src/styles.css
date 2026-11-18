@@ -2287,3 +2287,71 @@ button:disabled {
 .streaming-md .md {
   font-size: inherit;
 }
+
+/* 消息头部：思考过程 + 用量信息，全部靠左 */
+.msg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.msg-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: #6b7481;
+  white-space: nowrap;
+}
+
+.msg-head .thinking,
+.msg-head .thinking-dsh {
+  margin: 0;
+}
+
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.msg-actions.left {
+  justify-content: flex-start;
+}
+
+.msg-action {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: #6b7481;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.msg-action:hover {
+  color: var(--fg);
+}
+
+.msg.user {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.msg.user .msg-actions {
+  margin-top: 4px;
+  align-self: flex-end;
+}
+
+:root[data-theme='light'] .msg-stats,
+:root[data-theme='light'] .msg-action {
+  color: #8b95a2;
+}
+
+/* 用户消息的编辑按钮也靠左排，不贴右边 */
+.msg.user .msg-actions {
+  align-self: flex-start;
+  margin-top: 4px;
+}

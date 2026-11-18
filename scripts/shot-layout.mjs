@@ -1,0 +1,22 @@
+import { chromium } from 'playwright'
+const OUT='shots'
+const b = await chromium.launch({ channel:'msedge', headless:true })
+const c = await b.newContext({ viewport:{width:390,height:844}, deviceScaleFactor:2, isMobile:true, hasTouch:true, locale:'zh-CN' })
+const p = await c.newPage()
+await p.goto('http://127.0.0.1:8808/', { waitUntil:'networkidle' })
+await p.waitForSelector('.composer', { timeout:15000 })
+// 填 key
+await p.getByRole('button', { name:'展开栏目' }).click(); await p.waitForTimeout(400)
+await p.locator('.drawer-foot').click(); await p.waitForSelector('.settings-dialog',{timeout:8000})
+await p.getByRole('button', { name:'ChatBox Pro 账号与模型', exact:true }).click()
+await p.waitForSelector('input[type=password]',{timeout:5000})
+await p.fill('input[type=password]','sk-mock-key')
+await p.getByRole('button', { name:'保存', exact:true }).click(); await p.waitForTimeout(400)
+await p.locator('.settings-close').click(); await p.waitForSelector('.composer',{timeout:5000})
+await p.fill('.composer-input','天空为什么是蓝色？')
+await p.getByRole('button', { name:'发送' }).click()
+await p.waitForSelector('.msg.assistant .md',{timeout:20000})
+await p.waitForTimeout(800)
+await p.screenshot({ path: OUT + '/60-layout-final.png' })
+await b.close()
+console.log('截图完成')

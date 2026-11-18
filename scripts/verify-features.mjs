@@ -64,10 +64,11 @@ console.log('✓ 代码块复制按钮数量:', copyBtns)
 if (copyBtns === 0) errors.push('代码块没有复制按钮')
 
 // 5) 消息复制 + 缓存命中率
-const meta = await page.locator('.msg-meta').last().innerText()
+const meta = await page.locator('.msg-head').last().innerText()
 console.log('✓ 消息元信息:', meta.replace(/\n/g, ' '))
-if (!meta.includes('复制')) errors.push('缺少消息复制按钮')
-if (!meta.includes('缓存')) errors.push('消息元信息缺缓存命中率')
+const actions = await page.locator('.msg-actions').last().innerText()
+if (!actions.includes('复制')) errors.push('缺少消息复制按钮')
+if (!meta.includes('缓存')) errors.push('消息头部缺缓存命中率')
 
 // 6) 重新生成
 const before = await page.locator('.msg.assistant').count()
@@ -78,14 +79,21 @@ console.log('✓ 重新生成前后助手消息数:', before, '→', after)
 if (after !== before) errors.push('重新生成后消息数不对')
 
 // 7) 编辑
-await page.locator('.msg.user').first().hover()
-await page.locator('.msg-edit').first().click()
+await page.locator('.msg-action', { hasText: '编辑' }).first().click()
 await page.waitForTimeout(400)
 const inputVal = await page.locator('.composer-input').inputValue()
 console.log('✓ 编辑后输入框:', inputVal.slice(0, 20))
 if (!inputVal.includes('帮我总结')) errors.push('编辑没有把原文放回输入框')
 
 await page.screenshot({ path: `${OUT}/58-features.png` })
+// 再截一张有内容的
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForSelector('.composer', { timeout: 15000 })
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(450)
+await page.locator('.conv-item').first().click()
+await page.waitForTimeout(600)
+await page.screenshot({ path: `${OUT}/59-layout.png` })
 await browser.close()
 
 if (errors.length) {

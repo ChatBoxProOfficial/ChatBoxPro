@@ -141,9 +141,9 @@ export default function ChatScreen({
         // 文本类文件直接把内容读出来，才能真正发给模型
         let text: string | undefined
         const isText = TEXT_EXT.test(file.name) || file.type.startsWith('text/')
-        if (isText && file.size <= 256 * 1024) {
+        if (isText && file.size <= 2 * 1024 * 1024) {
           try {
-            text = (await file.text()).slice(0, 20000)
+            text = await file.text()
           } catch {
             text = undefined
           }
@@ -549,6 +549,29 @@ function fmtTokens(n: number): string {
   return `${(n / 1_000_000).toFixed(2)}M`
 }
 
+function StatsInline({ msg }: { msg: Message }) {
+  const dur =
+    msg.meta?.endedAt && msg.meta?.startedAt
+      ? fmtDuration(msg.meta.endedAt - msg.meta.startedAt)
+      : ''
+  const usage = msg.usage
+  return (
+    <span className="msg-stats">
+      {dur && <span>{dur}</span>}
+      {usage && (
+        <>
+          {dur && <span className="meta-sep">·</span>}
+          <span>{fmtTokens((usage.prompt || 0) + (usage.cached || 0))} in</span>
+          <span className="meta-sep">/</span>
+          <span>{fmtTokens(usage.completion || 0)} out</span>
+          <span className="meta-sep">·</span>
+          <span>缓存 {cacheRate(usage)}</span>
+        </>
+      )}
+    </span>
+  )
+}
+
 function MessageRow({
   msg,
   reasoningMode,
@@ -567,52 +590,36 @@ function MessageRow({
       <div className="msg user">
         <div className="bubble">{msg.content.split('\n\n[附件]')[0]}</div>
         {onEdit && (
-          <button className="msg-edit" onClick={onEdit} title="编辑这条消息">
-            编辑
-          </button>
+          <div className="msg-actions left">
+            <button className="msg-action" onClick={onEdit} title="编辑这条消息">
+              编辑
+            </button>
+          </div>
         )}
       </div>
     )
   }
+
+  const showReasoning = msg.reasoning && reasoningMode !== 'off'
+
   return (
     <div className={`msg assistant${msg.error ? ' error' : ''}`}>
-      <div className="msg-role">DeepSeek</div>
-      <div className="msg-body">
-        {msg.reasoning && reasoningMode !== 'off' && (
+      <div className="msg-head">
+        {showReasoning ? (
           <Reasoning
             key={reasoningMode}
-            reasoning={msg.reasoning}
+            reasoning={msg.reasoning!}
             mode={reasoningMode}
             durationMs={msg.reasoningMs}
+            trailing={<StatsInline msg={msg} />}
           />
+        ) : (
+          <StatsInline msg={msg} />
         )}
-        <Markdown text={msg.content} />
+      </div>
 
-        <div className="msg-meta">
-          {msg.meta?.endedAt && msg.meta?.startedAt && (
-            <>
-              {fmtDuration(msg.meta.endedAt - msg.meta.startedAt)}
-              {msg.usage && (
-                <>
-                  <span className="meta-sep">·</span>
-                  {fmtTokens((msg.usage.prompt || 0) + (msg.usage.cached || 0))} in
-                  <span className="meta-sep">/</span>
-                  {fmtTokens(msg.usage.completion || 0)} out
-                  <span className="meta-sep">·</span>
-                  缓存 {cacheRate(msg.usage)}
-                </>
-              )}
-            </>
-          )}
-          <button className="meta-copy" onClick={() => copyText(msg.content)}>
-            复制
-          </button>
-          {isLastAssistant && onRegenerate && (
-            <button className="meta-copy" onClick={onRegenerate}>
-              重新生成
-            </button>
-          )}
-        </div>
+      <div className="msg-body">
+        <Markdown text={msg.content} />
 
         {msg.citations && msg.citations.length > 0 && (
           <div className="citations">
@@ -631,6 +638,17 @@ function MessageRow({
               </a>
             ))}
           </div>
+        )}
+      </div>
+
+      <div className="msg-actions left">
+        <button className="msg-action" onClick={() => copyText(msg.content)}>
+          复制
+        </button>
+        {isLastAssistant && onRegenerate && (
+          <button className="msg-action" onClick={onRegenerate}>
+            重新生成
+          </button>
         )}
       </div>
     </div>
