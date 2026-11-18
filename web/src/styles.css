@@ -2520,3 +2520,18 @@ button:disabled {
 :root[data-theme='light'] .chip-effort {
   color: #7b8492;
 }
+
+/* 浅色模式：调节中的「当前模型」大字，原来用的是近白色 */
+:root[data-theme='light'] .adjust-model-name {
+  color: #1b1f24;
+}
+
+:root[data-theme='light'] .adjust-model-effort {
+  color: #2f6de0;
+}
+
+:root[data-theme='light'] .effort-note.low {
+  color: #3f5bb5;
+  background: rgba(90, 120, 220, 0.16);
+  border-color: rgba(90, 120, 220, 0.45);
+}
