@@ -55,7 +55,10 @@ function migrateMessages(msgs: Message[]): { messages: Message[]; changed: boole
   let changed = false
   const out = msgs.map((m) => {
     if (m.role !== 'assistant' || m.reasoning) return m
-    const hit = /^>\s*思考过程\s*\n\n([\s\S]*?)\n\n([\s\S]*)$/.exec(m.content)
+    const hit =
+      /^\s*(?:>\s*)?(?:\*\*)?\s*(?:思考过程|思考)\s*(?:\*\*)?\s*\n+([\s\S]*?)\n{2,}([\s\S]*)$/.exec(
+        m.content,
+      )
     if (!hit) return m
     changed = true
     const reasoning = hit[1]
@@ -81,6 +84,17 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    // 先用同步缓存的设置渲染，避免首屏用默认值（例如思维链样式被重置成网页版）
+    try {
+      const cached = localStorage.getItem('cbp-settings-cache')
+      if (cached) {
+        const parsed = migrateSettings(JSON.parse(cached) as Partial<Settings>)
+        setSettings(parsed)
+      }
+    } catch {
+      /* 忽略缓存损坏 */
+    }
+
     void (async () => {
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('本地存储初始化超时')), 6000),
@@ -159,6 +173,11 @@ export default function App() {
   }, [settings.theme])
 
   const saveSettings = useCallback((s: Settings) => {
+    try {
+      localStorage.setItem('cbp-settings-cache', JSON.stringify(s))
+    } catch {
+      /* 忽略容量问题 */
+    }
     setSettings(s)
     void db.setKV(SETTINGS_KEY, s)
   }, [])

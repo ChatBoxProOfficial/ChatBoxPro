@@ -293,7 +293,7 @@ export async function streamChat(
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
         stream_options: { include_usage: true },
         // 本地工具（模型可以要求我们执行）
-        ...(settings.toolsEnabled
+        ...(settings.toolsEnabled || settings.teamMode
           ? {
               tools: settings.teamMode ? [...TOOL_DEFS, SP_SUBAGENT_DEF] : TOOL_DEFS,
             }

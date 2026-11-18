@@ -979,7 +979,9 @@ ${output}`
         effort={settings.reasoningEffort}
         onEffortChange={(e) => onSettingsChange({ reasoningEffort: e })}
         teamMode={settings.teamMode}
-        onTeamModeChange={(v) => onSettingsChange({ teamMode: v })}
+        onTeamModeChange={(v) =>
+          onSettingsChange({ teamMode: v, ...(v ? { toolsEnabled: true } : {}) })
+        }
         webSearch={settings.webSearch}
         onWebSearchChange={(v) => onSettingsChange({ webSearch: v })}
         safety={settings.safety}
@@ -1042,6 +1044,22 @@ function StatsInline({ msg }: { msg: Message }) {
   )
 }
 
+/** 极老的消息可能把思维链塞在正文里，这里做一次运行时拆解 */
+function splitLegacyReasoning(msg: Message): { content: string; reasoning?: string } {
+  if (msg.role !== 'assistant' || msg.reasoning) return { content: msg.content }
+  const hit =
+    /^\s*(?:>\s*)?(?:\*\*)?\s*(?:思考过程|思考)\s*(?:\*\*)?\s*\n+([\s\S]*?)\n{2,}([\s\S]*)$/.exec(
+      msg.content,
+    )
+  if (!hit) return { content: msg.content }
+  const reasoning = hit[1]
+    .split('\n')
+    .map((l) => l.replace(/^>\s?/, ''))
+    .join('\n')
+    .trim()
+  return { content: hit[2], reasoning }
+}
+
 function MessageRow({
   msg,
   reasoningMode,
@@ -1101,7 +1119,10 @@ function MessageRow({
     )
   }
 
-  const showReasoning = msg.reasoning && reasoningMode !== 'off'
+  const legacy = splitLegacyReasoning(msg)
+  const reasoningText = msg.reasoning || legacy.reasoning
+  const contentText = legacy.content
+  const showReasoning = reasoningText && reasoningMode !== 'off'
 
   return (
     <div className={`msg assistant${msg.error ? ' error' : ''}`}>
@@ -1109,7 +1130,7 @@ function MessageRow({
         {showReasoning ? (
           <Reasoning
             key={reasoningMode}
-            reasoning={msg.reasoning!}
+            reasoning={reasoningText!}
             mode={reasoningMode}
             durationMs={msg.reasoningMs}
             trailing={<StatsInline msg={msg} />}
@@ -1120,7 +1141,7 @@ function MessageRow({
       </div>
 
       <div className="msg-body">
-        <Markdown text={msg.content} />
+        <Markdown text={contentText} />
 
         {msg.citations && msg.citations.length > 0 && (
           <div className="citations">
