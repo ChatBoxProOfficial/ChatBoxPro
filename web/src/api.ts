@@ -49,6 +49,14 @@ export interface StreamHandlers {
     citations?: Array<{ url: string; title?: string }>
     usedTools?: boolean
   }) => void
+  /** 服务端返回的 token 用量（最后一个 chunk 或独立 usage chunk） */
+  onUsage?: (usage: {
+    prompt?: number
+    cached?: number
+    completion?: number
+    reasoning?: number
+    total?: number
+  }) => void
 }
 
 /** 没填 Key 时给出的引导文案（不是报错，是提示） */
@@ -114,6 +122,7 @@ export async function streamChat(
         ...(settings.reasoningEffort === 'off'
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
+        stream_options: { include_usage: true },
         // 联网搜索 / 阅读链接：声明后由 DeepSeek 服务端执行，客户端不跑工具
         ...(settings.webSearch
           ? { tools: [{ type: 'deepseek_web_search' }, { type: 'deepseek_read_url' }] }
@@ -161,6 +170,25 @@ export async function streamChat(
           if (!data || data === '[DONE]') continue
           try {
             const json = JSON.parse(data)
+            // 用量可能在最后一个 chunk 顶层，也可能是独立 usage chunk
+            if (json?.usage) {
+              const u = json.usage
+              const hit =
+                u.prompt_cache_hit_tokens ??
+                u.prompt_tokens_details?.cached_tokens ??
+                0
+              // prompt_tokens 含缓存命中；未命中部分单独算，避免重复计数
+              const miss =
+                u.prompt_cache_miss_tokens ?? Math.max(0, (u.prompt_tokens ?? 0) - hit)
+              handlers.onUsage?.({
+                prompt: miss,
+                cached: hit,
+                completion: u.completion_tokens,
+                reasoning: u.completion_tokens_details?.reasoning_tokens,
+                total: u.total_tokens,
+              })
+            }
+
             const choice = json?.choices?.[0]
             const delta = choice?.delta
 

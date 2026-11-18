@@ -13,6 +13,28 @@ export interface Attachment {
   error?: string
 }
 
+export interface Usage {
+  /** 输入 token（未命中缓存部分，官方口径） */
+  prompt?: number
+  /** 命中上下文缓存的输入 token */
+  cached?: number
+  /** 输出 token */
+  completion?: number
+  /** 其中思考 token */
+  reasoning?: number
+  /** 官方返回的 total */
+  total?: number
+}
+
+export interface MessageMeta {
+  /** 发出请求的时间 */
+  startedAt?: number
+  /** 第一个 token 到达 */
+  firstTokenAt?: number
+  /** 结束时间 */
+  endedAt?: number
+}
+
 export interface Message {
   id: string
   role: Role
@@ -27,6 +49,9 @@ export interface Message {
   reasoningMs?: number
   /** 联网搜索用到的参考来源 */
   citations?: Array<{ url: string; title?: string }>
+  /** token 用量与耗时 */
+  usage?: Usage
+  meta?: MessageMeta
   /** 这条回复是否用过搜索/读链接 */
   usedTools?: boolean
   attachments?: Attachment[]

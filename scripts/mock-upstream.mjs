@@ -100,6 +100,21 @@ const server = http.createServer(async (req, res) => {
     ],
     server_tool_calls: [{ index: 0, calls: [{ id: 'srvtoolu_mock', status: 'completed' }] }],
   })
+  // 独立 usage chunk（OpenAI 风格：choices 为空）
+  res.write(
+    `data: ${JSON.stringify({
+      choices: [],
+      usage: {
+        prompt_tokens: 2000,
+        completion_tokens: 350,
+        prompt_cache_hit_tokens: 800,
+        prompt_cache_miss_tokens: 1200,
+        total_tokens: 1550,
+        completion_tokens_details: { reasoning_tokens: 210 },
+      },
+    })}\n\n`,
+  )
+
   res.write('data: [DONE]\n\n')
   res.end()
 })

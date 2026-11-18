@@ -3,6 +3,7 @@ import { streamChat, uploadFile } from '../api'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
+import StatsModal from './StatsModal'
 import type { Attachment, Message, Session, Settings } from '../types'
 import { newId } from '../types'
 
@@ -36,6 +37,7 @@ export default function ChatScreen({
   const [reasonText, setReasonText] = useState('')
   const [atBottom, setAtBottom] = useState(true)
   const [searching, setSearching] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const accRef = useRef('')
   const reasonRef = useRef('')
@@ -43,6 +45,8 @@ export default function ChatScreen({
   const abortRef = useRef<AbortController | null>(null)
   const startAtRef = useRef(0)
   const firstContentAtRef = useRef(0)
+  const firstTokenAtRef = useRef(0)
+  const usageRef = useRef<Message['usage']>(undefined)
   const listRef = useRef<HTMLDivElement | null>(null)
   const sessionRef = useRef(session)
   sessionRef.current = session
@@ -177,6 +181,8 @@ export default function ChatScreen({
     reasonRef.current = ''
     startAtRef.current = Date.now()
     firstContentAtRef.current = 0
+    firstTokenAtRef.current = 0
+    usageRef.current = undefined
     setStreamText('')
     setReasonText('')
     persist(next)
@@ -192,6 +198,7 @@ export default function ChatScreen({
       { ...settings, model: session.model || settings.model },
       {
         onDelta: (chunk, kind) => {
+          if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now()
           if (kind === 'content') {
             if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
             accRef.current += chunk
@@ -210,6 +217,9 @@ export default function ChatScreen({
             setSearching(false)
             usedTools = true
           }
+        },
+        onUsage: (u) => {
+          usageRef.current = u
         },
         onMeta: (meta) => {
           if (meta.citations?.length) citations = meta.citations
@@ -257,6 +267,12 @@ export default function ChatScreen({
           reasoningMs: reasons ? reasoningMs : undefined,
           citations: citations.length ? citations : undefined,
           usedTools: usedTools || undefined,
+          usage: usageRef.current,
+          meta: {
+            startedAt: startedAt || undefined,
+            firstTokenAt: firstTokenAtRef.current || undefined,
+            endedAt: Date.now(),
+          },
         }
 
     const withReply = [...next, assistant]
@@ -292,6 +308,24 @@ export default function ChatScreen({
           <div className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</div>
           {!isEmpty && <div className="sub-line">{session.model}</div>}
         </div>
+        {!isEmpty && (
+          <button
+            className="icon-btn"
+            onClick={() => setStatsOpen(true)}
+            aria-label="会话统计"
+            title="会话统计"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M5 20V10M12 20V4M19 20v-7"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
         {!isEmpty && (
           <button
             className="icon-btn"
@@ -373,6 +407,10 @@ export default function ChatScreen({
         </button>
       )}
 
+      {statsOpen && (
+        <StatsModal session={sessionRef.current} onClose={() => setStatsOpen(false)} />
+      )}
+
       <Composer
         value={input}
         onChange={setInput}
@@ -395,6 +433,19 @@ export default function ChatScreen({
       />
     </div>
   )
+}
+
+function fmtDuration(ms: number): string {
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
+  const m = Math.floor(ms / 60000)
+  return `${m}m${Math.round((ms % 60000) / 1000)}s`
+}
+
+function fmtTokens(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`
+  return `${(n / 1_000_000).toFixed(2)}M`
 }
 
 function MessageRow({
@@ -424,6 +475,21 @@ function MessageRow({
           />
         )}
         <Markdown text={msg.content} />
+
+        {msg.meta?.endedAt && msg.meta?.startedAt && (
+          <div className="msg-meta">
+            {fmtDuration(msg.meta.endedAt - msg.meta.startedAt)}
+            {msg.usage && (
+              <>
+                <span className="meta-sep">·</span>
+                {fmtTokens((msg.usage.prompt || 0) + (msg.usage.cached || 0))} in
+                <span className="meta-sep">/</span>
+                {fmtTokens(msg.usage.completion || 0)} out
+              </>
+            )}
+          </div>
+        )}
+
         {msg.citations && msg.citations.length > 0 && (
           <div className="citations">
             <div className="citations-label">参考来源</div>
