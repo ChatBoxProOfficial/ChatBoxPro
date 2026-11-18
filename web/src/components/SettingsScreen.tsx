@@ -8,6 +8,7 @@ import { confirmDialog } from './Confirm'
 import Switch from './Switch'
 import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
+import { DOCS, type Doc } from '../documents'
 
 interface Props {
   settings: Settings
@@ -1073,14 +1074,14 @@ function FileList() {
 }
 
 const PLATFORM = 'https://platform.deepseek.com'
-const DOCS = 'https://api-docs.deepseek.com/zh-cn'
+const DOCS_BASE = 'https://api-docs.deepseek.com/zh-cn'
 const LINKS: Array<{ title: string; desc: string; url: string }> = [
   { title: 'DeepSeek 开放平台', desc: '充值、用量、API Key 管理', url: PLATFORM },
-  { title: '模型与价格', desc: '各模型能力、上下文长度、计费标准', url: `${DOCS}/quick_start/pricing` },
-  { title: '快速开始', desc: '第一次调用 API 的最短路径', url: DOCS },
-  { title: '思考模式指南', desc: '如何控制模型的思考强度', url: `${DOCS}/guides/thinking_mode` },
-  { title: '工具调用与联网', desc: '搜索、读链接、函数调用的用法', url: `${DOCS}/guides/web_tools` },
-  { title: '更新日志', desc: '官方最近发布了什么新能力', url: `${DOCS}/updates` },
+  { title: '模型与价格', desc: '各模型能力、上下文长度、计费标准', url: `${DOCS_BASE}/quick_start/pricing` },
+  { title: '快速开始', desc: '第一次调用 API 的最短路径', url: DOCS_BASE },
+  { title: '思考模式指南', desc: '如何控制模型的思考强度', url: `${DOCS_BASE}/guides/thinking_mode` },
+  { title: '工具调用与联网', desc: '搜索、读链接、函数调用的用法', url: `${DOCS_BASE}/guides/web_tools` },
+  { title: '更新日志', desc: '官方最近发布了什么新能力', url: `${DOCS_BASE}/updates` },
 ]
 
 function ModelInfoSection() {
@@ -1171,21 +1172,77 @@ function GeneralSection({ settings, patch }: { settings: Settings; patch: Patch 
 }
 
 function AboutSection({ onTip }: { onTip: () => void }) {
+  const [doc, setDoc] = useState<Doc | null>(null)
+
   return (
-    <section className="card">
-      <h3>关于 ChatBox Pro</h3>
-      <p className="muted small">
-        版本 0.2.0 · 本机模式 · 会话数据不离开设备
-        <br />
-        多端共用同一服务端，用户各自配置自己的 API Key。
-      </p>
-      <button className="ghost wide" onClick={onTip}>
-        支持作者
-      </button>
-      <p className="muted small" style={{ marginTop: 8 }}>
-        自愿支持，不影响任何功能。
-      </p>
-    </section>
+    <>
+      <section className="card">
+        <h3>关于 ChatBox Pro</h3>
+        <p className="muted small">
+          版本 0.2.0 · 本机模式 · 会话数据不离开设备
+          <br />
+          多端共用同一服务端，用户各自配置自己的 API Key。
+        </p>
+        <button className="ghost wide" onClick={onTip}>
+          支持作者
+        </button>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          自愿支持，不影响任何功能。
+        </p>
+      </section>
+
+      <section className="card">
+        <h3>文档</h3>
+        <p className="muted small">说明数据怎么处理、软件是什么、使用时的约定。</p>
+        <div className="doc-list">
+          {DOCS.map((d) => (
+            <button key={d.id} className="doc-row" onClick={() => setDoc(d)}>
+              <span className="doc-main">
+                <span className="doc-title">{d.title}</span>
+                <span className="doc-desc">{d.summary}</span>
+              </span>
+              <span className="doc-arrow">›</span>
+            </button>
+          ))}
+        </div>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          更新于 2026-11-18 · 文档以中文为准
+        </p>
+      </section>
+
+      {doc && <DocViewer doc={doc} onClose={() => setDoc(null)} />}
+    </>
+  )
+}
+
+function DocViewer({ doc, onClose }: { doc: Doc; onClose: () => void }) {
+  return (
+    <div className="modal-mask" onClick={onClose}>
+      <div className="doc-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="doc-head">
+          <span>{doc.title}</span>
+          <button className="settings-close" onClick={onClose} aria-label="关闭">
+            ✕
+          </button>
+        </div>
+        <div className="doc-body">
+          <p className="doc-meta">更新于 {doc.updated}</p>
+          {doc.sections.map((sec) => (
+            <div key={sec.heading} className="doc-section">
+              <h4>{sec.heading}</h4>
+              {sec.paragraphs.map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="doc-foot">
+          <button className="ghost" onClick={onClose}>
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 

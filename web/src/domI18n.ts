@@ -57,6 +57,35 @@ export const TEXT: Record<string, Entry> = {
   '搜索、读链接、函数调用的用法': { en: 'Search, link reading, function calling', ja: '検索・リンク読み込み・関数呼び出し' },
   更新日志: { en: 'Changelog', ja: '更新履歴' },
   '官方最近发布了什么新能力': { en: 'What the official platform shipped recently', ja: '公式の最新リリース情報' },
+  文档: { en: 'Documents', ja: 'ドキュメント' },
+  '说明数据怎么处理、软件是什么、使用时的约定。': {
+    en: 'How data is handled, what this app is, and the rules of use.',
+    ja: 'データの扱い・このアプリの内容・利用上の約束。',
+  },
+  '用户信息收集文档': { en: 'User data collection', ja: 'ユーザー情報の収集' },
+  '本机会收集哪些信息、存在哪里、传给谁': {
+    en: 'What is collected, where it is stored, who receives it',
+    ja: '何を集め、どこに保存し、誰に送るか',
+  },
+  '隐私收集文档': { en: 'Privacy notice', ja: 'プライバシーについて' },
+  '数据处理方式、留存期限与你的控制权': {
+    en: 'Processing, retention and your control',
+    ja: '処理方法・保存期間・あなたの権限',
+  },
+  '关于此软件': { en: 'About this software', ja: 'このソフトウェアについて' },
+  '它是什么、由什么构成、能力边界在哪': {
+    en: 'What it is, what it is built with, where its limits are',
+    ja: '何か・何で作られているか・限界はどこか',
+  },
+  '使用须知': { en: 'Terms of use', ja: '利用にあたって' },
+  '使用前请确认这些约定与风险': {
+    en: 'Please review these terms and risks before use',
+    ja: '利用前に約束とリスクをご確認ください',
+  },
+  '更新于 2026-11-18 · 文档以中文为准': {
+    en: 'Updated 2026-11-18 · Chinese version is authoritative',
+    ja: '2026-11-18 更新 · 中国語版が正本です',
+  },
   账号: { en: 'Account', ja: 'アカウント' },
   显示名称: { en: 'Display name', ja: '表示名' },
   '仅以加密形式存储于本机。请求经中转转发，服务端不记录、不落盘。': {
