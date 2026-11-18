@@ -66,6 +66,12 @@ export default function Composer({
   const [collapsed, setCollapsed] = useState(false)
   const [popOpen, setPopOpen] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
+  const [liveEffort, setLiveEffort] = useState(effort)
+
+  // 父级状态更新是异步的，这里本地先更新，保证拖动时数字立刻变
+  useEffect(() => {
+    setLiveEffort(effort)
+  }, [effort])
 
   // Esc 关闭模型面板
   useEffect(() => {
@@ -173,7 +179,7 @@ export default function Composer({
             title="模型与思考强度"
           >
             {modelShort(model)}
-            <span className="chip-effort">{effort}</span>
+            <span className="chip-effort">{liveEffort}</span>
             <span className="caret">▾</span>
           </button>
 
@@ -187,7 +193,7 @@ export default function Composer({
                       <div className="adjust-model-label">当前模型</div>
                       <div className="adjust-model-row">
                         <span className="adjust-model-name">{modelFullName(model)}</span>
-                        <span className="adjust-model-effort">{effort}</span>
+                        <span className="adjust-model-effort">{liveEffort}</span>
                       </div>
                     </div>
                   </div>
@@ -223,7 +229,10 @@ export default function Composer({
 
                 <EffortSlider
                   value={effort}
-                  onChange={onEffortChange}
+                  onChange={(v) => {
+                    setLiveEffort(v)
+                    onEffortChange(v)
+                  }}
                   onAdjustChange={setAdjusting}
                   teamMode={teamMode}
                 />

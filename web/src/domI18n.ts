@@ -381,6 +381,7 @@ export const TEXT: Record<string, Entry> = {
   已深度思考: { en: 'Reasoned deeply', ja: '深く思考しました' },
 
   '有什么可以帮你的？': { en: 'How can I help you?', ja: '何をお手伝いしましょうか？' },
+  '输入一句话开始': { en: 'Type a message to begin', ja: 'メッセージを入力して開始' },
   '开启后请求思维链（reasoning_content）。关闭时同时禁用模型思考模式，降低 token 消耗。': {
     en: 'Requests reasoning_content when enabled. Disabling also turns off model thinking to reduce tokens.',
     ja: '有効にすると reasoning_content を要求します。無効にすると思考モードも停止し、トークンを節約します。',
@@ -553,8 +554,14 @@ let currentLang: Lang = 'zh'
 const originals = new WeakMap<Text, string>()
 
 function translateTextNode(node: Text) {
-  const raw = originals.get(node) ?? node.nodeValue ?? ''
-  if (!originals.has(node)) originals.set(node, raw)
+  const cur = node.nodeValue ?? ''
+  let raw = originals.get(node) ?? cur
+  if (!originals.has(node)) originals.set(node, cur)
+  // React 用新中文内容覆盖了节点：更新原文
+  else if (/[\u4e00-\u9fa5]/.test(cur) && cur.trim() !== raw.trim()) {
+    originals.set(node, cur)
+    raw = cur
+  }
   const trimmed = raw.trim()
   if (!trimmed) return
 
@@ -618,9 +625,34 @@ function walk(root: Node) {
   translateAttrs(root as ParentNode)
 }
 
+/** 把所有节点还原成原始中文 */
+function restoreAll() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+  const nodes: Text[] = []
+  let n = walker.nextNode()
+  while (n) {
+    nodes.push(n as Text)
+    n = walker.nextNode()
+  }
+  for (const t of nodes) {
+    const orig = originals.get(t)
+    if (orig !== undefined && t.nodeValue !== orig) t.nodeValue = orig
+  }
+  // 属性还原
+  document.querySelectorAll('[placeholder], [title], [aria-label]').forEach((el) => {
+    const store = attrOriginals.get(el)
+    if (!store) return
+    for (const a of ATTRS) {
+      const v = store[a]
+      if (v && el.getAttribute(a) !== v) el.setAttribute(a, v)
+    }
+  })
+}
+
 /** 应用/切换语言（幂等，可反复调用） */
 export function applyDomLang(lang: Lang) {
   currentLang = lang
+  restoreAll()
   walk(document.body)
 
   if (observer) {

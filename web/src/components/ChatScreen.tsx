@@ -890,7 +890,7 @@ ${output}`
       {isEmpty ? (
         <div className="welcome">
           <h1 className="welcome-title">{welcome}</h1>
-          <p className="welcome-sub">有什么可以帮你的？</p>
+          <p className="welcome-sub">输入一句话开始</p>
         </div>
       ) : (
         <div className="msg-list" ref={listRef} onScroll={onScroll}>
