@@ -248,6 +248,50 @@ function AccountSection({
     <>
       <section className="card">
         <h3>账号</h3>
+        <div className="profile-row">
+          <button
+            className="profile-avatar"
+            onClick={() => document.getElementById('avatar-file')?.click()}
+            title="更换头像"
+          >
+            {settings.avatar ? (
+              <img src={settings.avatar} alt="头像" />
+            ) : (
+              <span className="profile-avatar-letter">
+                {(settings.userName || '我').trim().slice(0, 1).toUpperCase()}
+              </span>
+            )}
+          </button>
+          <div className="profile-actions">
+            <input
+              className="hidden-file"
+              id="avatar-file"
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (!file) return
+                try {
+                  const url = await imageToDataUrl(file, 256, 0.9)
+                  patch({ avatar: url })
+                  flash('头像已更新')
+                } catch {
+                  flash('这张图片读不出来')
+                }
+              }}
+            />
+            <button className="ghost" onClick={() => document.getElementById('avatar-file')?.click()}>
+              更换头像
+            </button>
+            {settings.avatar && (
+              <button className="ghost" onClick={() => patch({ avatar: '' })}>
+                清除头像
+              </button>
+            )}
+          </div>
+        </div>
+
         <label className="field">
           <span>显示名称</span>
           <input

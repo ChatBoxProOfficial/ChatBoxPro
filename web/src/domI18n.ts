@@ -120,6 +120,8 @@ export const TEXT: Record<string, Entry> = {
     ja: '名前とアイコンはこの端末にのみ保存されます。アップロードやメール/電話番号は不要です。',
   },
   更换头像: { en: 'Change avatar', ja: 'アイコンを変更' },
+  清除头像: { en: 'Remove avatar', ja: 'アイコンを削除' },
+  头像已更新: { en: 'Avatar updated', ja: 'アイコンを更新しました' },
   本次版本更新: { en: 'What is new in this version', ja: '今回のバージョンの更新内容' },
   公告: { en: 'Announcement', ja: 'お知らせ' },
   文档: { en: 'Documents', ja: 'ドキュメント' },

@@ -91,9 +91,6 @@ export default function Onboarding({ onDone }: Props) {
           开始使用
         </button>
 
-        <p className="muted small onboarding-note">
-          名字和头像只保存在这台设备上，不上传、不需要邮箱或手机号。
-        </p>
       </div>
     </div>
   )
