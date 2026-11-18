@@ -36,14 +36,45 @@ type SectionId =
   | 'paths'
   | 'about'
 
+/** 导航图标（线性风格，20×20） */
+const ICONS: Record<string, string> = {
+  account: 'M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 20v-1a6 6 0 0 1 12 0v1',
+  personalize: 'M4 7h6M14 7h6M4 12h10M18 12h2M4 17h3M11 17h9M12.5 7a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM16.5 12a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM9.5 17a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0Z',
+  plugins: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z',
+  models: 'M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4',
+  context: 'M12 3.5 21 8l-9 4.5L3 8l9-4.5ZM3 12.5 12 17l9-4.5M3 17 12 21l9-4',
+  dsh: 'M9 3.5V7M15 3.5V7M6.5 7h11v4.5a5.5 5.5 0 0 1-11 0V7ZM12 17v4',
+  paths: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h9A1.5 1.5 0 0 1 21 10v7.5A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z',
+  about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.8v.2',
+}
+
+function SectionIcon({ id }: { id: string }) {
+  return (
+    <svg
+      className="nav-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={ICONS[id] || ICONS.about} />
+    </svg>
+  )
+}
+
 const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'account', title: 'ChatBox Pro 账号与模型', desc: 'API Key、默认模型与温度' },
   { id: 'personalize', title: '个性化', desc: '紧凑模式、主题与系统提示词' },
   { id: 'plugins', title: '插件', desc: '扩展能力' },
   { id: 'models', title: '管理模型', desc: '启用模型与自定义模型' },
   { id: 'context', title: '上下文管理', desc: '上下文压缩、历史条数与数据管理' },
-  { id: 'dsh', title: '连接 DeepSeek Harness', desc: '服务端地址与连通性检测' },
-  { id: 'paths', title: '文件与路径', desc: '存放位置与工具权限' },
+  { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务端地址与连通性检测' },
+  { id: 'paths', title: '管理模型保存路径', desc: '存放位置与工具权限' },
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
 ]
 
@@ -94,8 +125,11 @@ export default function SettingsScreen({
                 onClick={() => setSection(s.id)}
                 title={s.desc}
               >
-                <span className="nav-dot" />
-                <span className="nav-text">{s.title}</span>
+                <SectionIcon id={s.id} />
+                <span className="nav-text">
+                  <span className="nav-title">{s.title}</span>
+                  <span className="nav-desc">{s.desc}</span>
+                </span>
               </button>
             ))}
           </nav>
@@ -427,22 +461,31 @@ function ModelsSection({
         </p>
 
         {settings.reasoningDisplay !== 'off' && (
-          <label className="field">
+          <div className="field">
             <span>思考强度</span>
-            <select
-              value={settings.reasoningEffort}
-              onChange={(e) =>
-                patch({
-                  reasoningEffort: e.target.value as 'off' | 'low' | 'high' | 'max',
-                })
-              }
-            >
-              <option value="off">off — 关闭思考（最低开销）</option>
-              <option value="low">low — 轻量思考</option>
-              <option value="high">high — 默认强度</option>
-              <option value="max">max — 面向复杂任务</option>
-            </select>
-          </label>
+            <div className="effort-picker">
+              {(
+                [
+                  { id: 'off', name: '关闭', hint: '不思考，最快' },
+                  { id: 'low', name: '轻量', hint: '简单问题' },
+                  { id: 'high', name: '标准', hint: '默认推荐' },
+                  { id: 'max', name: '深度', hint: '复杂推理' },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.id}
+                  className={`effort-card ${o.id}${
+                    settings.reasoningEffort === o.id ? ' active' : ''
+                  }`}
+                  onClick={() => patch({ reasoningEffort: o.id })}
+                >
+                  <span className="effort-card-name">{o.name}</span>
+                  <span className="effort-card-hint">{o.hint}</span>
+                  <span className="effort-card-key">{o.id}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         {settings.reasoningDisplay !== 'off' && (
@@ -470,7 +513,7 @@ function ModelsSection({
                 onChange={() => patch({ reasoningDisplay: 'dsh' })}
               />
               <span className="radio-main">
-                <span className="radio-title">样式二：DSH</span>
+                <span className="radio-title">样式二：DeepSeek Harness</span>
                 <span className="radio-desc">
                   紧凑的「思考过程」折叠块，默认收起，附耗时标记。
                 </span>

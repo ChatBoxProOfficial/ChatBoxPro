@@ -15,9 +15,9 @@ await p.waitForTimeout(420)
 await p.locator('.drawer-foot').click()
 await p.waitForSelector('.settings-dialog', { timeout: 8000 })
 const shots = [
-  ['个性化', '83-settings-personalize.png'],
+  ['管理模型', '87-settings-models.png'],
   ['上下文管理', '84-settings-context.png'],
-  ['文件与路径', '85-settings-paths.png'],
+  ['管理模型保存路径', '85-settings-paths.png'],
   ['关于 ChatBox Pro', '86-settings-about.png'],
 ]
 for (const [name, file] of shots) {
