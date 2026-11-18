@@ -124,6 +124,15 @@ export const TEXT: Record<string, Entry> = {
   头像已更新: { en: 'Avatar updated', ja: 'アイコンを更新しました' },
   本次版本更新: { en: 'What is new in this version', ja: '今回のバージョンの更新内容' },
   公告: { en: 'Announcement', ja: 'お知らせ' },
+  反馈与联系: { en: 'Feedback & contact', ja: 'フィードバックと連絡先' },
+  '功能建议、Bug 报告、使用问题，都发这个邮箱：': {
+    en: 'Feature requests, bug reports and questions all go to this email:',
+    ja: '機能要望・バグ報告・ご質問はこちらまで：',
+  },
+  '反馈时建议附上：版本号、操作系统、复现步骤（能截图更好）。': {
+    en: 'Please include the version, OS and steps to reproduce (screenshots help).',
+    ja: 'バージョン・OS・再現手順（スクリーンショットがあると助かります）を添えてください。',
+  },
   制作信息: { en: 'Credits', ja: '制作情報' },
   工作室: { en: 'Studio', ja: 'スタジオ' },
   制作人: { en: 'Producer', ja: '制作' },

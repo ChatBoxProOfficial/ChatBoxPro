@@ -383,7 +383,13 @@ export default function UpdatePanel({
                 <p>· 先看「查看更新历史记录」，确认这次改了什么。</p>
                 <p>· 想留在旧版本：点「暂停更新 7 天」，期间打开更新页不会自动检查。</p>
                 <p>· 更新后出现异常：在「上下文管理 → 导出全部历史对话」备份数据，再反馈问题。</p>
-                <p>· 反馈渠道：把问题与版本号（{APP_VERSION}）一起发给作者。</p>
+                <p>· 反馈渠道：把问题与版本号（{APP_VERSION}）一起发到下面的邮箱。</p>
+                <p>
+                  ·{' '}
+                  <a className="mail-link" href="mailto:power_of_authority@163.com">
+                    power_of_authority@163.com
+                  </a>
+                </p>
               </div>
               <p className="muted small">
                 更新包只会覆盖程序文件，不会改动你的会话与设置。

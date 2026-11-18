@@ -144,8 +144,11 @@ export const DOCS: Doc[] = [
         ],
       },
       {
-        heading: '五、版本',
-        paragraphs: ['当前版本 Ver.01.00.2。界面语言支持中文、English、日本語。'],
+        heading: '五、版本与反馈',
+        paragraphs: [
+          '当前版本 Ver.01.00.2。界面语言支持中文、English、日本語。',
+          '功能建议、Bug 报告、使用问题：power_of_authority@163.com（建议附版本号与复现步骤）。',
+        ],
       },
     ],
   },

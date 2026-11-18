@@ -1310,6 +1310,17 @@ function AboutSection({
       </section>
 
       <section className="card">
+        <h3>反馈与联系</h3>
+        <p className="muted small">功能建议、Bug 报告、使用问题，都发这个邮箱：</p>
+        <a className="mail-link" href="mailto:power_of_authority@163.com">
+          power_of_authority@163.com
+        </a>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          反馈时建议附上：版本号、操作系统、复现步骤（能截图更好）。
+        </p>
+      </section>
+
+      <section className="card">
         <h3>本次版本更新</h3>
         <p className="muted small">
           {APP_VERSION} · {RELEASE_DATE}

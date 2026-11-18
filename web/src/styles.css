@@ -3988,3 +3988,22 @@ button:disabled {
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* 反馈邮箱链接 */
+.mail-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+  word-break: break-all;
+}
+
+.mail-link:hover {
+  color: #fff;
+}
+
+:root[data-theme='light'] .mail-link:hover {
+  color: #1a1f24;
+}
