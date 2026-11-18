@@ -58,6 +58,21 @@ export const TEXT: Record<string, Entry> = {
   更新日志: { en: 'Changelog', ja: '更新履歴' },
   '官方最近发布了什么新能力': { en: 'What the official platform shipped recently', ja: '公式の最新リリース情報' },
   文档: { en: 'Documents', ja: 'ドキュメント' },
+  用户协议: { en: 'User agreement', ja: 'ユーザー契約' },
+  '你与作者之间的约定：许可、义务与责任划分': {
+    en: 'License, obligations and liability between you and the author',
+    ja: 'あなたと作者の間の約束：許諾・義務・責任',
+  },
+  服务条款: { en: 'Terms of service', ja: 'サービス条項' },
+  '软件以什么方式提供、可用性与终止': {
+    en: 'How the software is provided, availability and termination',
+    ja: '提供方法・可用性・終了について',
+  },
+  第三方开源许可: { en: 'Third-party licenses', ja: 'サードパーティライセンス' },
+  '本软件使用的开源组件及其许可证': {
+    en: 'Open-source components and their licenses',
+    ja: '使用しているオープンソースとライセンス',
+  },
   '说明数据怎么处理、软件是什么、使用时的约定。': {
     en: 'How data is handled, what this app is, and the rules of use.',
     ja: 'データの扱い・このアプリの内容・利用上の約束。',
