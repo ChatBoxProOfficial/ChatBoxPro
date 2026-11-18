@@ -179,7 +179,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lang: 'zh',
   fontScale: 1,
   updateUrl:
-    'https://cdn.jsdelivr.net/gh/ChatBoxProOfficial/ChatBoxPro@master/update/version.json',
+    'https://github.com/ChatBoxProOfficial/ChatBoxPro/releases/latest/download/version.json',
   updateLastCheck: 0,
   updateSnoozeUntil: 0,
   updateHistory: [],

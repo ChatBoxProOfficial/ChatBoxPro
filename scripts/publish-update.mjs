@@ -136,16 +136,18 @@ console.log('清单：' + manifestPath)
 console.log('下载地址：' + releaseUrl)
 
 console.log('\n---------- 接下来三步 ----------')
-console.log('1) 上传安装包到 GitHub Release：')
-console.log(`   gh release create ${tag} "${zipPath}" --title "${display}" --notes "${notes.join('；')}"`)
+console.log('1) 上传「安装包 + 版本清单」到 GitHub Release：')
+console.log(
+  `   gh release create ${tag} "${zipPath}" "${manifestPath}" --title "${display}" --notes "${notes.join('；')}"`,
+)
 console.log('   （没装 gh 的话：网页打开 https://github.com/' + repo + '/releases/new 手动传）')
 console.log('\n2) 提交 version.json：')
 console.log('   git add update/version.json')
 console.log(`   git commit -m "chore: 更新 ${display} 的版本清单"`)
 console.log(`   git push origin ${branch}`)
-console.log('\n3) 应用里填更新信息地址（推荐 jsDelivr，国内更快）：')
-console.log('   ' + jsdelivr)
-console.log('   备用：' + rawUrl)
+console.log('\n3) 应用默认更新地址（已内置，无需填写）：')
+console.log('   https://github.com/' + repo + '/releases/latest/download/version.json')
+console.log('   备用（分支直读）：' + rawUrl)
 
 if (dryRun) {
   console.log('\n(--dry-run：以上只是预览，没有做任何推送)')
