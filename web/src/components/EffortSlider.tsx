@@ -130,7 +130,8 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
       const dr = dotRight()
       const speed = SPEED[valueRef.current] ?? 0
       const count = COUNT[valueRef.current] ?? 0
-      const [cr, cg, cb] = HUE[valueRef.current]
+      const light = document.documentElement.dataset.theme === 'light'
+  const [cr, cg, cb] = HUE[valueRef.current]
 
       ctx.clearRect(0, 0, w, h)
 
@@ -150,7 +151,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
           ctx.rect(0, 0, dr, h)
           ctx.clip()
           const glow = ctx.createRadialGradient(kx - 4, h / 2, 2, kx - 4, h / 2, KNOB * 1.5)
-          glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.4)`)
+          glow.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, ${light ? 0.55 : 0.4})`)
           glow.addColorStop(1, `rgba(${cr}, ${cg}, ${cb}, 0)`)
           ctx.fillStyle = glow
           ctx.fillRect(0, 0, dr, h)
@@ -188,7 +189,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
           if (d.x > dr) continue
           ctx.beginPath()
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(186, 138, 255, ${d.a * (d.t ?? 1)})`
+          ctx.fillStyle = light ? `rgba(104, 62, 196, ${d.a * (d.t ?? 1)})` : `rgba(186, 138, 255, ${d.a * (d.t ?? 1)})`
           ctx.fill()
         }
       }
@@ -211,7 +212,7 @@ export default function EffortSlider({ value, onChange, onAdjustChange, teamMode
 
           ctx.beginPath()
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(${cr}, ${cg}, ${cb}, ${d.a})`
+          ctx.fillStyle = light ? `rgba(${Math.max(0, cr - 40)}, ${Math.max(0, cg - 30)}, ${Math.max(0, cb - 30)}, ${d.a})` : `rgba(${cr}, ${cg}, ${cb}, ${d.a})`
           ctx.fill()
         }
       }

@@ -2448,3 +2448,75 @@ button:disabled {
   color: var(--fg-dim);
   white-space: pre-wrap;
 }
+
+/* ---------------------- 浅色模式：模型面板对比度修正 ---------------------- */
+:root[data-theme='light'] .pop-label,
+:root[data-theme='light'] .effort-model {
+  color: #55606e;
+}
+
+:root[data-theme='light'] .effort-title {
+  color: #2b3542;
+}
+
+:root[data-theme='light'] .effort-note {
+  color: #4b3bb0;
+  background: rgba(124, 77, 255, 0.14);
+  border-color: rgba(124, 77, 255, 0.45);
+}
+
+:root[data-theme='light'] .effort-note.max {
+  color: #7a2fbf;
+  background: rgba(160, 70, 220, 0.14);
+  border-color: rgba(160, 70, 220, 0.45);
+}
+
+:root[data-theme='light'] .effort-note.off {
+  color: #5b6470;
+  background: rgba(120, 130, 145, 0.14);
+  border-color: rgba(120, 130, 145, 0.4);
+}
+
+:root[data-theme='light'] .effort-tick {
+  color: #6b7480;
+}
+
+:root[data-theme='light'] .effort-tick.active {
+  color: #4b3bb0;
+  font-weight: 700;
+}
+
+:root[data-theme='light'] .eslider-track {
+  background: #eceff4;
+  border-color: #d3d9e2;
+}
+
+:root[data-theme='light'] .eslider-knob {
+  border: 1px solid #c8d0da;
+  box-shadow: 0 2px 8px #0002;
+}
+
+:root[data-theme='light'] .pop-item {
+  color: #2b3542;
+}
+
+:root[data-theme='light'] .pop-item.active {
+  background: #eef1f6;
+}
+
+:root[data-theme='light'] .pop-tick {
+  color: #2f6de0;
+}
+
+:root[data-theme='light'] .adjust-model-label,
+:root[data-theme='light'] .adjust-model-effort {
+  color: #6b7480;
+}
+
+:root[data-theme='light'] .switch-track {
+  background: #cdd5df;
+}
+
+:root[data-theme='light'] .chip-effort {
+  color: #7b8492;
+}
