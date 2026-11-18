@@ -121,6 +121,10 @@ export interface Settings {
   backgroundOpacity: number
   /** 背景模糊（px） */
   backgroundBlur: number
+  /** 界面语言 */
+  lang: 'zh' | 'en' | 'ja'
+  /** 字号缩放（0.85 ~ 1.3） */
+  fontScale: number
   /** 模型内容安全（官方 safety_check） */
   safety: boolean
   /** 每轮附带用户元信息（日期/平台/语言） */
@@ -158,6 +162,8 @@ export const DEFAULT_SETTINGS: Settings = {
   backgroundImage: '',
   backgroundOpacity: 100,
   backgroundBlur: 0,
+  lang: 'zh',
+  fontScale: 1,
   safety: false,
   reminder: true,
   toolsEnabled: false,

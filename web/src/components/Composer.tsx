@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { modelFullName, modelShort, type Attachment, type Settings } from '../types'
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 import Switch from './Switch'
+import { useT } from '../i18n'
 
 type Effort = Settings['reasoningEffort']
 
@@ -58,9 +59,10 @@ export default function Composer({
   attachments,
   onPickFiles,
   onRemoveAttachment,
-  placeholder = '发消息…',
+  placeholder,
 }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const t = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [popOpen, setPopOpen] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
@@ -161,7 +163,7 @@ export default function Composer({
               if (canSend && !busy) onSend()
             }
           }}
-          placeholder={placeholder}
+          placeholder={placeholder ?? `${t('send', '发送')}…`}
         />
 
         <div className="model-wrap">

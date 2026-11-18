@@ -7,6 +7,7 @@ import type { Session } from '../types'
 import { confirmDialog } from './Confirm'
 import Switch from './Switch'
 import { imageToDataUrl } from '../image'
+import { useT } from '../i18n'
 
 interface Props {
   settings: Settings
@@ -35,6 +36,7 @@ type SectionId =
   | 'context'
   | 'dsh'
   | 'paths'
+  | 'general'
   | 'about'
 
 /** 导航图标（线性风格，20×20） */
@@ -47,6 +49,7 @@ const ICONS: Record<string, string> = {
   dsh: 'M9 3.5V7M15 3.5V7M6.5 7h11v4.5a5.5 5.5 0 0 1-11 0V7ZM12 17v4',
   paths: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h9A1.5 1.5 0 0 1 21 10v7.5A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z',
   about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.8v.2',
+  general: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.5H9l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5Z',
 }
 
 function SectionIcon({ id }: { id: string }) {
@@ -77,6 +80,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务端地址与连通性检测' },
   { id: 'paths', title: '管理模型保存路径', desc: '存放位置与工具权限' },
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
+  { id: 'general', title: '设置', desc: '语言与字号' },
 ]
 
 export default function SettingsScreen({
@@ -88,6 +92,7 @@ export default function SettingsScreen({
   sessions,
   onCompress,
 }: Props) {
+  const t = useT()
   const [section, setSection] = useState<SectionId>('account')
   const [tipOpen, setTipOpen] = useState(false)
   const [toast, setToast] = useState('')
@@ -111,7 +116,7 @@ export default function SettingsScreen({
     <div className="settings-overlay" onClick={onBack}>
       <div className="settings-dialog" onClick={(e) => e.stopPropagation()}>
         <header className="settings-head">
-          <div className="settings-title">设置</div>
+          <div className="settings-title">{t('nav.general', '设置')}</div>
           <button className="settings-close" onClick={onBack} aria-label="关闭">
             ✕
           </button>
@@ -128,7 +133,7 @@ export default function SettingsScreen({
               >
                 <SectionIcon id={s.id} />
                 <span className="nav-text">
-                  <span className="nav-title">{s.title}</span>
+                  <span className="nav-title">{t(`nav.${s.id}`, s.title)}</span>
                   <span className="nav-desc">{s.desc}</span>
                 </span>
               </button>
@@ -1047,6 +1052,68 @@ function FileList() {
         {loading ? '刷新中…' : '刷新列表'}
       </button>
     </div>
+  )
+}
+
+function GeneralSection({ settings, patch }: { settings: Settings; patch: Patch }) {
+  const langs: Array<{ id: 'zh' | 'en' | 'ja'; label: string }> = [
+    { id: 'zh', label: '中文' },
+    { id: 'en', label: 'English' },
+    { id: 'ja', label: '日本語' },
+  ]
+
+  return (
+    <>
+      <section className="card">
+        <h3>界面语言</h3>
+        <div className="seg">
+          {langs.map((l) => (
+            <button
+              key={l.id}
+              className={`seg-item${settings.lang === l.id ? ' active' : ''}`}
+              onClick={() => patch({ lang: l.id })}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">
+          切换界面语言。目前覆盖导航、侧边栏、欢迎语与常用按钮；设置正文仍以中文为主。
+        </p>
+      </section>
+
+      <section className="card">
+        <h3>字号大小</h3>
+        <label className="field">
+          <span>整体缩放 {Math.round(settings.fontScale * 100)}%</span>
+          <input
+            type="range"
+            min={85}
+            max={130}
+            step={5}
+            value={Math.round(settings.fontScale * 100)}
+            onChange={(e) => patch({ fontScale: Number(e.target.value) / 100 })}
+          />
+        </label>
+        <div className="row">
+          {[
+            { v: 0.9, label: '小' },
+            { v: 1, label: '标准' },
+            { v: 1.15, label: '大' },
+            { v: 1.3, label: '特大' },
+          ].map((o) => (
+            <button
+              key={o.label}
+              className={`ghost${Math.abs(settings.fontScale - o.v) < 0.01 ? ' active-ghost' : ''}`}
+              onClick={() => patch({ fontScale: o.v })}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">整站等比缩放，对话文字、按钮、间距一起变化。</p>
+      </section>
+    </>
   )
 }
 

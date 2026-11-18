@@ -6,6 +6,7 @@ import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadAllSessions, downloadConversation } from './exportFile'
 import { summarize } from './api'
+import { LangContext } from './i18n'
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -159,6 +160,12 @@ export default function App() {
     [refresh, current?.id, settings.model],
   )
 
+  // 应用字号缩放
+  useEffect(() => {
+    const scale = Math.min(1.3, Math.max(0.85, Number(settings.fontScale) || 1))
+    document.documentElement.style.zoom = String(scale)
+  }, [settings.fontScale])
+
   // 应用自定义背景
   useEffect(() => {
     const root = document.documentElement
@@ -251,6 +258,7 @@ export default function App() {
   if (!ready) return <div className="boot">加载中…</div>
 
   return (
+    <LangContext.Provider value={settings.lang}>
     <div className={`app-shell${settings.compact ? ' compact' : ''}`}>
       {settings.backgroundImage && (
         <div
@@ -312,5 +320,6 @@ export default function App() {
 
       <ConfirmHost />
     </div>
+    </LangContext.Provider>
   )
 }

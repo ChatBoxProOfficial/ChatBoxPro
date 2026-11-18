@@ -3,6 +3,7 @@ import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
 import { pickWelcome } from '../welcome'
+import { WELCOME, useLang, useT } from '../i18n'
 import WriteApproval from './WriteApproval'
 import CommandApproval from './CommandApproval'
 import SubAgentPanel, { type SubRun } from './SubAgentPanel'
@@ -123,7 +124,13 @@ export default function ChatScreen({
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null)
   const [cmdApproval, setCmdApproval] = useState<string | null>(null)
   const [subRuns, setSubRuns] = useState<SubRun[]>([])
-  const [welcome] = useState(() => pickWelcome())
+  const lang = useLang()
+  const t = useT()
+  const [welcome] = useState(() => {
+    const arr = WELCOME[lang] ?? WELCOME.zh
+    return arr[Math.floor(Math.random() * arr.length)] || pickWelcome()
+  })
+  const [userBarOpen, setUserBarOpen] = useState(false)
   const [subOpen, setSubOpen] = useState(false)
   const cmdResolve = useRef<((ok: boolean) => void) | null>(null)
   const [streamMd, setStreamMd] = useState('')
@@ -835,6 +842,24 @@ ${output}`
         {!isEmpty && (
           <button
             className="icon-btn"
+            onClick={() => setUserBarOpen((v) => !v)}
+            aria-label={t('chat.userlist', '用户发言')}
+            title={t('chat.userlist', '用户发言')}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M4 6h16M4 12h10M4 18h13"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
+        {!isEmpty && (
+          <button
+            className="icon-btn"
             onClick={() => setStatsOpen(true)}
             aria-label="会话统计"
             title="会话统计"
@@ -951,6 +976,44 @@ ${output}`
         />
       )}
 
+      {userBarOpen && (
+        <aside className="userbar" aria-label={t('chat.userlist', '用户发言')}>
+          <div className="userbar-head">
+            <span>{t('chat.userlist', '用户发言')}</span>
+            <button className="icon-btn" onClick={() => setUserBarOpen(false)} aria-label="关闭">
+              ✕
+            </button>
+          </div>
+          <div className="userbar-list">
+            {messages.filter((m) => m.role === 'user').length === 0 && (
+              <p className="muted small">还没有发言。</p>
+            )}
+            {messages
+              .filter((m) => m.role === 'user')
+              .map((m, i) => (
+                <button
+                  key={m.id}
+                  className="userbar-item"
+                  onClick={() => {
+                    setVisibleCount(messages.length)
+                    requestAnimationFrame(() => {
+                      document
+                        .getElementById(`m-${m.id}`)
+                        ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    })
+                  }}
+                  title={m.content.split('\n\n[附件]')[0]}
+                >
+                  <span className="userbar-index">{i + 1}</span>
+                  <span className="userbar-text">
+                    {m.content.split('\n\n[附件]')[0].slice(0, 60)}
+                  </span>
+                </button>
+              ))}
+          </div>
+        </aside>
+      )}
+
       {subOpen && <SubAgentPanel runs={subRuns} onClose={() => setSubOpen(false)} />}
 
       {cmdApproval !== null && (
@@ -990,7 +1053,7 @@ ${output}`
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}
-        placeholder={isEmpty ? '问点什么…' : '发消息…'}
+        placeholder={isEmpty ? `${t('send', '发送')}…` : `${t('send', '发送')}…`}
       />
     </div>
   )
@@ -1074,6 +1137,7 @@ function MessageRow({
   onEdit?: () => void
   onContinue?: () => void
 }) {
+  const t = useT()
   if (msg.role === 'summary') {
     return (
       <div className="msg summary">
@@ -1096,7 +1160,7 @@ function MessageRow({
 
   if (msg.role === 'user') {
     return (
-      <div className="msg user">
+      <div id={`m-${msg.id}`} className="msg user">
         {msg.attachments?.some((a) => a.imageUrl) && (
           <div className="bubble-images">
             {msg.attachments
@@ -1110,7 +1174,7 @@ function MessageRow({
         {onEdit && (
           <div className="msg-toolbar">
             <button className="msg-action" onClick={onEdit} title="编辑这条消息">
-              编辑
+              {t('common.edit', '编辑')}
             </button>
           </div>
         )}
@@ -1124,7 +1188,7 @@ function MessageRow({
   const showReasoning = reasoningText && reasoningMode !== 'off'
 
   return (
-    <div className={`msg assistant${msg.error ? ' error' : ''}`}>
+    <div id={`m-${msg.id}`} className={`msg assistant${msg.error ? ' error' : ''}`}>
       <div className="msg-head">
         {showReasoning ? (
           <Reasoning
@@ -1164,13 +1228,13 @@ function MessageRow({
 
       <div className="msg-toolbar">
         <button className="msg-action" onClick={() => copyText(msg.content)}>
-          复制
+          {t('common.copy', '复制')}
         </button>
         {isLastAssistant && onContinue && (
           <>
             <span className="toolbar-sep" />
             <button className="msg-action" onClick={onContinue}>
-              继续
+              {t('common.continue', '继续')}
             </button>
           </>
         )}
@@ -1178,7 +1242,7 @@ function MessageRow({
           <>
             <span className="toolbar-sep" />
             <button className="msg-action" onClick={onRegenerate}>
-              重新生成
+              {t('common.regenerate', '重新生成')}
             </button>
           </>
         )}
