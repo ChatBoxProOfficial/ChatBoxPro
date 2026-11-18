@@ -5,8 +5,8 @@
  */
 export async function imageToDataUrl(
   file: File,
-  maxSide = 1280,
-  quality = 0.85,
+  maxSide = 2048,
+  quality = 0.9,
 ): Promise<string> {
   const bitmap = await createImageBitmap(file)
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
@@ -21,5 +21,10 @@ export async function imageToDataUrl(
   ctx.drawImage(bitmap, 0, 0, w, h)
   bitmap.close?.()
 
-  return canvas.toDataURL('image/jpeg', quality)
+  const url = canvas.toDataURL('image/jpeg', quality)
+  // data URL 超过 8MB 时再降一档，保证请求体不炸
+  if (url.length > 8 * 1024 * 1024) {
+    return canvas.toDataURL('image/jpeg', 0.72)
+  }
+  return url
 }

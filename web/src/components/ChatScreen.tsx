@@ -132,7 +132,7 @@ export default function ChatScreen({
   }, [visibleCount, messages.length])
 
   const pickFiles = useCallback(
-    async (files: FileList) => {
+    async (files: FileList | File[]) => {
       const base = settings.baseUrl
       const TEXT_EXT =
         /\.(txt|md|markdown|json|csv|tsv|log|ya?ml|xml|html?|css|js|ts|tsx|jsx|py|java|c|cc|cpp|h|hpp|go|rs|sql|sh|bat|ps1|toml|ini|conf)$/i
@@ -162,7 +162,7 @@ export default function ChatScreen({
         }
 
         const isText = TEXT_EXT.test(file.name) || file.type.startsWith('text/')
-        if (isText && file.size <= 2 * 1024 * 1024) {
+        if (isText && file.size <= 256 * 1024) {
           try {
             text = await file.text()
           } catch {
@@ -179,7 +179,18 @@ export default function ChatScreen({
         setAttachments((prev) => [...prev, item])
         try {
           const DOC_EXT = /\.(pdf|docx?|pptx?|xlsx?|epub|mobi|png|jpe?g|webp|gif|bmp|tiff?)$/i
-          if (DOC_EXT.test(file.name)) {
+          const bigText = !DOC_EXT.test(file.name) && file.size > 256 * 1024
+          if (bigText) {
+            // 超大文本/代码：用 user_data 交给服务端转文本
+            const parsed = await uploadDocument(file, base, 'user_data')
+            setAttachments((prev) =>
+              prev.map((a) =>
+                a.id === id
+                  ? { ...a, ...parsed, purpose: 'user_data', uploading: false }
+                  : a,
+              ),
+            )
+          } else if (DOC_EXT.test(file.name)) {
             // PDF / Office / 图片：交给官方解析，拿到 file_id
             const isImage = /\.(png|jpe?g|webp|gif|bmp|tiff?)$/i.test(file.name)
             const isSheet = /\.(xlsx?|epub|mobi)$/i.test(file.name)
@@ -209,6 +220,18 @@ export default function ChatScreen({
     },
     [settings.baseUrl],
   )
+
+  // 支持直接粘贴图片/文件
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.files
+      if (!items || items.length === 0) return
+      e.preventDefault()
+      void pickFiles(Array.from(items))
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [pickFiles])
 
   const removeAttachment = useCallback((id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id))
