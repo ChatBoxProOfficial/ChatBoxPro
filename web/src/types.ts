@@ -127,6 +127,12 @@ export interface Settings {
   fontScale: number
   /** 更新信息地址（version.json） */
   updateUrl: string
+  /** 上次检查更新的时间戳 */
+  updateLastCheck: number
+  /** 暂停更新到什么时候（时间戳，0 表示不暂停） */
+  updateSnoozeUntil: number
+  /** 本地缓存的更新历史 */
+  updateHistory: Array<{ version: string; date?: string; notes: string[] }>
   /** 模型内容安全（官方 safety_check） */
   safety: boolean
   /** 每轮附带用户元信息（日期/平台/语言） */
@@ -167,6 +173,9 @@ export const DEFAULT_SETTINGS: Settings = {
   lang: 'zh',
   fontScale: 1,
   updateUrl: '',
+  updateLastCheck: 0,
+  updateSnoozeUntil: 0,
+  updateHistory: [],
   safety: false,
   reminder: true,
   toolsEnabled: false,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
 import { fetchBalance, listFiles, deleteFile } from '../api'
@@ -45,6 +45,7 @@ type SectionId =
   | 'paths'
   | 'general'
   | 'modelinfo'
+  | 'update'
   | 'about'
 
 /** 导航图标（线性风格，20×20） */
@@ -59,6 +60,7 @@ const ICONS: Record<string, string> = {
   about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.8v.2',
   general: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.4 2.6 2.4 15.4 0 18M12 3c-2.4 2.6-2.4 15.4 0 18',
   modelinfo: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM20 19v2H6.5M8 7.5h8M8 11h5',
+  update: 'M21 12a9 9 0 1 1-3-6.7M21 4v5h-5',
 }
 
 function SectionIcon({ id }: { id: string }) {
@@ -88,6 +90,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'context', title: '上下文管理', desc: '上下文压缩、历史条数与数据管理' },
   { id: 'general', title: '语言设置', desc: '界面语言与字号' },
   { id: 'modelinfo', title: '关于模型', desc: '模型信息与官方教程' },
+  { id: 'update', title: '更新', desc: '检查新版本与更新记录' },
   { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务端地址与连通性检测' },
   { id: 'paths', title: '管理模型保存路径', desc: '存放位置与工具权限' },
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
@@ -107,7 +110,13 @@ export default function SettingsScreen({
   const [tipOpen, setTipOpen] = useState(false)
   const [toast, setToast] = useState('')
 
-  const patch = (p: Partial<Settings>) => onChange({ ...settings, ...p })
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const patch = (p: Partial<Settings>) => {
+    const next = { ...settingsRef.current, ...p }
+    settingsRef.current = next
+    onChange(next)
+  }
   const flash = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(''), 1600)
@@ -184,6 +193,16 @@ export default function SettingsScreen({
               <GeneralSection settings={settings} patch={patch} />
             )}
             {section === 'modelinfo' && <ModelInfoSection />}
+            {section === 'update' && (
+              <UpdatePanel
+                updateUrl={settings.updateUrl}
+                onUpdateUrlChange={(v) => patch({ updateUrl: v })}
+                lastCheck={settings.updateLastCheck}
+                snoozeUntil={settings.updateSnoozeUntil}
+                history={settings.updateHistory}
+                patch={patch}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1220,11 +1239,6 @@ function AboutSection({
           自愿支持，不影响任何功能。
         </p>
       </section>
-
-      <UpdatePanel
-        updateUrl={settings.updateUrl}
-        onUpdateUrlChange={(v) => patch({ updateUrl: v })}
-      />
 
       <section className="card">
         <h3>文档</h3>

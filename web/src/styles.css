@@ -3583,3 +3583,101 @@ button:disabled {
   background: linear-gradient(90deg, #2f6de0, #7c4dff);
   transition: width 0.2s ease;
 }
+
+/* 更新页状态卡 */
+.update-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  margin-bottom: 10px;
+}
+
+.update-status.ok {
+  border-color: rgba(98, 201, 142, 0.45);
+  background: rgba(98, 201, 142, 0.08);
+}
+
+.update-status.ok .update-status-icon {
+  color: #62c98e;
+}
+
+.update-status.has-update {
+  border-color: rgba(124, 77, 255, 0.5);
+  background: rgba(124, 77, 255, 0.1);
+}
+
+.update-status.has-update .update-status-icon {
+  color: #8b6bff;
+}
+
+.update-status-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  margin-top: 1px;
+}
+
+.update-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.update-status-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.update-status-sub {
+  font-size: 11.5px;
+  color: var(--fg-dim);
+}
+
+.update-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.icon-btn-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.update-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.update-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-size: 12.5px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.update-link:hover {
+  background: var(--bg-3);
+}
+
+.update-link svg {
+  color: var(--fg-dim);
+  flex: 0 0 auto;
+}
