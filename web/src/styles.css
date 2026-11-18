@@ -3681,3 +3681,63 @@ button:disabled {
   color: var(--fg-dim);
   flex: 0 0 auto;
 }
+
+/* ==================== 全局圆润滚动条 ==================== */
+:root {
+  --scroll-thumb: #3b4250;
+  --scroll-thumb-hover: #4d5666;
+  --scroll-track: transparent;
+}
+
+:root[data-theme='light'] {
+  --scroll-thumb: #c9d2dd;
+  --scroll-thumb-hover: #aebbcc;
+}
+
+/* Firefox / 标准属性（Chromium 也认，但优先级低于 webkit 伪元素） */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+/* Chromium / Electron */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scroll-thumb);
+  border-radius: 999px;
+  /* 用透明边框 + padding-box 让滑块看起来更细、更圆 */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  min-height: 32px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--scroll-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 圆角容器里的滚动条不要顶到圆角上 */
+.msg-list::-webkit-scrollbar,
+.settings-pane::-webkit-scrollbar,
+.settings-nav::-webkit-scrollbar,
+.drawer-list::-webkit-scrollbar,
+.doc-body::-webkit-scrollbar,
+.userbar-list::-webkit-scrollbar {
+  width: 8px;
+}

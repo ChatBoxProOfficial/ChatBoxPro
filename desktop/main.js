@@ -14,6 +14,9 @@ const fs = require('node:fs')
 const http = require('node:http')
 const { pathToFileURL } = require('node:url')
 
+// 用经典滚动条（配合前端 CSS 的圆角样式，始终可见）
+app.commandLine.appendSwitch('disable-features', 'OverlayScrollbar')
+
 const PORT = Number(process.env.PORT || 8787)
 const LOCAL_URL = `http://127.0.0.1:${PORT}/`
 const SMOKE = process.argv.includes('--smoke')
