@@ -1,0 +1,13 @@
+{
+  "version": "Ver.01.00.2",
+  "url": "https://github.com/OWNER/chatbox-pro/releases/download/v1.0.2/chatbox-pro-1.0.2.zip",
+  "notes": [
+    "修复：切换语言需要重启",
+    "新增：独立更新页",
+    "优化：浅色模式对比度"
+  ],
+  "size": 108952506,
+  "sha256": "a34666cca12f487ecfaf1fce6f39f66de03d434397e41dc3cf31711618416f0c",
+  "publishedAt": "2026-11-18T14:16:00.190Z",
+  "history": []
+}

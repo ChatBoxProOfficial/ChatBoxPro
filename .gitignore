@@ -6,3 +6,4 @@ desktop/app/
 desktop/server/
 *.log
 smoke-desktop.png
+update/*.zip

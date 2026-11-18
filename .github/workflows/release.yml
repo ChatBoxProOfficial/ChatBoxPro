@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build + pack
+        run: npm run pack:desktop
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+
+      - name: Zip package
+        shell: pwsh
+        run: |
+          $version = (Get-Content desktop/package.json -Raw | ConvertFrom-Json).version
+          $zip = "release/chatbox-pro-$version.zip"
+          Compress-Archive -Path "release/ChatBox Pro-win32-x64/*" -DestinationPath $zip -Force
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ZIP=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP }}
+          name: Ver.${{ env.VERSION }}
+          generate_release_notes: true
+
+      - name: Update version.json
+        shell: pwsh
+        run: |
+          $pkg = Get-Content desktop/package.json -Raw | ConvertFrom-Json
+          $segs = $pkg.version.Split('.')
+          $display = "Ver.{0}.{1}.{2}" -f $segs[0].PadLeft(2,'0'), $segs[1].PadLeft(2,'0'), ($segs[2..($segs.Length-1)] -join '.')
+          $zipName = "chatbox-pro-$($pkg.version).zip"
+          $repo = "${{ github.repository }}"
+          $sha = (Get-FileHash $env:ZIP -Algorithm SHA256).Hash.ToLower()
+          $size = (Get-Item $env:ZIP).Length
+          $manifest = [ordered]@{
+            version    = $display
+            url        = "https://github.com/$repo/releases/download/${{ github.ref_name }}/$zipName"
+            notes      = @("见 Release 说明")
+            size       = $size
+            sha256     = $sha
+            publishedAt = (Get-Date).ToUniversalTime().ToString("o")
+            history    = @()
+          }
+          $json = $manifest | ConvertTo-Json -Depth 5
+          New-Item -ItemType Directory -Force -Path update | Out-Null
+          $json | Out-File -Encoding utf8 update/version.json
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add update/version.json
+          git commit -m "chore: 更新 $display 的版本清单"
+          git push

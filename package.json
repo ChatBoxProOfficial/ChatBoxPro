@@ -16,7 +16,9 @@
     "smoke:desktop": "electron desktop --smoke",
     "shortcut": "node scripts/make-shortcut.mjs",
     "install:local": "npm run build && npm run shortcut",
-    "install:app": "node scripts/install-app.mjs"
+    "install:app": "node scripts/install-app.mjs",
+    "publish:update": "node scripts/publish-update.mjs",
+    "make:update": "node scripts/make-update.mjs"
   },
   "dependencies": {
     "dompurify": "^3.2.4",
