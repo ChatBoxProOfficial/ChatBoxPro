@@ -16,6 +16,7 @@ interface Props {
   onNewConversation: () => void
   onOpenSession: (id: string) => void
   onDeleteSession: (id: string) => void
+  onTogglePin: (id: string) => void
   onOpenSettings: () => void
 }
 
@@ -39,6 +40,7 @@ export default function Sidebar({
   onNewConversation,
   onOpenSession,
   onDeleteSession,
+  onTogglePin,
   onOpenSettings,
 }: Props) {
   // Esc 关掉抽屉
@@ -205,15 +207,30 @@ export default function Sidebar({
           {sessions.map((s) => (
             <div
               key={s.id}
-              className={`conv-item${s.id === currentId ? ' active' : ''}`}
+              className={`conv-item${s.id === currentId ? ' active' : ''}${
+                s.pinned ? ' pinned' : ''
+              }`}
               onClick={() => onOpenSession(s.id)}
             >
               <div className="conv-main">
-                <div className="conv-title">{s.title || '新对话'}</div>
+                <div className="conv-title">
+                  {s.pinned && <span className="conv-pin-mark" title="已置顶">📌</span>}
+                  {s.title || '新对话'}
+                </div>
                 <div className="conv-meta">
                   {s.count} 条 · {when(s.updatedAt)}
                 </div>
               </div>
+              <button
+                className="conv-pin"
+                title={s.pinned ? '取消置顶' : '置顶'}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTogglePin(s.id)
+                }}
+              >
+                {s.pinned ? '取消置顶' : '置顶'}
+              </button>
               <button
                 className="conv-del"
                 title="删除对话"

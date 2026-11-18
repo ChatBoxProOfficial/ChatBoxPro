@@ -79,6 +79,8 @@ export interface Message {
 export type StorageKind = 'local' | 'server'
 
 export interface Session {
+  /** 是否在对话列表置顶 */
+  pinned?: boolean
   id: string
   title: string
   storage: StorageKind

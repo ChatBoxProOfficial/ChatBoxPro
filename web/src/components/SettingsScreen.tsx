@@ -1285,6 +1285,31 @@ function AboutSection({
       </section>
 
       <section className="card">
+        <h3>制作信息</h3>
+        <div className="credit-list">
+          <div className="credit-row">
+            <span className="credit-label">工作室</span>
+            <span className="credit-value">权人之力工作室</span>
+          </div>
+          <div className="credit-row">
+            <span className="credit-label">制作人</span>
+            <span className="credit-value">半个小星</span>
+          </div>
+          <div className="credit-row">
+            <span className="credit-label">协作</span>
+            <span className="credit-value">DeepSeek API</span>
+          </div>
+        </div>
+        <p className="muted small" style={{ marginTop: 10 }}>
+          制作过程中使用 DeepSeek API 作为辅助，因此 DeepSeek 也算制作人员之一。
+        </p>
+        <div className="qr-wrap" onClick={onTip} title="点击放大">
+          <img className="qr-thumb" src="tip-qr.png" alt="收款码" />
+          <span className="muted small">收款码 · 点击放大</span>
+        </div>
+      </section>
+
+      <section className="card">
         <h3>本次版本更新</h3>
         <p className="muted small">
           {APP_VERSION} · {RELEASE_DATE}

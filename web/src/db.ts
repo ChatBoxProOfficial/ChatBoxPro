@@ -45,6 +45,8 @@ export interface SessionSummary {
   storage: string
   updatedAt: number
   count: number
+  /** 是否置顶 */
+  pinned?: boolean
 }
 
 export const db = {
@@ -64,10 +66,15 @@ export const db = {
             storage: v.storage,
             updatedAt: v.updatedAt,
             count: Array.isArray(v.messages) ? v.messages.length : 0,
+            pinned: Boolean(v.pinned),
           })
           cur.continue()
         } else {
-          out.sort((a, b) => b.updatedAt - a.updatedAt)
+          // 置顶的在最前，其余按更新时间倒序
+          out.sort((a, b) =>
+            Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) ||
+            b.updatedAt - a.updatedAt,
+          )
           resolve(out)
         }
       }

@@ -3906,3 +3906,85 @@ button:disabled {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* 关于页：制作信息 */
+.credit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.credit-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.credit-label {
+  flex: 0 0 52px;
+  color: var(--fg-dim);
+}
+
+.credit-value {
+  font-weight: 600;
+}
+
+.qr-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.qr-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+  background: #fff;
+}
+
+/* 对话置顶 */
+.conv-item.pinned {
+  border-left: 2px solid var(--accent);
+}
+
+.conv-pin-mark {
+  margin-right: 4px;
+  font-size: 10px;
+}
+
+.conv-pin {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--fg-dim);
+  border-radius: 7px;
+  font-size: 10.5px;
+  padding: 3px 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.conv-item:hover .conv-pin,
+.conv-item.pinned .conv-pin {
+  opacity: 1;
+}
+
+.conv-pin:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.conv-pin {
+  font-size: 10px;
+  padding: 3px 5px;
+  max-width: 62px;
+  overflow: hidden;
+  white-space: nowrap;
+}

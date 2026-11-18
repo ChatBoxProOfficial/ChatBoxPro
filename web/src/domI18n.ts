@@ -124,6 +124,18 @@ export const TEXT: Record<string, Entry> = {
   头像已更新: { en: 'Avatar updated', ja: 'アイコンを更新しました' },
   本次版本更新: { en: 'What is new in this version', ja: '今回のバージョンの更新内容' },
   公告: { en: 'Announcement', ja: 'お知らせ' },
+  制作信息: { en: 'Credits', ja: '制作情報' },
+  工作室: { en: 'Studio', ja: 'スタジオ' },
+  制作人: { en: 'Producer', ja: '制作' },
+  协作: { en: 'Assisted by', ja: '協力' },
+  '制作过程中使用 DeepSeek API 作为辅助，因此 DeepSeek 也算制作人员之一。': {
+    en: 'DeepSeek API was used as an assistant during development, so DeepSeek counts as one of the contributors.',
+    ja: '制作時に DeepSeek API を補助として使用したため、DeepSeek も制作メンバーの一員です。',
+  },
+  '收款码 · 点击放大': { en: 'Payment QR · click to enlarge', ja: '支払い QR · クリックで拡大' },
+  置顶: { en: 'Pin', ja: 'ピン留め' },
+  取消置顶: { en: 'Unpin', ja: 'ピン留め解除' },
+  已置顶: { en: 'Pinned', ja: 'ピン留め済み' },
   文档: { en: 'Documents', ja: 'ドキュメント' },
   用户协议: { en: 'User agreement', ja: 'ユーザー契約' },
   '你与作者之间的约定：许可、义务与责任划分': {

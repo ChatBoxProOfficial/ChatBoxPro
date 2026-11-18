@@ -251,6 +251,19 @@ export default function App() {
     [settings, refresh, current],
   )
 
+  /** 置顶 / 取消置顶 */
+  const togglePin = useCallback(
+    async (id: string) => {
+      const s = (await db.getSession(id)) as Session | undefined
+      if (!s) return
+      const next = { ...s, pinned: !s.pinned }
+      await db.putSession(next)
+      if (current?.id === id) setCurrent(next)
+      await refresh()
+    },
+    [current, refresh],
+  )
+
   const exportAll = useCallback(async () => {
     const list = await db.listSessions()
     const full: Session[] = []
@@ -308,6 +321,7 @@ export default function App() {
         onNewConversation={() => void newConversation()}
         onOpenSession={(id) => void openSession(id)}
         onDeleteSession={(id) => void removeSession(id)}
+        onTogglePin={(id) => void togglePin(id)}
         onOpenSettings={() => {
           setSidebarOpen(false)
           setShowSettings(true)
