@@ -95,6 +95,10 @@ export interface Settings {
   systemPrompt: string
   /** 侧边栏底部显示的账号名 */
   userName: string
+  /** 头像（压缩后的 data URL，空 = 用首字母） */
+  avatar: string
+  /** 是否完成首次「注册」（填名字 + 选头像） */
+  registered: boolean
   /** 已启用的模型 id（内置 + 自定义） */
   enabledModels: string[]
   /** 自定义追加的模型 id */
@@ -157,6 +161,8 @@ export const DEFAULT_SETTINGS: Settings = {
   temperature: 0.7,
   systemPrompt: '',
   userName: '我',
+  avatar: '',
+  registered: false,
   enabledModels: ['deepseek-flash', 'deepseek-v4-pro'],
   extraModels: [],
   contextLimit: 0,

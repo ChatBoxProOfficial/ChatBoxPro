@@ -8,6 +8,7 @@ import { downloadAllSessions, downloadConversation } from './exportFile'
 import { summarize } from './api'
 import { LangContext } from './i18n'
 import { applyDomLang } from './domI18n'
+import Onboarding from './components/Onboarding'
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -35,6 +36,11 @@ function draftSession(model: string): Session {
 /** 旧版本的配置/会话里可能还存着已下线的模型名，读出来时统一迁移 */
 function migrateSettings(saved: Partial<Settings>): Settings {
   const merged: Settings = { ...DEFAULT_SETTINGS, ...saved }
+
+  // 老用户不强制重新注册：已经改过名字（不是默认的「我」）就视为已注册
+  if (saved.registered === undefined) {
+    merged.registered = Boolean(saved.userName && saved.userName !== DEFAULT_SETTINGS.userName)
+  }
   merged.model = normalizeModelId(merged.model)
   merged.enabledModels = Array.from(
     new Set(merged.enabledModels.map(normalizeModelId)),
@@ -283,6 +289,14 @@ export default function App() {
         </div>
       )}
 
+      {!settings.registered && (
+        <Onboarding
+          onDone={({ userName, avatar }) =>
+            saveSettings({ ...settings, userName, avatar, registered: true })
+          }
+        />
+      )}
+
       <Sidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -290,6 +304,7 @@ export default function App() {
         currentSession={current}
         currentId={current?.id ?? null}
         userName={settings.userName}
+        avatar={settings.avatar}
         onNewConversation={() => void newConversation()}
         onOpenSession={(id) => void openSession(id)}
         onDeleteSession={(id) => void removeSession(id)}

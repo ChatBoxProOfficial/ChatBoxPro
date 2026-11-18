@@ -9,7 +9,7 @@ import Switch from './Switch'
 import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
 import { DOCS, type Doc } from '../documents'
-import { APP_VERSION } from '../version'
+import { APP_VERSION, RELEASE_DATE, RELEASE_NOTES } from '../version'
 import UpdatePanel from './UpdatePanel'
 
 interface Props {
@@ -1238,6 +1238,18 @@ function AboutSection({
         <p className="muted small" style={{ marginTop: 8 }}>
           自愿支持，不影响任何功能。
         </p>
+      </section>
+
+      <section className="card">
+        <h3>本次版本更新</h3>
+        <p className="muted small">
+          {APP_VERSION} · {RELEASE_DATE}
+        </p>
+        <ul className="release-notes">
+          {RELEASE_NOTES.map((n, i) => (
+            <li key={i}>{n}</li>
+          ))}
+        </ul>
       </section>
 
       <section className="card">

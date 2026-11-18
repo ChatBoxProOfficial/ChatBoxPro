@@ -12,6 +12,7 @@ interface Props {
   currentSession: Session | null
   currentId: string | null
   userName: string
+  avatar?: string
   onNewConversation: () => void
   onOpenSession: (id: string) => void
   onDeleteSession: (id: string) => void
@@ -34,6 +35,7 @@ export default function Sidebar({
   currentSession,
   currentId,
   userName,
+  avatar,
   onNewConversation,
   onOpenSession,
   onDeleteSession,
@@ -234,7 +236,9 @@ export default function Sidebar({
         )}
 
         <button className="drawer-foot" onClick={onOpenSettings}>
-          <span className="avatar">{initial}</span>
+          <span className="avatar">
+            {avatar ? <img src={avatar} alt="" /> : initial}
+          </span>
           <span className="account">
             <span className="account-name">{userName || '我'}</span>
             <span className="account-sub">{t('side.settings', '设置')}</span>

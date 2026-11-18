@@ -108,6 +108,20 @@ export const TEXT: Record<string, Entry> = {
     en: 'Download complete. Closing the app to install; it will restart automatically.',
     ja: 'ダウンロード完了。アプリを終了してインストールし、自動で再起動します。',
   },
+  欢迎使用: { en: 'Welcome to', ja: 'へようこそ' },
+  '填个名字、选个头像，就可以开始了': {
+    en: 'Pick a name and an avatar to get started',
+    ja: '名前とアイコンを設定すれば開始できます',
+  },
+  你的名字: { en: 'Your name', ja: 'お名前' },
+  开始使用: { en: 'Get started', ja: 'はじめる' },
+  '名字和头像只保存在这台设备上，不上传、不需要邮箱或手机号。': {
+    en: 'Name and avatar stay on this device. No upload, no email or phone required.',
+    ja: '名前とアイコンはこの端末にのみ保存されます。アップロードやメール/電話番号は不要です。',
+  },
+  更换头像: { en: 'Change avatar', ja: 'アイコンを変更' },
+  本次版本更新: { en: 'What is new in this version', ja: '今回のバージョンの更新内容' },
+  公告: { en: 'Announcement', ja: 'お知らせ' },
   文档: { en: 'Documents', ja: 'ドキュメント' },
   用户协议: { en: 'User agreement', ja: 'ユーザー契約' },
   '你与作者之间的约定：许可、义务与责任划分': {

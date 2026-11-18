@@ -3741,3 +3741,128 @@ button:disabled {
 .userbar-list::-webkit-scrollbar {
   width: 8px;
 }
+
+/* ---------- 首次启动引导 ---------- */
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(1200px 600px at 50% -10%, #1d2431, #0f1113 60%);
+}
+
+:root[data-theme='light'] .onboarding {
+  background: radial-gradient(1200px 600px at 50% -10%, #eef3fb, #f7f9fc 60%);
+}
+
+.onboarding-card {
+  width: min(420px, 100%);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 30px 80px #0009;
+}
+
+.onboarding-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.onboarding-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.onboarding-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.onboarding-sub {
+  font-size: 12px;
+  color: var(--fg-dim);
+  margin-top: 2px;
+}
+
+.onboarding-avatar-wrap {
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+
+.onboarding-avatar {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg-3);
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.onboarding-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.onboarding-avatar-letter {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+
+.onboarding-avatar-edit {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 10.5px;
+  padding: 3px 0;
+  background: #000000a6;
+  color: #fff;
+}
+
+.onboarding-note {
+  margin-top: 10px;
+  line-height: 1.6;
+}
+
+/* 侧边栏头像支持图片 */
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar {
+  overflow: hidden;
+}
+
+.wide {
+  width: 100%;
+}
+
+/* 关于页公告 */
+.release-notes {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--fg);
+}
+
+.release-notes li {
+  margin-bottom: 4px;
+}
