@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
 import { fetchBalance, listFiles, deleteFile } from '../api'
+import type { SessionSummary } from '../db'
 import { confirmDialog } from './Confirm'
 import Switch from './Switch'
 
@@ -11,6 +12,8 @@ interface Props {
   onBack: () => void
   onWipe: () => void
   onExportAll: () => Promise<number>
+  sessions: SessionSummary[]
+  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number }>
 }
 
 declare global {
@@ -43,7 +46,15 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本、投喂作者' },
 ]
 
-export default function SettingsScreen({ settings, onChange, onBack, onWipe, onExportAll }: Props) {
+export default function SettingsScreen({
+  settings,
+  onChange,
+  onBack,
+  onWipe,
+  onExportAll,
+  sessions,
+  onCompress,
+}: Props) {
   const [section, setSection] = useState<SectionId>('account')
   const [tipOpen, setTipOpen] = useState(false)
   const [toast, setToast] = useState('')
@@ -103,6 +114,8 @@ export default function SettingsScreen({ settings, onChange, onBack, onWipe, onE
                 patch={patch}
                 onWipe={onWipe}
                 onExportAll={onExportAll}
+                sessions={sessions}
+                onCompress={onCompress}
               />
             )}
             {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
@@ -515,12 +528,19 @@ function ContextSection({
   patch,
   onWipe,
   onExportAll,
+  sessions,
+  onCompress,
 }: {
   settings: Settings
   patch: Patch
   onWipe: () => void
   onExportAll: () => Promise<number>
+  sessions: SessionSummary[]
+  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number }>
 }) {
+  const [compressId, setCompressId] = useState('')
+  const [compressing, setCompressing] = useState(false)
+  const [compressMsg, setCompressMsg] = useState('')
   const [phase, setPhase] = useState<'idle' | 'cooling' | 'ready'>('idle')
   const [left, setLeft] = useState(10)
 
@@ -549,6 +569,55 @@ function ContextSection({
           />
         </label>
         <p className="muted small">条数越少，消耗的 token 越少，长会话也不容易卡。</p>
+      </section>
+
+      <section className="card">
+        <h3>压缩指定对话的上下文</h3>
+        <p className="muted small">
+          把较早的消息交给模型压缩成一段摘要，只保留最近几条。适合很长的会话，能省下大量 token。
+        </p>
+        <label className="field">
+          <span>选择对话</span>
+          <select
+            value={compressId}
+            onChange={(e) => setCompressId(e.target.value)}
+          >
+            <option value="">选择一个对话…</option>
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}（{s.count} 条）
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="row">
+          <button
+            className="ghost"
+            disabled={!compressId || compressing}
+            onClick={async () => {
+              if (!compressId) return
+              const ok = await confirmDialog({
+                title: '压缩上下文',
+                message: '较早的消息会被替换成一段摘要，原始内容不再保留（建议先导出备份）。',
+                confirmText: '压缩',
+              })
+              if (!ok) return
+              setCompressing(true)
+              setCompressMsg('')
+              try {
+                const r = await onCompress(compressId)
+                setCompressMsg(`完成：${r.before} 条 → ${r.after} 条`)
+              } catch (e) {
+                setCompressMsg(`失败：${(e as Error).message}`)
+              } finally {
+                setCompressing(false)
+              }
+            }}
+          >
+            {compressing ? '压缩中…' : '压缩这个对话'}
+          </button>
+        </div>
+        {compressMsg && <p className="muted small">{compressMsg}</p>}
       </section>
 
       <section className="card">

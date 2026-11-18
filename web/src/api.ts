@@ -116,6 +116,59 @@ function buildReminder(): string {
   return `${date},${week},,App,中文`
 }
 
+/** 把一段对话压缩成摘要（非流式一次请求） */
+export async function summarize(
+  messages: Message[],
+  settings: Settings,
+  baseUrl: string,
+): Promise<string> {
+  const key = await loadApiKey()
+  if (!key) throw new Error('还没有填写 API Key')
+
+  const transcript = messages
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`)
+    .join('\n\n')
+
+  const resp = await fetch(`${baseUrl}/chat`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-deepseek-key': key },
+    body: JSON.stringify({
+      model: settings.model || 'deepseek-flash',
+      stream: false,
+      temperature: 0.3,
+      thinking: { type: 'disabled' },
+      messages: [
+        {
+          role: 'user',
+          content:
+            '把下面这段对话压缩成一段摘要，供之后继续讨论时作为背景。要求：\n' +
+            '1. 保留关键事实、结论、数字、专有名词、未完成的事项；\n' +
+            '2. 去掉寒暄、重复、无关内容；\n' +
+            '3. 用第三人称陈述，不超过 400 字；\n' +
+            '4. 直接输出摘要正文，不要任何前缀。\n\n' +
+            transcript,
+        },
+      ],
+    }),
+  })
+
+  const text = await resp.text()
+  if (!resp.ok) {
+    let msg = `压缩失败（${resp.status}）`
+    try {
+      msg = JSON.parse(text)?.error?.message || msg
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg)
+  }
+  const json = JSON.parse(text)
+  const content = json?.choices?.[0]?.message?.content
+  if (!content) throw new Error('压缩失败：没有返回内容')
+  return String(content).trim()
+}
+
 /** 把界面上的消息整理成接口需要的载荷 */
 function toPayload(messages: Message[], settings: Settings) {
   const out: Array<{ role: string; content: string }> = []
@@ -127,6 +180,10 @@ function toPayload(messages: Message[], settings: Settings) {
   // 上下文管理：只带最近 N 条（0 = 全部）
   const limit = settings.contextLimit > 0 ? settings.contextLimit : kept.length
   for (const m of kept.slice(-limit)) {
+    if (m.role === 'summary') {
+      out.push({ role: 'system', content: `【更早对话的摘要】\n${m.content}` })
+      continue
+    }
     if (m.role === 'tool') {
       out.push({
         role: 'tool',

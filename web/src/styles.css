@@ -2426,3 +2426,25 @@ button:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 上下文摘要块 */
+.msg.summary {
+  margin: 0 0 12px;
+}
+
+.summary-head {
+  font-size: 11px;
+  color: var(--fg-dim);
+  margin-bottom: 4px;
+}
+
+.summary-body {
+  background: var(--bg-2);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--fg-dim);
+  white-space: pre-wrap;
+}

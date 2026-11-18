@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar'
 import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
 import { downloadAllSessions, downloadConversation } from './exportFile'
+import { summarize } from './api'
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -161,6 +162,33 @@ export default function App() {
     setSettings(s)
     void db.setKV(SETTINGS_KEY, s)
   }, [])
+  /** 压缩指定会话：把较早的消息换成一段摘要，只保留最近几条 */
+  const compressSession = useCallback(
+    async (id: string, keep = 6): Promise<{ before: number; after: number }> => {
+      const s = (await db.getSession(id)) as Session | undefined
+      if (!s) throw new Error('找不到这个会话')
+      const msgs = s.messages || []
+      if (msgs.length <= keep) throw new Error('消息太少，不需要压缩')
+
+      const older = msgs.slice(0, msgs.length - keep)
+      const recent = msgs.slice(msgs.length - keep)
+      const text = await summarize(older, { ...settings, model: s.model || settings.model }, settings.baseUrl)
+
+      const summaryMsg: Message = {
+        id: `summary-${Date.now()}`,
+        role: 'summary',
+        content: text,
+        createdAt: Date.now(),
+      }
+      const next = { ...s, messages: [summaryMsg, ...recent], updatedAt: Date.now() }
+      await db.putSession(next)
+      if (current?.id === id) setCurrent(next)
+      await refresh()
+      return { before: msgs.length, after: next.messages.length }
+    },
+    [settings, refresh, current],
+  )
+
   const exportAll = useCallback(async () => {
     const list = await db.listSessions()
     const full: Session[] = []
@@ -226,6 +254,8 @@ export default function App() {
           onBack={() => setShowSettings(false)}
           onWipe={() => void wipe()}
           onExportAll={exportAll}
+          sessions={sessions}
+          onCompress={compressSession}
         />
       )}
 

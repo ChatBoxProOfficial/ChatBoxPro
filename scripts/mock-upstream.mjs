@@ -116,6 +116,29 @@ const server = http.createServer(async (req, res) => {
   } catch {
     parsed = {}
   }
+  if (parsed.stream === false) {
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(
+      JSON.stringify({
+        id: 'mock-summary',
+        object: 'chat.completion',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content:
+                '用户询问了天空为什么是蓝色，助手用瑞利散射解释了波长越短散射越强，并给出了示例代码。未完成事项：无。',
+            },
+            finish_reason: 'stop',
+          },
+        ],
+        usage: { prompt_tokens: 900, completion_tokens: 80, total_tokens: 980 },
+      }),
+    )
+    return
+  }
+
   const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0
   const lastRole = parsed.messages?.[parsed.messages.length - 1]?.role
   if (hasTools && lastRole === 'user') {

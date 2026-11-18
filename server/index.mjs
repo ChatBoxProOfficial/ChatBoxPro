@@ -248,7 +248,7 @@ async function handleChat(req, res) {
     model: signal.model || 'deepseek-flash',
     messages: Array.isArray(signal.messages) ? signal.messages : [],
     temperature: typeof signal.temperature === 'number' ? signal.temperature : 0.7,
-    stream: true,
+    stream: signal.stream === false ? false : true,
     // 思考模式开关与强度（DeepSeek 新接口参数）
     ...(signal.thinking ? { thinking: signal.thinking } : {}),
     // 前缀续写

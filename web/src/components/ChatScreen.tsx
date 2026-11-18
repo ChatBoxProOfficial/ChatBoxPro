@@ -763,6 +763,15 @@ function MessageRow({
   onEdit?: () => void
   onContinue?: () => void
 }) {
+  if (msg.role === 'summary') {
+    return (
+      <div className="msg summary">
+        <div className="summary-head">更早对话的摘要</div>
+        <div className="summary-body">{msg.content}</div>
+      </div>
+    )
+  }
+
   if (msg.role === 'tool') {
     return (
       <div className="msg tool">

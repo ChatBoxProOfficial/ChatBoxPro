@@ -1,4 +1,4 @@
-export type Role = 'system' | 'user' | 'assistant' | 'tool'
+export type Role = 'system' | 'user' | 'assistant' | 'tool' | 'summary'
 
 export interface Attachment {
   id: string
