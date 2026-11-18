@@ -9,6 +9,7 @@ interface Props {
   onChange: (s: Settings) => void
   onBack: () => void
   onWipe: () => void
+  onExportAll: () => Promise<number>
 }
 
 declare global {
@@ -41,7 +42,7 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本、投喂作者' },
 ]
 
-export default function SettingsScreen({ settings, onChange, onBack, onWipe }: Props) {
+export default function SettingsScreen({ settings, onChange, onBack, onWipe, onExportAll }: Props) {
   const [section, setSection] = useState<SectionId>('account')
   const [tipOpen, setTipOpen] = useState(false)
   const [toast, setToast] = useState('')
@@ -96,7 +97,12 @@ export default function SettingsScreen({ settings, onChange, onBack, onWipe }: P
               <ModelsSection settings={settings} patch={patch} flash={flash} />
             )}
             {section === 'context' && (
-              <ContextSection settings={settings} patch={patch} onWipe={onWipe} />
+              <ContextSection
+                settings={settings}
+                patch={patch}
+                onWipe={onWipe}
+                onExportAll={onExportAll}
+              />
             )}
             {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
             {section === 'paths' && <PathsSection flash={flash} />}
@@ -240,6 +246,25 @@ function PersonalizeSection({ settings, patch }: { settings: Settings; patch: Pa
         />
       </div>
       <p className="muted small">更小的字号与行距，一屏能看更多内容。</p>
+
+      <div className="field" style={{ marginTop: 14 }}>
+        <span>主题</span>
+        <div className="seg">
+          {[
+            { id: 'light' as const, label: '浅色' },
+            { id: 'dark' as const, label: '深色' },
+            { id: 'system' as const, label: '跟随系统' },
+          ].map((t) => (
+            <button
+              key={t.id}
+              className={`seg-item${settings.theme === t.id ? ' active' : ''}`}
+              onClick={() => patch({ theme: t.id })}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="field" style={{ marginTop: 14 }}>
         <span>系统提示词</span>
@@ -428,11 +453,26 @@ function ContextSection({
   settings,
   patch,
   onWipe,
+  onExportAll,
 }: {
   settings: Settings
   patch: Patch
   onWipe: () => void
+  onExportAll: () => Promise<number>
 }) {
+  const [phase, setPhase] = useState<'idle' | 'cooling' | 'ready'>('idle')
+  const [left, setLeft] = useState(10)
+
+  useEffect(() => {
+    if (phase !== 'cooling') return
+    if (left <= 0) {
+      setPhase('ready')
+      return
+    }
+    const t = setTimeout(() => setLeft((v) => v - 1), 1000)
+    return () => clearTimeout(t)
+  }, [phase, left])
+
   return (
     <>
       <section className="card">
@@ -455,20 +495,55 @@ function ContextSection({
         <p className="muted small">
           「仅本机」的会话只存在这台设备，换设备或清数据就没了。
         </p>
-        <button
-          className="danger"
-          onClick={async () => {
-            const ok = await confirmDialog({
-              title: '删除本机全部会话',
-              message: '这台设备上的所有对话都会被删除，此操作无法撤销。',
-              confirmText: '全部删除',
-              danger: true,
-            })
-            if (ok) onWipe()
-          }}
-        >
-          删除本机全部会话
-        </button>
+        <div className="row">
+          <button
+            className="ghost"
+            onClick={async () => {
+              const n = await onExportAll()
+              if (n === 0) {
+                // 没有会话时也照常给出反馈
+              }
+            }}
+          >
+            导出所有历史对话
+          </button>
+        </div>
+        <p className="muted small">导出一个 JSON 文件，包含全部会话与消息。</p>
+
+        <div className="row" style={{ marginTop: 12 }}>
+          <button
+            className="danger"
+            disabled={phase === 'cooling'}
+            onClick={async () => {
+              if (phase === 'idle') {
+                // 先进入 10 秒冷却，防止误触
+                setLeft(10)
+                setPhase('cooling')
+                return
+              }
+              if (phase === 'cooling') return
+              const ok = await confirmDialog({
+                title: '删除本机全部会话',
+                message: '这台设备上的所有对话都会被删除，此操作无法撤销。',
+                confirmText: '全部删除',
+                danger: true,
+              })
+              if (ok) {
+                onWipe()
+                setPhase('idle')
+              }
+            }}
+          >
+            {phase === 'idle'
+              ? '删除本机全部会话'
+              : phase === 'cooling'
+                ? `防误触：请等待 ${left} 秒`
+                : '已可删除，点击确认'}
+          </button>
+        </div>
+        {phase === 'cooling' && (
+          <p className="warn small">这 10 秒是防误触冷静期，期间按钮不可用。</p>
+        )}
       </section>
     </>
   )

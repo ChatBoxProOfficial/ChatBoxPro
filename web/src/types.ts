@@ -74,6 +74,8 @@ export interface Settings {
   teamMode: boolean
   /** 联网搜索（DeepSeek 服务端工具） */
   webSearch: boolean
+  /** 主题：浅色 / 深色 / 跟随系统 */
+  theme: 'light' | 'dark' | 'system'
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -91,6 +93,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reasoningEffort: 'high',
   teamMode: false,
   webSearch: false,
+  theme: 'system',
 }
 
 /** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */

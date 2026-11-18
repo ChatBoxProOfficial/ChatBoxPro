@@ -4,7 +4,7 @@ import SettingsScreen from './components/SettingsScreen'
 import Sidebar from './components/Sidebar'
 import { ConfirmHost } from './components/Confirm'
 import { db, kvGet, type SessionSummary } from './db'
-import { downloadConversation } from './exportFile'
+import { downloadAllSessions, downloadConversation } from './exportFile'
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -144,10 +144,33 @@ export default function App() {
     [refresh, current?.id, settings.model],
   )
 
+  // 应用主题（浅色 / 深色 / 跟随系统）
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: light)')
+    const apply = () => {
+      const t =
+        settings.theme === 'system' ? (mq.matches ? 'light' : 'dark') : settings.theme
+      document.documentElement.dataset.theme = t
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [settings.theme])
+
   const saveSettings = useCallback((s: Settings) => {
     setSettings(s)
     void db.setKV(SETTINGS_KEY, s)
   }, [])
+  const exportAll = useCallback(async () => {
+    const list = await db.listSessions()
+    const full: Session[] = []
+    for (const item of list) {
+      const s = (await db.getSession(item.id)) as Session | undefined
+      if (s) full.push({ ...s, messages: Array.isArray(s.messages) ? s.messages : [] })
+    }
+    return downloadAllSessions(full)
+  }, [])
+
   const wipe = useCallback(async () => {
     for (const s of await db.listSessions()) await db.deleteSession(s.id)
     await refresh()
@@ -201,6 +224,7 @@ export default function App() {
           onChange={saveSettings}
           onBack={() => setShowSettings(false)}
           onWipe={() => void wipe()}
+          onExportAll={exportAll}
         />
       )}
 

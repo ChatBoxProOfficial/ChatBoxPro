@@ -72,3 +72,25 @@ export function downloadConversation(session: Session): void {
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
+
+/** 一次性导出所有会话（一个文件里装全部） */
+export function downloadAllSessions(sessions: Session[]): number {
+  const payload = {
+    format: `${EXPORT_FORMAT}.bundle`,
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    count: sessions.length,
+    conversations: sessions.map((s) => buildExport(s)),
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+  a.download = `chatbox-pro-全部对话-${stamp}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  return sessions.length
+}
