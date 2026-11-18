@@ -38,6 +38,7 @@ export default function ChatScreen({
   const [atBottom, setAtBottom] = useState(true)
   const [searching, setSearching] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [streamMd, setStreamMd] = useState('')
 
   const accRef = useRef('')
   const reasonRef = useRef('')
@@ -96,6 +97,16 @@ export default function ChatScreen({
     [],
   )
 
+  // 流式正文：每 140ms 渲染一次 Markdown，避免逐 token 重排
+  useEffect(() => {
+    if (!busy) {
+      setStreamMd('')
+      return
+    }
+    const t = setInterval(() => setStreamMd(accRef.current), 140)
+    return () => clearInterval(t)
+  }, [busy])
+
   const scrollToBottom = useCallback((smooth = false) => {
     const el = listRef.current
     if (!el) return
@@ -122,13 +133,27 @@ export default function ChatScreen({
   const pickFiles = useCallback(
     async (files: FileList) => {
       const base = settings.baseUrl
+      const TEXT_EXT =
+        /\.(txt|md|markdown|json|csv|tsv|log|ya?ml|xml|html?|css|js|ts|tsx|jsx|py|java|c|cc|cpp|h|hpp|go|rs|sql|sh|bat|ps1|toml|ini|conf)$/i
+
       for (const file of Array.from(files)) {
         const id = newId()
+        // 文本类文件直接把内容读出来，才能真正发给模型
+        let text: string | undefined
+        const isText = TEXT_EXT.test(file.name) || file.type.startsWith('text/')
+        if (isText && file.size <= 256 * 1024) {
+          try {
+            text = (await file.text()).slice(0, 20000)
+          } catch {
+            text = undefined
+          }
+        }
         const item: Attachment = {
           id,
           name: file.name,
           size: file.size,
           uploading: true,
+          text,
         }
         setAttachments((prev) => [...prev, item])
         try {
@@ -152,14 +177,154 @@ export default function ChatScreen({
     setAttachments((prev) => prev.filter((a) => a.id !== id))
   }, [])
 
+  const run = useCallback(
+    async (base: Message[]) => {
+      if (busy) return
+      setMessages(base)
+      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), base.length))
+      setAtBottom(true)
+      setBusy(true)
+      accRef.current = ''
+      reasonRef.current = ''
+      startAtRef.current = Date.now()
+      firstContentAtRef.current = 0
+      firstTokenAtRef.current = 0
+      usageRef.current = undefined
+      setStreamText('')
+      setReasonText('')
+      persist(base)
+
+      const ctrl = new AbortController()
+      abortRef.current = ctrl
+      let failed = ''
+      let citations: Array<{ url: string; title?: string }> = []
+      let usedTools = false
+
+      await streamChat(
+        base,
+        { ...settings, model: session.model || settings.model },
+        {
+          onDelta: (chunk, kind) => {
+            if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now()
+            if (kind === 'content') {
+              if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
+              accRef.current += chunk
+            } else {
+              reasonRef.current += chunk
+            }
+            scheduleFlush()
+          },
+          onDone: () => {},
+          onError: (msg) => {
+            failed = msg
+          },
+          onToolEvent: (evt) => {
+            if (evt.type === 'call_started') setSearching(true)
+            if (evt.type === 'call_completed') {
+              setSearching(false)
+              usedTools = true
+            }
+          },
+          onUsage: (u) => {
+            usageRef.current = u
+          },
+          onTitle: (t) => {
+            const cur = sessionRef.current
+            const firstUser = cur.messages.find((m) => m.role === 'user')
+            const derived = firstUser
+              ? firstUser.content.split('\n\n[附件]')[0].trim().slice(0, 24)
+              : ''
+            // 只有「还没起名」或「名字来自首条消息」时才用服务端标题覆盖
+            if (!cur.title || cur.title === '新对话' || cur.title === derived) {
+              const next = { ...cur, title: t }
+              sessionRef.current = next
+              onPersist(next)
+            }
+          },
+          onMeta: (meta) => {
+            if (meta.citations?.length) citations = meta.citations
+            if (meta.usedTools) usedTools = true
+          },
+        },
+        ctrl.signal,
+      )
+
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+
+      const acc = accRef.current
+      const reasons = reasonRef.current
+      const startedAt = startAtRef.current
+      const firstContentAt = firstContentAtRef.current
+      const reasoningMs = reasons
+        ? (firstContentAt || Date.now()) - (startedAt || Date.now())
+        : 0
+      accRef.current = ''
+      reasonRef.current = ''
+      setStreamText('')
+      setReasonText('')
+      setBusy(false)
+      setSearching(false)
+      abortRef.current = null
+
+      const assistant: Message = failed
+        ? {
+            id: newId(),
+            role: 'assistant',
+            content: failed,
+            createdAt: Date.now(),
+            error: true,
+          }
+        : {
+            id: newId(),
+            role: 'assistant',
+            content: acc,
+            createdAt: Date.now(),
+            model: session.model,
+            reasoning: reasons || undefined,
+            reasoningMs: reasons ? reasoningMs : undefined,
+            citations: citations.length ? citations : undefined,
+            usedTools: usedTools || undefined,
+            usage: usageRef.current,
+            meta: {
+              startedAt: startedAt || undefined,
+              firstTokenAt: firstTokenAtRef.current || undefined,
+              endedAt: Date.now(),
+            },
+          }
+
+      const withReply = [...base, assistant]
+      setMessages(withReply)
+      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
+      setAtBottom(true)
+      persist(withReply)
+    },
+    [busy, settings, session.model, persist, scheduleFlush, onPersist],
+  )
+
   const send = useCallback(async () => {
     const text = input.trim()
     if ((!text && attachments.length === 0) || busy) return
 
     const ready = attachments.filter((a) => !a.uploading && !a.error)
-    const attachmentNote = ready.length
-      ? `\n\n[附件]\n${ready.map((a) => `- ${a.name}${a.stored ? `（inbox: ${a.stored}）` : ''}`).join('\n')}`
-      : ''
+    const fileBlocks = ready
+      .filter((a) => a.text)
+      .map((a) => `\n\n[附件：${a.name}]\n<<<\n${a.text}\n>>>`)
+      .join('')
+
+    const attachmentNote =
+      ready.length > 0
+        ? `\n\n[附件]\n${ready
+            .map(
+              (a) =>
+                `- ${a.name}${a.stored ? `（inbox: ${a.stored}）` : ''}${
+                  a.text ? '（内容已附在下方）' : ''
+                }`,
+            )
+            .join('\n')}` + fileBlocks
+        : ''
 
     const userMsg: Message = {
       id: newId(),
@@ -171,116 +336,32 @@ export default function ChatScreen({
 
     setInput('')
     setAttachments([])
+    await run([...messages, userMsg])
+  }, [input, attachments, busy, messages, run])
 
-    const next = [...messages, userMsg]
-    setMessages(next)
-    setVisibleCount((c) => Math.min(Math.max(c + 1, 1), next.length))
-    setAtBottom(true)
-    setBusy(true)
-    accRef.current = ''
-    reasonRef.current = ''
-    startAtRef.current = Date.now()
-    firstContentAtRef.current = 0
-    firstTokenAtRef.current = 0
-    usageRef.current = undefined
-    setStreamText('')
-    setReasonText('')
-    persist(next)
+  /** 重新生成最后一条回复 */
+  const regenerate = useCallback(async () => {
+    if (busy) return
+    const base = [...messages]
+    while (base.length && base[base.length - 1].role === 'assistant') base.pop()
+    if (!base.length) return
+    await run(base)
+  }, [busy, messages, run])
 
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    let failed = ''
-    let citations: Array<{ url: string; title?: string }> = []
-    let usedTools = false
-
-    await streamChat(
-      next,
-      { ...settings, model: session.model || settings.model },
-      {
-        onDelta: (chunk, kind) => {
-          if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now()
-          if (kind === 'content') {
-            if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
-            accRef.current += chunk
-          } else {
-            reasonRef.current += chunk
-          }
-          scheduleFlush()
-        },
-        onDone: () => {},
-        onError: (msg) => {
-          failed = msg
-        },
-        onToolEvent: (evt) => {
-          if (evt.type === 'call_started') setSearching(true)
-          if (evt.type === 'call_completed') {
-            setSearching(false)
-            usedTools = true
-          }
-        },
-        onUsage: (u) => {
-          usageRef.current = u
-        },
-        onMeta: (meta) => {
-          if (meta.citations?.length) citations = meta.citations
-          if (meta.usedTools) usedTools = true
-        },
-      },
-      ctrl.signal,
-    )
-
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
-    }
-
-    const acc = accRef.current
-    const reasons = reasonRef.current
-    const startedAt = startAtRef.current
-    const firstContentAt = firstContentAtRef.current
-    const reasoningMs = reasons
-      ? (firstContentAt || Date.now()) - (startedAt || Date.now())
-      : 0
-    accRef.current = ''
-    reasonRef.current = ''
-    setStreamText('')
-    setReasonText('')
-    setBusy(false)
-    setSearching(false)
-    abortRef.current = null
-
-    const assistant: Message = failed
-      ? {
-          id: newId(),
-          role: 'assistant',
-          content: failed,
-          createdAt: Date.now(),
-          error: true,
-        }
-      : {
-          id: newId(),
-          role: 'assistant',
-          content: acc,
-          createdAt: Date.now(),
-          model: session.model,
-          reasoning: reasons || undefined,
-          reasoningMs: reasons ? reasoningMs : undefined,
-          citations: citations.length ? citations : undefined,
-          usedTools: usedTools || undefined,
-          usage: usageRef.current,
-          meta: {
-            startedAt: startedAt || undefined,
-            firstTokenAt: firstTokenAtRef.current || undefined,
-            endedAt: Date.now(),
-          },
-        }
-
-    const withReply = [...next, assistant]
-    setMessages(withReply)
-    setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
-    setAtBottom(true)
-    persist(withReply)
-  }, [input, attachments, busy, messages, settings, session.model, persist, scheduleFlush])
+  /** 编辑某条用户消息：截断它和之后的内容，把原文放回输入框 */
+  const editFrom = useCallback(
+    (index: number) => {
+      if (busy) return
+      const target = messages[index]
+      if (!target || target.role !== 'user') return
+      const base = messages.slice(0, index)
+      setInput(target.content.split('\n\n[附件]')[0])
+      setMessages(base)
+      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), Math.max(base.length, 1)))
+      persist(base)
+    },
+    [busy, messages, persist],
+  )
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -360,8 +441,15 @@ export default function ChatScreen({
               上滚加载更早的 {start} 条
             </button>
           )}
-          {shown.map((m) => (
-            <MessageRow key={m.id} msg={m} reasoningMode={settings.reasoningDisplay} />
+          {shown.map((m, idx) => (
+            <MessageRow
+              key={m.id}
+              msg={m}
+              reasoningMode={settings.reasoningDisplay}
+              isLastAssistant={idx === shown.length - 1 && m.role === 'assistant'}
+              onRegenerate={() => void regenerate()}
+              onEdit={() => editFrom(start + idx)}
+            />
           ))}
 
           {(busy || streamText || reasonText) && (
@@ -385,7 +473,9 @@ export default function ChatScreen({
                   </div>
                 )}
                 {streamText ? (
-                  <div className="streaming-text">{streamText}</div>
+                  <div className="streaming-text streaming-md">
+                    <Markdown text={streamMd || streamText} />
+                  </div>
                 ) : (
                   !reasonText && <span className="cursor">▍</span>
                 )}
@@ -435,6 +525,17 @@ export default function ChatScreen({
   )
 }
 
+function cacheRate(u: NonNullable<Message['usage']>): string {
+  const hit = u.cached || 0
+  const total = hit + (u.prompt || 0)
+  if (total <= 0) return '—'
+  return `${Math.round((hit / total) * 100)}%`
+}
+
+function copyText(text: string) {
+  void navigator.clipboard?.writeText(text)
+}
+
 function fmtDuration(ms: number): string {
   if (ms < 1000) return `${Math.round(ms)}ms`
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
@@ -451,14 +552,25 @@ function fmtTokens(n: number): string {
 function MessageRow({
   msg,
   reasoningMode,
+  isLastAssistant,
+  onRegenerate,
+  onEdit,
 }: {
   msg: Message
   reasoningMode: 'off' | 'web' | 'dsh'
+  isLastAssistant?: boolean
+  onRegenerate?: () => void
+  onEdit?: () => void
 }) {
   if (msg.role === 'user') {
     return (
       <div className="msg user">
-        <div className="bubble">{msg.content}</div>
+        <div className="bubble">{msg.content.split('\n\n[附件]')[0]}</div>
+        {onEdit && (
+          <button className="msg-edit" onClick={onEdit} title="编辑这条消息">
+            编辑
+          </button>
+        )}
       </div>
     )
   }
@@ -476,19 +588,31 @@ function MessageRow({
         )}
         <Markdown text={msg.content} />
 
-        {msg.meta?.endedAt && msg.meta?.startedAt && (
-          <div className="msg-meta">
-            {fmtDuration(msg.meta.endedAt - msg.meta.startedAt)}
-            {msg.usage && (
-              <>
-                <span className="meta-sep">·</span>
-                {fmtTokens((msg.usage.prompt || 0) + (msg.usage.cached || 0))} in
-                <span className="meta-sep">/</span>
-                {fmtTokens(msg.usage.completion || 0)} out
-              </>
-            )}
-          </div>
-        )}
+        <div className="msg-meta">
+          {msg.meta?.endedAt && msg.meta?.startedAt && (
+            <>
+              {fmtDuration(msg.meta.endedAt - msg.meta.startedAt)}
+              {msg.usage && (
+                <>
+                  <span className="meta-sep">·</span>
+                  {fmtTokens((msg.usage.prompt || 0) + (msg.usage.cached || 0))} in
+                  <span className="meta-sep">/</span>
+                  {fmtTokens(msg.usage.completion || 0)} out
+                  <span className="meta-sep">·</span>
+                  缓存 {cacheRate(msg.usage)}
+                </>
+              )}
+            </>
+          )}
+          <button className="meta-copy" onClick={() => copyText(msg.content)}>
+            复制
+          </button>
+          {isLastAssistant && onRegenerate && (
+            <button className="meta-copy" onClick={onRegenerate}>
+              重新生成
+            </button>
+          )}
+        </div>
 
         {msg.citations && msg.citations.length > 0 && (
           <div className="citations">

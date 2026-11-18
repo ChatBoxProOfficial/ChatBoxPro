@@ -1,1 +1,1 @@
-{"model":"deepseek-flash","messages":[{"role":"user","content":"天空为什么是蓝色？"}],"temperature":0.7,"stream":true,"thinking":{"type":"enabled"},"stream_options":{"include_usage":true},"reasoning_effort":"high"}
+{"model":"deepseek-flash","messages":[{"role":"user","content":"帮我总结这个附件\n\n[附件]\n- note.txt（inbox: 20261118044729-note.txt）（内容已附在下方）\n\n[附件：note.txt]\n<<<\n这是附件的正文内容：请总结这三行。\n第二行。\n第三行。\n\n>>>"}],"temperature":0.7,"stream":true,"thinking":{"type":"enabled"},"title":{"enabled":true},"stream_options":{"include_usage":true},"reasoning_effort":"high"}

@@ -11,6 +11,8 @@ export interface Attachment {
   path?: string
   uploading?: boolean
   error?: string
+  /** 文本类文件的内容（截断后），随消息一起发给模型 */
+  text?: string
 }
 
 export interface Usage {

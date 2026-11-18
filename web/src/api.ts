@@ -49,6 +49,8 @@ export interface StreamHandlers {
     citations?: Array<{ url: string; title?: string }>
     usedTools?: boolean
   }) => void
+  /** 服务端生成的会话标题 */
+  onTitle?: (title: string) => void
   /** 服务端返回的 token 用量（最后一个 chunk 或独立 usage chunk） */
   onUsage?: (usage: {
     prompt?: number
@@ -123,6 +125,8 @@ export async function streamChat(
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
         stream_options: { include_usage: true },
+        // 让服务端顺手起个会话标题（仅 flash 支持）
+        ...(settings.model === 'deepseek-flash' ? { title: { enabled: true } } : {}),
         // 联网搜索 / 阅读链接：声明后由 DeepSeek 服务端执行，客户端不跑工具
         ...(settings.webSearch
           ? { tools: [{ type: 'deepseek_web_search' }, { type: 'deepseek_read_url' }] }
@@ -211,6 +215,11 @@ export async function streamChat(
             if (typeof delta.content === 'string' && delta.content) {
               handlers.onDelta(delta.content, 'content')
             }
+            // 服务端生成的会话标题
+            if (typeof delta?.title === 'string' && delta.title.trim()) {
+              handlers.onTitle?.(delta.title.trim())
+            }
+
             // 最后一个 chunk 会带完整的 annotations / server_tool_calls
             const annotations = delta?.annotations
             if (Array.isArray(annotations) && annotations.length) {

@@ -191,6 +191,8 @@ async function handleChat(req, res) {
     stream: true,
     // 思考模式开关与强度（DeepSeek 新接口参数）
     ...(signal.thinking ? { thinking: signal.thinking } : {}),
+    // 让服务端生成会话标题
+    ...(signal.title ? { title: signal.title } : {}),
     // 让流式响应带上 usage
     ...(signal.stream_options ? { stream_options: signal.stream_options } : {}),
     // 服务端联网工具（只放行官方这两个）

@@ -2212,3 +2212,78 @@ button:disabled {
   font-size: 10px;
   color: var(--fg-dim);
 }
+
+.md pre {
+  position: relative;
+}
+
+.code-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #2a2f38;
+  border: 1px solid #3a4048;
+  color: #a9b3c1;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.md pre:hover .code-copy {
+  opacity: 1;
+}
+
+.code-copy:hover {
+  color: #fff;
+}
+
+.meta-copy {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #6b7481;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.meta-copy:hover {
+  color: var(--fg);
+}
+
+:root[data-theme='light'] .code-copy {
+  background: #eef1f5;
+  border-color: #dde2e9;
+  color: #5b6b82;
+}
+
+.msg.user {
+  position: relative;
+}
+
+.msg-edit {
+  align-self: flex-end;
+  background: transparent;
+  border: none;
+  color: #6b7481;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  margin-left: 6px;
+}
+
+.msg.user:hover .msg-edit {
+  opacity: 1;
+}
+
+.msg-edit:hover {
+  color: var(--fg);
+}
+
+.streaming-md .md {
+  font-size: inherit;
+}

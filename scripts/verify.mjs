@@ -69,7 +69,7 @@ await page.screenshot({ path: `${OUT}/13-chat.png` })
 
 // 模型菜单
 await page.locator('.model-chip').click()
-await page.waitForSelector('.pop-menu', { timeout: 5000 })
+await page.waitForSelector('.model-pop', { timeout: 5000 })
 await page.screenshot({ path: `${OUT}/14-model.png` })
 console.log('✓ 模型菜单弹出')
 await page.locator('.pop-mask').click({ position: { x: 10, y: 10 } })
@@ -190,7 +190,7 @@ await page.screenshot({ path: `${OUT}/22-reasoning-dsh.png` })
 console.log('✓ 思维链（DSH 风格）已渲染')
 
 await page.locator('.dsh-head').click()
-await page.waitForSelector('.dsh-body', { timeout: 5000 })
+await page.waitForSelector('.dsh-raw', { timeout: 5000 })
 await page.screenshot({ path: `${OUT}/23-reasoning-dsh-open.png` })
 console.log('✓ DSH 风格展开思维链正文')
 

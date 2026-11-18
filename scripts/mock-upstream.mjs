@@ -24,6 +24,7 @@ const CONTENT = [
   '因为大气分子对**短波长光**的散射更强（瑞利散射），',
   '蓝光被散射到各个方向的比例远高于红光。',
   '\n\n所以白天抬头时，进入眼睛的散射光以蓝光为主。',
+  '\n\n\`\`\`js\nconst scattered = 1 / Math.pow(450e-9, 4)\nconsole.log(scattered)\n\`\`\`\n',
 ]
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -87,6 +88,7 @@ const server = http.createServer(async (req, res) => {
 
   // 最后一个 chunk 带引用
   send({
+    title: '瑞利散射与天空颜色',
     annotations: [
       {
         type: 'url_citation',
