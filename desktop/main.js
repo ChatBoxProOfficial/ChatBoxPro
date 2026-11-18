@@ -87,6 +87,29 @@ function registerIpc() {
     userData: app.getPath('userData'),
   }))
 
+  // 通用探测：给 DSH 地址做健康检查（主进程发请求，无跨域）
+  ipcMain.handle('chatbox:probe', async (_e, url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      return { ok: false, error: '地址无效' }
+    }
+    try {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 4000)
+      const resp = await net.fetch(url, { signal: ctrl.signal })
+      clearTimeout(timer)
+      let json = null
+      try {
+        json = await resp.json()
+      } catch {
+        json = null
+      }
+      const looksDsh = Boolean(json && (json.ok === true || json.service === 'dsh' || json.name === 'dsh'))
+      return { ok: true, status: resp.status, json, looksDsh }
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) }
+    }
+  })
+
   // 读取远端版本信息（在主进程里发请求，避免渲染进程的跨域限制）
   ipcMain.handle('chatbox:check-update', async (_e, url) => {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
@@ -104,7 +127,7 @@ function registerIpc() {
   })
 
   // 下载更新包
-  ipcMain.handle('chatbox:download-update', async (event, url) => {
+  ipcMain.handle('chatbox:download-update', async (event, url, expectedSha256) => {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
       return { ok: false, error: '下载地址无效' }
     }
@@ -132,7 +155,20 @@ function registerIpc() {
           })
         }
       }
-      fs.writeFileSync(file, Buffer.concat(chunks))
+      const buf = Buffer.concat(chunks)
+      if (expectedSha256) {
+        const crypto = require('node:crypto')
+        const actual = crypto.createHash('sha256').update(buf).digest('hex')
+        if (actual.toLowerCase() !== String(expectedSha256).toLowerCase()) {
+          try {
+            fs.unlinkSync(file)
+          } catch {
+            /* ignore */
+          }
+          return { ok: false, error: '更新包校验失败（sha256 不匹配），已丢弃，请重试' }
+        }
+      }
+      fs.writeFileSync(file, buf)
       return { ok: true, file, size: received }
     } catch (e) {
       return { ok: false, error: String((e && e.message) || e) }
@@ -147,13 +183,20 @@ function registerIpc() {
     const installDir = path.dirname(app.getPath('exe'))
     const exePath = app.getPath('exe')
     const scriptPath = path.join(path.dirname(file), 'apply-update.ps1')
+    const logPath = path.join(path.dirname(file), 'update-error.log')
     const script = [
       '$ErrorActionPreference = "Stop"',
       `$targetPid = ${process.pid}`,
       'while (Get-Process -Id $targetPid -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }',
       'Start-Sleep -Milliseconds 600',
-      `Expand-Archive -LiteralPath "${file}" -DestinationPath "${installDir}" -Force`,
-      `Start-Process "${exePath}"`,
+      'try {',
+      `  Expand-Archive -LiteralPath "${file}" -DestinationPath "${installDir}" -Force`,
+      '} catch {',
+      `  "$(Get-Date -Format o) 解压失败: $($_.Exception.Message)" | Out-File -Encoding utf8 "${logPath}"`,
+      '}',
+      'finally {',
+      `  Start-Process "${exePath}"`,
+      '}',
     ].join('\r\n')
     try {
       fs.writeFileSync(scriptPath, script, 'utf8')

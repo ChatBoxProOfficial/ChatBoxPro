@@ -27,7 +27,8 @@ declare global {
     chatbox?: {
       openFolder?: (p: string) => Promise<string>
       checkUpdate?: (url: string) => Promise<{ ok: boolean; error?: string; manifest?: unknown }>
-      downloadUpdate?: (url: string) => Promise<{ ok: boolean; error?: string; file?: string }>
+      downloadUpdate?: (url: string, sha256?: string) => Promise<{ ok: boolean; error?: string; file?: string }>
+      probe?: (url: string) => Promise<{ ok: boolean; error?: string; status?: number; looksDsh?: boolean; json?: unknown }>
       applyUpdate?: (file: string) => Promise<{ ok: boolean; error?: string }>
       onUpdateProgress?: (cb: (p: { percent: number }) => void) => () => void
       paths?: () => Promise<{ inbox: string; userData: string }>
@@ -944,17 +945,38 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
   const [msg, setMsg] = useState('')
 
   async function test() {
-    const url = settings.dshUrl.trim()
+    const url = settings.dshUrl.trim().replace(/\/$/, '')
     if (!url) return
     setState('testing')
     setMsg('')
+
+    // 优先问 /api/health：能区分「端口通」和「真的是 DSH」
+    if (window.chatbox?.probe) {
+      const res = await window.chatbox.probe(`${url}/api/health`)
+      if (res?.ok && res.looksDsh) {
+        setState('ok')
+        setMsg('连接正常（已确认为 DSH 服务）')
+        patch({ dshUrl: url })
+        return
+      }
+      if (res?.ok && !res.looksDsh) {
+        setState('fail')
+        setMsg('端口能通，但返回的不是 DSH（检查地址是否指向 DSH 服务）')
+        return
+      }
+      setState('fail')
+      setMsg('无法连接，请检查地址与网络')
+      return
+    }
+
+    // 浏览器环境退化为普通探测
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
       await fetch(url, { mode: 'no-cors', signal: ctrl.signal })
       clearTimeout(t)
       setState('ok')
-      setMsg('连接正常')
+      setMsg('地址可达（浏览器里无法确认为 DSH）')
     } catch {
       setState('fail')
       setMsg('无法连接，请检查地址与网络')

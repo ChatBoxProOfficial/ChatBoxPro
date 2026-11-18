@@ -7,8 +7,10 @@ contextBridge.exposeInMainWorld('chatbox', {
 
   /** 读取远端版本信息 */
   checkUpdate: (url) => ipcRenderer.invoke('chatbox:check-update', url),
-  /** 下载更新包 */
-  downloadUpdate: (url) => ipcRenderer.invoke('chatbox:download-update', url),
+  /** 下载更新包（带 sha256 校验） */
+  downloadUpdate: (url, sha256) => ipcRenderer.invoke('chatbox:download-update', url, sha256),
+  /** 探测某个地址是否可达 / 是否是 DSH */
+  probe: (url) => ipcRenderer.invoke('chatbox:probe', url),
   /** 应用更新（退出并覆盖安装） */
   applyUpdate: (file) => ipcRenderer.invoke('chatbox:apply-update', file),
   /** 下载进度 */

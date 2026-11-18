@@ -7,6 +7,7 @@ interface Manifest {
   notes?: string | string[]
   url?: string
   size?: number
+  sha256?: string
   history?: Array<{ version: string; date?: string; notes: string[] }>
 }
 
@@ -133,7 +134,7 @@ export default function UpdatePanel({
     return () => offRef.current?.()
   }, [bridge])
 
-  const check = async () => {
+  const check = async (manual = true) => {
     const url = updateUrl.trim()
     if (!url) {
       setState({ kind: 'error', message: '先在下面填写更新信息地址' })
@@ -163,7 +164,8 @@ export default function UpdatePanel({
     }
     if (isNewer(manifest.version, APP_VERSION)) {
       setState({ kind: 'available', manifest })
-      setOpen(true)
+      // 自动检查不打扰用户；手动点「检查更新」才直接弹出更新说明
+      if (manual) setOpen(true)
     } else {
       setState({ kind: 'latest' })
     }
@@ -174,14 +176,14 @@ export default function UpdatePanel({
     if (snoozed) return
     if (!updateUrl.trim()) return
     if (!desktop) return
-    void check()
+    void check(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const startUpdate = async (manifest: Manifest) => {
     if (!desktop || !manifest.url) return
     setState({ kind: 'downloading', percent: 0 })
-    const dl = await bridge!.downloadUpdate!(manifest.url)
+    const dl = await bridge!.downloadUpdate!(manifest.url, manifest.sha256)
     if (!dl?.ok || !dl.file) {
       setState({ kind: 'error', message: dl?.error || '下载失败' })
       return
@@ -241,15 +243,21 @@ export default function UpdatePanel({
         )}
 
         <div className="update-actions">
-          <button className="ghost icon-btn-text" onClick={() => void check()} disabled={state.kind === 'checking'}>
+          <button className="ghost icon-btn-text" onClick={() => void check(true)} disabled={state.kind === 'checking'}>
             <IconRefresh />
             检查更新
           </button>
           {state.kind === 'available' && (
-            <button className="primary icon-btn-text" onClick={() => void startUpdate(state.manifest)}>
-              <IconUp />
-              立即更新
-            </button>
+            <>
+              <button className="ghost icon-btn-text" onClick={() => setOpen(true)}>
+                <IconHistory />
+                查看更新内容
+              </button>
+              <button className="primary icon-btn-text" onClick={() => void startUpdate(state.manifest)}>
+                <IconUp />
+                立即更新
+              </button>
+            </>
           )}
         </div>
 
