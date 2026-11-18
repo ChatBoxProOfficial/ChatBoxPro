@@ -91,6 +91,8 @@ export default function StatsModal({ session, onClose }: Props) {
       (prompt / 1e6) * p.miss[peakIdx] +
       (completion / 1e6) * p.out[peakIdx]
 
+    const inputTotal = prompt + cached
+    const hitRate = inputTotal > 0 ? (cached / inputTotal) * 100 : null
     const ctxLimit = 1_000_000
     return {
       turns,
@@ -104,6 +106,7 @@ export default function StatsModal({ session, onClose }: Props) {
       reasoning,
       total: prompt + cached + completion,
       hasUsage,
+      hitRate,
       lastContext,
       ctxPct: Math.min(100, (lastContext / ctxLimit) * 100),
       cost,
@@ -144,6 +147,18 @@ export default function StatsModal({ session, onClose }: Props) {
             <div className="stat-value">{fmtMs(stats.avgFirst)}</div>
           </div>
           <div className="stat">
+            <div className="stat-label">缓存命中率</div>
+            <div className="stat-value">
+              {stats.hitRate === null ? '—' : `${stats.hitRate.toFixed(0)}%`}
+            </div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">上下文占用</div>
+            <div className="stat-value">
+              {stats.lastContext === 0 ? '—' : `${stats.ctxPct.toFixed(1)}%`}
+            </div>
+          </div>
+          <div className="stat">
             <div className="stat-label">估算费用</div>
             <div className="stat-value">
               ¥{stats.cost.toFixed(3)}
@@ -162,7 +177,12 @@ export default function StatsModal({ session, onClose }: Props) {
                   <b>{fmtTok(stats.prompt)}</b>
                 </div>
                 <div className="tok-row">
-                  <span>输入（缓存命中）</span>
+                  <span>
+                    输入（缓存命中）
+                    {stats.hitRate !== null && (
+                      <span className="stat-hint">{stats.hitRate.toFixed(0)}%</span>
+                    )}
+                  </span>
                   <b>{fmtTok(stats.cached)}</b>
                 </div>
                 <div className="tok-row">

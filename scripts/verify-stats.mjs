@@ -66,6 +66,23 @@ const fill = await page.locator('.ctx-fill').evaluate((el) => el.style.width)
 console.log('✓ 上下文进度条宽度:', fill)
 if (!fill || parseFloat(fill) <= 0) errors.push('上下文进度条没动')
 
+
+// 侧边栏简报：刷新后重新打开这条会话再看
+await page.reload({ waitUntil: 'networkidle' })
+await page.waitForSelector('.composer', { timeout: 15000 })
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(450)
+await page.locator('.conv-item').first().click()
+await page.waitForTimeout(500)
+await page.getByRole('button', { name: '展开栏目' }).click()
+await page.waitForTimeout(450)
+const brief = await page.locator('.side-brief').innerText()
+console.log('✓ 侧边栏简报:', brief.replace(/\n/g, ' '))
+if (!brief.includes('缓存命中')) errors.push('侧边栏缺少缓存命中率')
+if (!brief.includes('上下文')) errors.push('侧边栏缺少上下文占用')
+if (!brief.includes('%')) errors.push('侧边栏百分比没算出来')
+await page.screenshot({ path: `${OUT}/57-sidebar-brief.png` })
+
 await browser.close()
 if (errors.length) {
   console.log('\n问题：')

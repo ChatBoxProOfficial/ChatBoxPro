@@ -195,6 +195,7 @@ export default function App() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         sessions={sessions}
+        currentSession={current}
         currentId={current?.id ?? null}
         userName={settings.userName}
         onNewConversation={() => void newConversation()}

@@ -2183,3 +2183,32 @@ button:disabled {
   border-radius: 999px;
   transition: width 0.3s ease;
 }
+
+/* 侧边栏顶部简报 */
+.side-brief {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0 12px 10px;
+}
+
+.brief-item {
+  background: var(--bg-3);
+  border-radius: 9px;
+  padding: 7px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.brief-value {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.brief-label {
+  font-size: 10px;
+  color: var(--fg-dim);
+}

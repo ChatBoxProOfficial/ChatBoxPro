@@ -1,11 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import type { SessionSummary } from '../db'
+import type { Session } from '../types'
 import { confirmDialog } from './Confirm'
 
 interface Props {
   open: boolean
   onClose: () => void
   sessions: SessionSummary[]
+  currentSession: Session | null
   currentId: string | null
   userName: string
   onNewConversation: () => void
@@ -27,6 +29,7 @@ export default function Sidebar({
   open,
   onClose,
   sessions,
+  currentSession,
   currentId,
   userName,
   onNewConversation,
@@ -46,6 +49,30 @@ export default function Sidebar({
 
   const initial = (userName || '我').trim().slice(0, 1).toUpperCase()
 
+  // 当前会话简报：轮数 / 缓存命中率 / 上下文占用
+  const brief = useMemo(() => {
+    const msgs = currentSession?.messages || []
+    const rounds = msgs.filter((m) => m.role === 'user').length
+
+    let hit = 0
+    let miss = 0
+    let lastCtx = 0
+    for (const m of msgs) {
+      if (!m.usage) continue
+      hit += m.usage.cached || 0
+      miss += m.usage.prompt || 0
+      if ((m.usage.cached || 0) + (m.usage.prompt || 0) > 0) {
+        lastCtx = (m.usage.cached || 0) + (m.usage.prompt || 0)
+      }
+    }
+    const total = hit + miss
+    return {
+      rounds,
+      hitRate: total > 0 ? Math.round((hit / total) * 100) : null,
+      ctxPct: lastCtx > 0 ? (lastCtx / 1_000_000) * 100 : null,
+    }
+  }, [currentSession])
+
   return (
     <>
       <div className={`drawer-mask${open ? ' show' : ''}`} onClick={onClose} />
@@ -54,6 +81,27 @@ export default function Sidebar({
           <img className="drawer-logo" src="logo.png" alt="" />
           <div className="drawer-name">ChatBox Pro</div>
         </div>
+
+        {currentSession && (
+          <div className="side-brief">
+            <div className="brief-item">
+              <span className="brief-value">{brief.rounds}</span>
+              <span className="brief-label">轮数</span>
+            </div>
+            <div className="brief-item">
+              <span className="brief-value">
+                {brief.hitRate === null ? '—' : `${brief.hitRate}%`}
+              </span>
+              <span className="brief-label">缓存命中</span>
+            </div>
+            <div className="brief-item">
+              <span className="brief-value">
+                {brief.ctxPct === null ? '—' : `${brief.ctxPct.toFixed(1)}%`}
+              </span>
+              <span className="brief-label">上下文</span>
+            </div>
+          </div>
+        )}
 
         <button className="new-conv" onClick={onNewConversation}>
           <span className="plus">＋</span>
