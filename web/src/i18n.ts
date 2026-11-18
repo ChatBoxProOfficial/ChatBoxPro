@@ -13,7 +13,7 @@ const zh: Dict = {
   'nav.dsh': '让 ChatBox Pro 连接到 DeepSeek Harness',
   'nav.paths': '管理模型保存路径',
   'nav.about': '关于 ChatBox Pro',
-  'nav.general': '设置',
+  'nav.general': '语言设置',
 
   'side.new': '建立一个新的对话',
   'side.settings': '设置',
@@ -42,7 +42,7 @@ const en: Dict = {
   'nav.dsh': 'Connect to DeepSeek Harness',
   'nav.paths': 'File & Paths',
   'nav.about': 'About ChatBox Pro',
-  'nav.general': 'Settings',
+  'nav.general': 'Language',
 
   'side.new': 'New conversation',
   'side.settings': 'Settings',
@@ -71,7 +71,7 @@ const ja: Dict = {
   'nav.dsh': 'DeepSeek Harness に接続',
   'nav.paths': 'ファイルとパス',
   'nav.about': 'ChatBox Pro について',
-  'nav.general': '設定',
+  'nav.general': '言語設定',
 
   'side.new': '新しい会話',
   'side.settings': '設定',

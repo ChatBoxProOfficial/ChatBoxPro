@@ -7,6 +7,7 @@ import { db, kvGet, type SessionSummary } from './db'
 import { downloadAllSessions, downloadConversation } from './exportFile'
 import { summarize } from './api'
 import { LangContext } from './i18n'
+import { applyDomLang } from './domI18n'
 import {
   DEFAULT_SETTINGS,
   newId,
@@ -159,6 +160,11 @@ export default function App() {
     },
     [refresh, current?.id, settings.model],
   )
+
+  // 应用界面语言（运行时替换静态文案）
+  useEffect(() => {
+    applyDomLang(settings.lang)
+  }, [settings.lang])
 
   // 应用字号缩放
   useEffect(() => {

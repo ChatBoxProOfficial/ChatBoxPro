@@ -203,6 +203,21 @@ function toPayload(messages: Message[], settings: Settings) {
   if (settings.systemPrompt.trim()) {
     out.push({ role: 'system', content: settings.systemPrompt.trim() })
   }
+  // 语言指令：跟着界面语言走
+  if (settings.lang === 'en') {
+    out.push({
+      role: 'system',
+      content:
+        'Always respond in English unless the user explicitly asks for another language.',
+    })
+  } else if (settings.lang === 'ja') {
+    out.push({
+      role: 'system',
+      content:
+        'ユーザーが別の言語を明示的に指定しない限り、常に日本語で回答してください。',
+    })
+  }
+
   const reminder = settings.reminder ? buildReminder() : ''
   // 注意：带 tool_calls 的 assistant 即使正文为空也必须保留，否则后面的 tool 会变成孤儿
   const kept = messages.filter(

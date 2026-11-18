@@ -49,7 +49,7 @@ const ICONS: Record<string, string> = {
   dsh: 'M9 3.5V7M15 3.5V7M6.5 7h11v4.5a5.5 5.5 0 0 1-11 0V7ZM12 17v4',
   paths: 'M3 7.5A1.5 1.5 0 0 1 4.5 6h4l2 2.5h9A1.5 1.5 0 0 1 21 10v7.5A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5v-10Z',
   about: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 11v5M12 7.8v.2',
-  general: 'M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.7-1L15 3.5H9l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.4 2.6h6l.4-2.6a7.6 7.6 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5Z',
+  general: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.4 2.6 2.4 15.4 0 18M12 3c-2.4 2.6-2.4 15.4 0 18',
 }
 
 function SectionIcon({ id }: { id: string }) {
@@ -77,10 +77,10 @@ const SECTIONS: Array<{ id: SectionId; title: string; desc: string }> = [
   { id: 'plugins', title: '插件', desc: '扩展能力' },
   { id: 'models', title: '管理模型', desc: '启用模型与自定义模型' },
   { id: 'context', title: '上下文管理', desc: '上下文压缩、历史条数与数据管理' },
+  { id: 'general', title: '语言设置', desc: '界面语言与字号' },
   { id: 'dsh', title: '让 ChatBox Pro 连接到 DeepSeek Harness', desc: '服务端地址与连通性检测' },
   { id: 'paths', title: '管理模型保存路径', desc: '存放位置与工具权限' },
   { id: 'about', title: '关于 ChatBox Pro', desc: '版本信息与支持作者' },
-  { id: 'general', title: '设置', desc: '语言与字号' },
 ]
 
 export default function SettingsScreen({
@@ -164,6 +164,9 @@ export default function SettingsScreen({
             {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
             {section === 'paths' && <PathsSection flash={flash} settings={settings} patch={patch} />}
             {section === 'about' && <AboutSection onTip={() => setTipOpen(true)} />}
+            {section === 'general' && (
+              <GeneralSection settings={settings} patch={patch} />
+            )}
           </div>
         </div>
       </div>
