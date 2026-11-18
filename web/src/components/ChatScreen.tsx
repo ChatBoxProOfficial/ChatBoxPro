@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
@@ -126,10 +126,11 @@ export default function ChatScreen({
   const [subRuns, setSubRuns] = useState<SubRun[]>([])
   const lang = useLang()
   const t = useT()
-  const [welcome] = useState(() => {
+  // 欢迎语跟随语言实时切换（每次切换重新随机一条）
+  const welcome = useMemo(() => {
     const arr = WELCOME[lang] ?? WELCOME.zh
     return arr[Math.floor(Math.random() * arr.length)] || pickWelcome()
-  })
+  }, [lang])
   const [userBarOpen, setUserBarOpen] = useState(false)
   const [subOpen, setSubOpen] = useState(false)
   const cmdResolve = useRef<((ok: boolean) => void) | null>(null)

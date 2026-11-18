@@ -517,6 +517,25 @@ const PATTERNS: Array<{
   },
 ]
 
+/** 反查表：把已翻译的英/日文本还原成中文原文 */
+const REVERSE: Record<string, string> = (() => {
+  const map: Record<string, string> = {}
+  for (const [zh, e] of Object.entries(TEXT)) {
+    if (!map[e.en]) map[e.en] = zh
+    if (!map[e.ja]) map[e.ja] = zh
+  }
+  return map
+})()
+
+/** 把当前文本还原成中文原文（可能是中文本身、英文或日文） */
+function toChinese(text: string): string | undefined {
+  const t = text.trim()
+  if (!t) return undefined
+  if (TEXT[t]) return t
+  if (REVERSE[t]) return REVERSE[t]
+  return undefined
+}
+
 const ATTRS = ['placeholder', 'title', 'aria-label']
 const attrOriginals = new WeakMap<Element, Record<string, string>>()
 
@@ -555,9 +574,11 @@ const originals = new WeakMap<Text, string>()
 
 function translateTextNode(node: Text) {
   const cur = node.nodeValue ?? ''
-  let raw = originals.get(node) ?? cur
-  if (!originals.has(node)) originals.set(node, cur)
-  // React 用新中文内容覆盖了节点：更新原文
+  // 反查优先：即使节点是在英文/日文状态下新建的，也能定位回中文原文
+  const zh = toChinese(cur)
+  let raw = zh ?? originals.get(node) ?? cur
+  if (zh) originals.set(node, zh)
+  else if (!originals.has(node)) originals.set(node, cur)
   else if (/[\u4e00-\u9fa5]/.test(cur) && cur.trim() !== raw.trim()) {
     originals.set(node, cur)
     raw = cur
@@ -635,8 +656,9 @@ function restoreAll() {
     n = walker.nextNode()
   }
   for (const t of nodes) {
-    const orig = originals.get(t)
-    if (orig !== undefined && t.nodeValue !== orig) t.nodeValue = orig
+    const cur = t.nodeValue ?? ''
+    const orig = toChinese(cur) ?? originals.get(t)
+    if (orig !== undefined && cur !== orig) t.nodeValue = orig
   }
   // 属性还原
   document.querySelectorAll('[placeholder], [title], [aria-label]').forEach((el) => {
