@@ -809,7 +809,25 @@ ${output}`
           </svg>
         </button>
         <div className="topbar-title">
-          <div className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</div>
+          <div className="title-row">
+            <span className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</span>
+            {subRuns.length > 0 && (
+              <button
+                className={`sub-chip${
+                  subRuns.some((r) => r.status === 'running') ? ' running' : ''
+                }`}
+                onClick={() => setSubOpen(true)}
+                title="查看子智能体"
+              >
+                <span className="sub-chip-dot" />
+                <span className="sub-chip-text">子智能体</span>
+                {subRuns.some((r) => r.status === 'running') && (
+                  <span className="sub-chip-state">进行中</span>
+                )}
+                <span className="sub-chip-count">{subRuns.length}</span>
+              </button>
+            )}
+          </div>
           {!isEmpty && <div className="sub-line">{session.model}</div>}
         </div>
         {!isEmpty && (
@@ -849,27 +867,6 @@ ${output}`
         </div>
       ) : (
         <div className="msg-list" ref={listRef} onScroll={onScroll}>
-          {subRuns.length > 0 && (
-            <div
-              className={`sub-banner${
-                subRuns.some((r) => r.status === 'running') ? ' running' : ''
-              }`}
-              onClick={() => setSubOpen(true)}
-              role="button"
-              title="查看子智能体"
-            >
-              <span className="sub-banner-dot" />
-              <span className="sub-banner-title">子智能体</span>
-              <span className="sub-banner-desc">
-                {subRuns.some((r) => r.status === 'running')
-                  ? '子智能体进行中'
-                  : '子智能体已完成'}
-                {' · '}
-                {subRuns.length} 个
-              </span>
-              <span className="sub-banner-arrow">›</span>
-            </div>
-          )}
           {start > 0 && (
             <button
               className="load-more"

@@ -157,6 +157,29 @@ function createWindow(target) {
     }
   })
 
+  // 右键菜单：复制 / 粘贴 / 全选（Electron 默认不提供）
+  win.webContents.on('context-menu', (_event, params) => {
+    const items = []
+    const canEdit = params.isEditable
+    const hasSelection = Boolean(params.selectionText && params.selectionText.trim())
+
+    if (canEdit) {
+      items.push({ label: '剪切', role: 'cut', enabled: hasSelection })
+      items.push({ label: '复制', role: 'copy', enabled: hasSelection })
+      items.push({ label: '粘贴', role: 'paste' })
+      items.push({ type: 'separator' })
+      items.push({ label: '全选', role: 'selectAll' })
+    } else if (hasSelection) {
+      items.push({ label: '复制', role: 'copy' })
+      items.push({ type: 'separator' })
+      items.push({ label: '全选', role: 'selectAll' })
+    } else {
+      items.push({ label: '全选', role: 'selectAll' })
+    }
+
+    Menu.buildFromTemplate(items).popup({ window: win })
+  })
+
   // F12 调试、Ctrl+R 刷新
   win.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return
