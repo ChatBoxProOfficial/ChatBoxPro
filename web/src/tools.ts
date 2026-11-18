@@ -37,6 +37,49 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     type: 'function',
     function: {
+      name: 'list_dir',
+      description: '列出工作目录里某个文件夹的内容（文件名/类型）。path 为空表示根目录。',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: '相对工作目录的路径，如 "src"' },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_file',
+      description: '读取工作目录里某个文本文件的内容（最多 256KB）。',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: '相对工作目录的文件路径，如 "src/app.ts"' },
+        },
+        required: ['path'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_in_files',
+      description: '在工作目录里搜索包含关键词的文件与行号。',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: '要搜索的关键词' },
+          path: { type: 'string', description: '限定搜索的起点，默认根目录' },
+        },
+        required: ['pattern'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'web_search',
       description: '联网搜索，返回若干条结果的标题、链接和摘要。需要最新信息时使用。',
       parameters: {
@@ -77,10 +120,23 @@ function safeCalc(expr: string): string {
   return String(value)
 }
 
+async function callFs(op: string, root: string, payload: Record<string, unknown>): Promise<string> {
+  if (!root) return '没有设置工作目录，先在设置里选一个文件夹'
+  const resp = await fetch('/api/fs', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ op, root, ...payload }),
+  })
+  const json = await resp.json()
+  if (!resp.ok) return `读取失败：${json?.error ?? resp.status}`
+  return JSON.stringify(json)
+}
+
 export async function executeTool(
   name: string,
   argsJson: string,
   baseUrl: string,
+  workspaceDir = '',
 ): Promise<string> {
   let args: Record<string, unknown> = {}
   try {
@@ -101,6 +157,44 @@ export async function executeTool(
       }
       case 'calculate':
         return safeCalc(String(args.expression ?? ''))
+      case 'list_dir': {
+        const raw = await callFs('list', workspaceDir, { path: String(args.path ?? '.') })
+        try {
+          const j = JSON.parse(raw)
+          if (!j.items) return raw
+          return `目录 ${j.path}：\n${j.items
+            .map((it: { name: string; type: string }) => `${it.type === 'dir' ? '📁' : '📄'} ${it.name}`)
+            .join('\n')}`
+        } catch {
+          return raw
+        }
+      }
+      case 'read_file': {
+        const raw = await callFs('read', workspaceDir, { path: String(args.path ?? '') })
+        try {
+          const j = JSON.parse(raw)
+          if (typeof j.content !== 'string') return raw
+          return `文件 ${j.path}（${j.size ?? '?'} 字节）\n\n${j.content}`
+        } catch {
+          return raw
+        }
+      }
+      case 'search_in_files': {
+        const raw = await callFs('search', workspaceDir, {
+          pattern: String(args.pattern ?? ''),
+          path: String(args.path ?? '.'),
+        })
+        try {
+          const j = JSON.parse(raw)
+          if (!j.hits) return raw
+          if (!j.hits.length) return '没有匹配'
+          return j.hits
+            .map((h: { file: string; line: number; text: string }) => `${h.file}:${h.line}  ${h.text}`)
+            .join('\n')
+        } catch {
+          return raw
+        }
+      }
       case 'web_search': {
         const resp = await fetch(`${baseUrl}/search`, {
           method: 'POST',

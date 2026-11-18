@@ -395,6 +395,119 @@ async function handlePost(req, res, pathname, method = 'POST') {
   }
 }
 
+/** 只读文件访问：限制在 root 目录内，拒绝越界路径 */
+async function handleFs(req, res) {
+  let body
+  try {
+    body = JSON.parse(await readBody(req, 1024 * 1024))
+  } catch {
+    return send(res, 400, 'bad body')
+  }
+  const { op, root, path: relPath = '.', pattern = '', maxResults = 40 } = body || {}
+  if (typeof root !== 'string' || !root.trim()) {
+    return send(res, 400, JSON.stringify({ error: '没有设置工作目录' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const path = await import('node:path')
+  const fsMod = await import('node:fs/promises')
+  const rootAbs = path.resolve(root)
+  const target = path.resolve(rootAbs, String(relPath || '.'))
+
+  // 防越界
+  if (target !== rootAbs && !target.startsWith(rootAbs + path.sep)) {
+    return send(res, 403, JSON.stringify({ error: '路径超出工作目录' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const ok = (data) =>
+    send(res, 200, JSON.stringify(data), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+
+  try {
+    if (op === 'list') {
+      const entries = await fsMod.readdir(target, { withFileTypes: true })
+      const items = entries.slice(0, 200).map((e) => ({
+        name: e.name,
+        type: e.isDirectory() ? 'dir' : 'file',
+        size: e.isFile() ? undefined : undefined,
+      }))
+      return ok({ path: path.relative(rootAbs, target) || '.', items })
+    }
+
+    if (op === 'read') {
+      const stat = await fsMod.stat(target)
+      if (!stat.isFile()) return send(res, 400, JSON.stringify({ error: '不是文件' }))
+      if (stat.size > 256 * 1024) {
+        return ok({
+          path: path.relative(rootAbs, target),
+          truncated: true,
+          content: (await fsMod.readFile(target, 'utf8')).slice(0, 200000),
+        })
+      }
+      return ok({
+        path: path.relative(rootAbs, target),
+        size: stat.size,
+        content: await fsMod.readFile(target, 'utf8'),
+      })
+    }
+
+    if (op === 'search') {
+      const needle = String(pattern || '')
+      if (!needle) return send(res, 400, JSON.stringify({ error: '缺少关键词' }))
+      const hits = []
+      const skip = new Set(['node_modules', '.git', 'dist', 'release', 'build', '.next'])
+      const walk = async (dir, depth) => {
+        if (hits.length >= Number(maxResults) || depth > 6) return
+        let entries
+        try {
+          entries = await fsMod.readdir(dir, { withFileTypes: true })
+        } catch {
+          return
+        }
+        for (const e of entries) {
+          if (hits.length >= Number(maxResults)) return
+          if (skip.has(e.name)) continue
+          const full = path.join(dir, e.name)
+          if (e.isDirectory()) {
+            await walk(full, depth + 1)
+          } else if (e.isFile()) {
+            try {
+              const st = await fsMod.stat(full)
+              if (st.size > 512 * 1024) continue
+              const text = await fsMod.readFile(full, 'utf8')
+              const lines = text.split('\n')
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes(needle)) {
+                  hits.push({
+                    file: path.relative(rootAbs, full),
+                    line: i + 1,
+                    text: lines[i].trim().slice(0, 200),
+                  })
+                  if (hits.length >= Number(maxResults)) break
+                }
+              }
+            } catch {
+              /* 二进制等跳过 */
+            }
+          }
+        }
+      }
+      await walk(target, 0)
+      return ok({ hits, count: hits.length })
+    }
+
+    return send(res, 400, JSON.stringify({ error: 'unknown op' }))
+  } catch (e) {
+    return send(res, 500, JSON.stringify({ error: e.message }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost')
   if (url.pathname === '/api/health') {
@@ -410,6 +523,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)
+    return
+  }
+  if (url.pathname === '/api/fs') {
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed')
+    void handleFs(req, res)
     return
   }
   if (url.pathname === '/api/balance') {

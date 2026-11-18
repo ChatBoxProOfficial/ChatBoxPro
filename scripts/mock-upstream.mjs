@@ -139,6 +139,15 @@ const server = http.createServer(async (req, res) => {
     return
   }
 
+  const toolNames = (parsed.tools || []).map((t) => t.function?.name)
+  const lastUserText = (() => {
+    const u = [...(parsed.messages || [])].reverse().find((m) => m.role === 'user')
+    const c = u?.content
+    if (typeof c === 'string') return c
+    if (Array.isArray(c)) return c.map((b) => b.text || '').join(' ')
+    return ''
+  })()
+  const wantFiles = toolNames.includes('list_dir') && /文件|目录|文件夹/.test(lastUserText)
   const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0
   const lastRole = parsed.messages?.[parsed.messages.length - 1]?.role
   if (hasTools && lastRole === 'user') {
@@ -158,7 +167,10 @@ const server = http.createServer(async (req, res) => {
                   index: 0,
                   id: 'call_mock_1',
                   type: 'function',
-                  function: { name: 'get_current_time', arguments: '' },
+                  function: {
+                    name: wantFiles ? 'list_dir' : 'get_current_time',
+                    arguments: '',
+                  },
                 },
               ],
             },
@@ -171,7 +183,11 @@ const server = http.createServer(async (req, res) => {
         choices: [
           {
             index: 0,
-            delta: { tool_calls: [{ index: 0, function: { arguments: '{}' } }] },
+            delta: {
+                tool_calls: [
+                  { index: 0, function: { arguments: wantFiles ? '{"path":"."}' : '{}' } },
+                ],
+              },
             finish_reason: 'tool_calls',
           },
         ],

@@ -3,6 +3,7 @@ import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
 import { fetchBalance, listFiles, deleteFile } from '../api'
 import type { SessionSummary } from '../db'
+import type { Session } from '../types'
 import { confirmDialog } from './Confirm'
 import Switch from './Switch'
 
@@ -13,7 +14,7 @@ interface Props {
   onWipe: () => void
   onExportAll: () => Promise<number>
   sessions: SessionSummary[]
-  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number }>
+  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number; session: Session }>
 }
 
 declare global {
@@ -119,7 +120,7 @@ export default function SettingsScreen({
               />
             )}
             {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
-            {section === 'paths' && <PathsSection flash={flash} />}
+            {section === 'paths' && <PathsSection flash={flash} settings={settings} patch={patch} />}
             {section === 'about' && <AboutSection onTip={() => setTipOpen(true)} />}
           </div>
         </div>
@@ -536,7 +537,7 @@ function ContextSection({
   onWipe: () => void
   onExportAll: () => Promise<number>
   sessions: SessionSummary[]
-  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number }>
+  onCompress: (id: string, keep?: number) => Promise<{ before: number; after: number; session: Session }>
 }) {
   const [compressId, setCompressId] = useState('')
   const [compressing, setCompressing] = useState(false)
@@ -556,6 +557,32 @@ function ContextSection({
 
   return (
     <>
+      <section className="card">
+        <h3>自动压缩上下文</h3>
+        <div className="switch-row">
+          <span>超过阈值时自动压缩</span>
+          <Switch
+            checked={settings.autoCompact}
+            onChange={(v) => patch({ autoCompact: v })}
+          />
+        </div>
+        <p className="muted small">
+          每轮回答后检查上下文占用，超过阈值就把较早的消息交给模型压成摘要，只保留最近 8 条。
+        </p>
+        <label className="field">
+          <span>触发阈值</span>
+          <select
+            value={settings.compactThreshold}
+            onChange={(e) => patch({ compactThreshold: Number(e.target.value) })}
+            disabled={!settings.autoCompact}
+          >
+            <option value={40}>40% — 很早就压，省 token</option>
+            <option value={60}>60% — 平衡（默认）</option>
+            <option value={80}>80% — 尽量保留原文</option>
+          </select>
+        </label>
+      </section>
+
       <section className="card">
         <h3>携带的历史条数</h3>
         <label className="field">
@@ -743,7 +770,7 @@ function DshSection({ settings, patch }: { settings: Settings; patch: Patch }) {
   )
 }
 
-function PathsSection({ flash }: { flash: (s: string) => void }) {
+function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; settings: Settings; patch: Patch }) {
   const [inbox, setInbox] = useState('')
 
   useEffect(() => {
@@ -790,6 +817,19 @@ function PathsSection({ flash }: { flash: (s: string) => void }) {
         「打开文件夹」只在桌面端可用。
         {!window.chatbox && '（浏览器里打开时不可用）'}
       </p>
+
+      <h3 style={{ marginTop: 16 }}>工作目录（只读）</h3>
+      <p className="muted small">
+        模型可以通过 list_dir / read_file / search_in_files 读取这个目录里的文件。
+        <b>只读</b>，不会修改或删除。留空表示不允许读文件。
+      </p>
+      <div className="row">
+        <input
+          value={settings.workspaceDir}
+          onChange={(e) => patch({ workspaceDir: e.target.value })}
+          placeholder="例如 F:\Projects\chatbox-pro"
+        />
+      </div>
 
       <h3 style={{ marginTop: 16 }}>已上传到官方的文件</h3>
       <p className="muted small">解析过的 PDF/Office 会留在官方账户里，可以在这里清理。</p>

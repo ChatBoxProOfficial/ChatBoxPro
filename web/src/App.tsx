@@ -164,7 +164,7 @@ export default function App() {
   }, [])
   /** 压缩指定会话：把较早的消息换成一段摘要，只保留最近几条 */
   const compressSession = useCallback(
-    async (id: string, keep = 6): Promise<{ before: number; after: number }> => {
+    async (id: string, keep = 6): Promise<{ before: number; after: number; session: Session }> => {
       const s = (await db.getSession(id)) as Session | undefined
       if (!s) throw new Error('找不到这个会话')
       const msgs = s.messages || []
@@ -184,7 +184,7 @@ export default function App() {
       await db.putSession(next)
       if (current?.id === id) setCurrent(next)
       await refresh()
-      return { before: msgs.length, after: next.messages.length }
+      return { before: msgs.length, after: next.messages.length, session: next }
     },
     [settings, refresh, current],
   )
@@ -244,6 +244,7 @@ export default function App() {
           onOpenSidebar={() => setSidebarOpen(true)}
           onExport={(s) => downloadConversation(s)}
           onSettingsChange={(p) => saveSettings({ ...settings, ...p })}
+          onAutoCompress={(id, keep) => compressSession(id, keep)}
         />
       )}
 

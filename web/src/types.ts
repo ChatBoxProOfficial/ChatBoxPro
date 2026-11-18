@@ -119,8 +119,14 @@ export interface Settings {
   safety: boolean
   /** 每轮附带用户元信息（日期/平台/语言） */
   reminder: boolean
-  /** 允许模型调用本地工具（时间/搜索/抓网页/计算） */
+  /** 允许模型调用本地工具（时间/搜索/抓网页/计算/读文件） */
   toolsEnabled: boolean
+  /** 只读文件工具的根目录（留空 = 不允许读文件） */
+  workspaceDir: string
+  /** 上下文超过阈值时自动压缩 */
+  autoCompact: boolean
+  /** 自动压缩阈值（百分比） */
+  compactThreshold: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -142,6 +148,9 @@ export const DEFAULT_SETTINGS: Settings = {
   safety: false,
   reminder: true,
   toolsEnabled: false,
+  workspaceDir: '',
+  autoCompact: false,
+  compactThreshold: 60,
 }
 
 /** 当前 DeepSeek API 提供的模型（2026-11）。label 给输入栏用，full 给选择面板用 */

@@ -10,6 +10,9 @@ import type { Attachment, Message, Session, Settings } from '../types'
 import { newId } from '../types'
 
 interface Props {
+  /** 自动压缩：返回压缩后的会话 */
+  onAutoCompress?: (id: string, keep?: number) => Promise<{ session: Session }>
+
   session: Session
   settings: Settings
   onPersist: (s: Session) => void
@@ -27,6 +30,7 @@ export default function ChatScreen({
   onOpenSidebar,
   onExport,
   onSettingsChange,
+  onAutoCompress,
 }: Props) {
   const [messages, setMessages] = useState<Message[]>(session.messages)
   const [visibleCount, setVisibleCount] = useState(() =>
@@ -367,6 +371,24 @@ export default function ChatScreen({
         setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
         setAtBottom(true)
         persist(withReply)
+
+        // 自动压缩：上下文占比超过阈值时，把较早消息压成摘要
+        const u = usageRef.current as Message['usage']
+        const used = (u?.prompt || 0) + (u?.cached || 0)
+        const pct = (used / 1_000_000) * 100
+        if (
+          settings.autoCompact &&
+          onAutoCompress &&
+          used > 0 &&
+          pct >= settings.compactThreshold
+        ) {
+          void onAutoCompress(sessionRef.current.id, 8).then((r) => {
+            if (!r?.session) return
+            setMessages(r.session.messages)
+            setVisibleCount(r.session.messages.length)
+            onPersist(r.session)
+          })
+        }
       }
 
       try {
@@ -398,7 +420,12 @@ export default function ChatScreen({
           }
           const toolMsgs: Message[] = []
           for (const call of calls) {
-            const output = await executeTool(call.name, call.arguments, settings.baseUrl)
+            const output = await executeTool(
+              call.name,
+              call.arguments,
+              settings.baseUrl,
+              settings.workspaceDir,
+            )
             toolMsgs.push({
               id: newId(),
               role: 'tool',
