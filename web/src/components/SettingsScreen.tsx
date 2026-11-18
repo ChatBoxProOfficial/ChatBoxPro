@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { clearApiKey, loadApiKey, maskKey, saveApiKey } from '../secureStore'
 import { MODELS, modelLabel, type Settings } from '../types'
+import { fetchBalance, listFiles, deleteFile } from '../api'
 import { confirmDialog } from './Confirm'
 import Switch from './Switch'
 
@@ -208,6 +209,11 @@ function AccountSection({
       </section>
 
       <section className="card">
+        <h3>账户余额</h3>
+        <BalanceRow baseUrl={settings.baseUrl} />
+      </section>
+
+      <section className="card">
         <h3>模型</h3>
         <label className="field">
           <span>默认模型</span>
@@ -232,6 +238,50 @@ function AccountSection({
         </label>
       </section>
     </>
+  )
+}
+
+function BalanceRow({ baseUrl }: { baseUrl: string }) {
+  const [state, setState] = useState<{ total?: string; granted?: string; toppedUp?: string } | null>(null)
+  const [err, setErr] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const load = async () => {
+    setLoading(true)
+    setErr('')
+    try {
+      const r = await fetchBalance(baseUrl)
+      setState(r.cny || null)
+      if (!r.available) setErr('账户余额不足')
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div>
+      {state ? (
+        <>
+          <div className="balance-value">¥{state.total}</div>
+          <p className="muted small">
+            赠送 ¥{state.granted} · 充值 ¥{state.toppedUp}
+          </p>
+        </>
+      ) : (
+        <p className="muted small">{loading ? '查询中…' : err || '暂无数据'}</p>
+      )}
+      {state && err && <p className="warn small">{err}</p>}
+      <button className="ghost" onClick={() => void load()} disabled={loading}>
+        {loading ? '查询中…' : '刷新余额'}
+      </button>
+    </div>
   )
 }
 
@@ -671,7 +721,72 @@ function PathsSection({ flash }: { flash: (s: string) => void }) {
         「打开文件夹」只在桌面端可用。
         {!window.chatbox && '（浏览器里打开时不可用）'}
       </p>
+
+      <h3 style={{ marginTop: 16 }}>已上传到官方的文件</h3>
+      <p className="muted small">解析过的 PDF/Office 会留在官方账户里，可以在这里清理。</p>
+      <FileList />
     </section>
+  )
+}
+
+function FileList() {
+  const [files, setFiles] = useState<Array<{ id: string; filename: string; bytes: number }>>([])
+  const [err, setErr] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const load = async () => {
+    setLoading(true)
+    setErr('')
+    try {
+      setFiles(await listFiles('/api'))
+    } catch (e) {
+      setErr((e as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div>
+      {err && <p className="warn small">{err}</p>}
+      {files.length === 0 && !loading && <p className="muted small">没有文件</p>}
+      {files.map((f) => (
+        <div key={f.id} className="file-row">
+          <span className="file-name" title={f.filename}>
+            {f.filename}
+          </span>
+          <span className="muted small">{Math.round(f.bytes / 1024)} KB</span>
+          <button
+            className="mini danger"
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: '删除云端文件',
+                message: `删除「${f.filename}」？已引用它的历史对话将读不到内容。`,
+                confirmText: '删除',
+                danger: true,
+              })
+              if (!ok) return
+              try {
+                await deleteFile('/api', f.id)
+                await load()
+              } catch (e) {
+                setErr((e as Error).message)
+              }
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button className="ghost" onClick={() => void load()} disabled={loading}>
+        {loading ? '刷新中…' : '刷新列表'}
+      </button>
+    </div>
   )
 }
 

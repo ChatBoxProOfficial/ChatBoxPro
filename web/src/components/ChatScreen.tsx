@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
+import { executeTool } from '../tools'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -240,126 +241,183 @@ export default function ChatScreen({
   const run = useCallback(
     async (base: Message[]) => {
       if (busy) return
-      setMessages(base)
-      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), base.length))
+
+      let working = [...base]
+      setMessages(working)
+      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), working.length))
       setAtBottom(true)
       setBusy(true)
-      accRef.current = ''
-      reasonRef.current = ''
-      startAtRef.current = Date.now()
-      firstContentAtRef.current = 0
-      firstTokenAtRef.current = 0
-      usageRef.current = undefined
-      setStreamText('')
-      setReasonText('')
-      persist(base)
 
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      let failed = ''
-      let citations: Array<{ url: string; title?: string }> = []
-      let usedTools = false
+      const once = async (msgs: Message[]) => {
+        accRef.current = ''
+        reasonRef.current = ''
+        startAtRef.current = Date.now()
+        firstContentAtRef.current = 0
+        firstTokenAtRef.current = 0
+        usageRef.current = undefined
+        setStreamText('')
+        setReasonText('')
 
-      await streamChat(
-        base,
-        { ...settings, model: session.model || settings.model },
-        {
-          onDelta: (chunk, kind) => {
-            if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now()
-            if (kind === 'content') {
-              if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
-              accRef.current += chunk
-            } else {
-              reasonRef.current += chunk
-            }
-            scheduleFlush()
-          },
-          onDone: () => {},
-          onError: (msg) => {
-            failed = msg
-          },
-          onToolEvent: (evt) => {
-            if (evt.type === 'call_started') setSearching(true)
-            if (evt.type === 'call_completed') {
-              setSearching(false)
+        const ctrl = new AbortController()
+        abortRef.current = ctrl
+        let failed = ''
+        let citations: Array<{ url: string; title?: string }> = []
+        let usedTools = false
+        let toolCalls: Array<{ id: string; name: string; arguments: string }> = []
+
+        await streamChat(
+          msgs,
+          { ...settings, model: session.model || settings.model },
+          {
+            onDelta: (chunk, kind) => {
+              if (!firstTokenAtRef.current) firstTokenAtRef.current = Date.now()
+              if (kind === 'content') {
+                if (!firstContentAtRef.current) firstContentAtRef.current = Date.now()
+                accRef.current += chunk
+              } else {
+                reasonRef.current += chunk
+              }
+              scheduleFlush()
+            },
+            onDone: () => {},
+            onError: (msg) => {
+              failed = msg
+            },
+            onToolEvent: (evt) => {
+              if (evt.type === 'call_started') setSearching(true)
+              if (evt.type === 'call_completed') {
+                setSearching(false)
+                usedTools = true
+              }
+            },
+            onToolCalls: (calls) => {
+              toolCalls = calls
               usedTools = true
-            }
+            },
+            onUsage: (u) => {
+              usageRef.current = u
+            },
+            onTitle: (t) => {
+              const cur = sessionRef.current
+              const firstUser = cur.messages.find((m) => m.role === 'user')
+              const derived = firstUser
+                ? firstUser.content.split('\n\n[附件]')[0].trim().slice(0, 24)
+                : ''
+              if (!cur.title || cur.title === '新对话' || cur.title === derived) {
+                const next = { ...cur, title: t }
+                sessionRef.current = next
+                onPersist(next)
+              }
+            },
+            onMeta: (meta) => {
+              if (meta.citations?.length) citations = meta.citations
+              if (meta.usedTools) usedTools = true
+            },
           },
-          onUsage: (u) => {
-            usageRef.current = u
-          },
-          onTitle: (t) => {
-            const cur = sessionRef.current
-            const firstUser = cur.messages.find((m) => m.role === 'user')
-            const derived = firstUser
-              ? firstUser.content.split('\n\n[附件]')[0].trim().slice(0, 24)
-              : ''
-            // 只有「还没起名」或「名字来自首条消息」时才用服务端标题覆盖
-            if (!cur.title || cur.title === '新对话' || cur.title === derived) {
-              const next = { ...cur, title: t }
-              sessionRef.current = next
-              onPersist(next)
-            }
-          },
-          onMeta: (meta) => {
-            if (meta.citations?.length) citations = meta.citations
-            if (meta.usedTools) usedTools = true
-          },
-        },
-        ctrl.signal,
-      )
+          ctrl.signal,
+        )
 
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current)
-        rafRef.current = null
+        return {
+          acc: accRef.current,
+          reasons: reasonRef.current,
+          failed,
+          citations,
+          usedTools,
+          toolCalls,
+          startedAt: startAtRef.current,
+          firstTokenAt: firstTokenAtRef.current,
+          usage: usageRef.current,
+        }
       }
 
-      const acc = accRef.current
-      const reasons = reasonRef.current
-      const startedAt = startAtRef.current
-      const firstContentAt = firstContentAtRef.current
-      const reasoningMs = reasons
-        ? (firstContentAt || Date.now()) - (startedAt || Date.now())
-        : 0
-      accRef.current = ''
-      reasonRef.current = ''
-      setStreamText('')
-      setReasonText('')
-      setBusy(false)
-      setSearching(false)
-      abortRef.current = null
+      const finish = (
+        msgs: Message[],
+        res: Awaited<ReturnType<typeof once>>,
+      ) => {
+        const reasoningMs = res.reasons
+          ? (Date.now()) - (res.startedAt || Date.now())
+          : 0
+        const assistant: Message = res.failed
+          ? {
+              id: newId(),
+              role: 'assistant',
+              content: res.failed,
+              createdAt: Date.now(),
+              error: true,
+            }
+          : {
+              id: newId(),
+              role: 'assistant',
+              content: res.acc,
+              createdAt: Date.now(),
+              model: session.model,
+              reasoning: res.reasons || undefined,
+              reasoningMs: res.reasons ? reasoningMs : undefined,
+              citations: res.citations.length ? res.citations : undefined,
+              usedTools: res.usedTools || undefined,
+              usage: res.usage,
+              meta: {
+                startedAt: res.startedAt || undefined,
+                firstTokenAt: res.firstTokenAt || undefined,
+                endedAt: Date.now(),
+              },
+            }
+        const withReply = [...msgs, assistant]
+        setMessages(withReply)
+        setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
+        setAtBottom(true)
+        persist(withReply)
+      }
 
-      const assistant: Message = failed
-        ? {
+      try {
+        for (let round = 0; round < 4; round++) {
+          const res = await once(working)
+
+          if (rafRef.current !== null) {
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = null
+          }
+          setStreamText('')
+          setReasonText('')
+          setSearching(false)
+          abortRef.current = null
+
+          const calls = res.toolCalls
+          if (res.failed || !calls.length) {
+            finish(working, res)
+            return
+          }
+
+          // 模型要调工具：先落一条 assistant(tool_calls)，再逐条执行并回填
+          const assistantMsg: Message = {
             id: newId(),
             role: 'assistant',
-            content: failed,
+            content: res.acc,
             createdAt: Date.now(),
-            error: true,
+            toolCalls: calls,
           }
-        : {
-            id: newId(),
-            role: 'assistant',
-            content: acc,
-            createdAt: Date.now(),
-            model: session.model,
-            reasoning: reasons || undefined,
-            reasoningMs: reasons ? reasoningMs : undefined,
-            citations: citations.length ? citations : undefined,
-            usedTools: usedTools || undefined,
-            usage: usageRef.current,
-            meta: {
-              startedAt: startedAt || undefined,
-              firstTokenAt: firstTokenAtRef.current || undefined,
-              endedAt: Date.now(),
-            },
+          const toolMsgs: Message[] = []
+          for (const call of calls) {
+            const output = await executeTool(call.name, call.arguments, settings.baseUrl)
+            toolMsgs.push({
+              id: newId(),
+              role: 'tool',
+              content: output,
+              createdAt: Date.now(),
+              toolCallId: call.id,
+              toolName: call.name,
+            })
           }
-
-      const withReply = [...base, assistant]
-      setMessages(withReply)
-      setVisibleCount((c) => Math.min(Math.max(c + 1, 1), withReply.length))
-      setAtBottom(true)
-      persist(withReply)
+          working = [...working, assistantMsg, ...toolMsgs]
+          setMessages(working)
+          persist(working)
+        }
+      } finally {
+        setBusy(false)
+        setSearching(false)
+        setStreamText('')
+        setReasonText('')
+      }
     },
     [busy, settings, session.model, persist, scheduleFlush, onPersist],
   )
@@ -407,6 +465,59 @@ export default function ChatScreen({
     if (!base.length) return
     await run(base)
   }, [busy, messages, run])
+
+  /** 继续生成：把最后一条回复当开头，让模型接着写 */
+  const continueGeneration = useCallback(async () => {
+    if (busy) return
+    const msgs = [...messages]
+    const last = msgs[msgs.length - 1]
+    if (!last || last.role !== 'assistant') return
+
+    setBusy(true)
+    accRef.current = ''
+    reasonRef.current = ''
+    startAtRef.current = Date.now()
+    setStreamText('')
+    setReasonText('')
+
+    let extra = ''
+    await streamChat(
+      msgs,
+      { ...settings, model: session.model || settings.model },
+      {
+        onDelta: (chunk, kind) => {
+          if (kind === 'content') {
+            extra += chunk
+            accRef.current += chunk
+            scheduleFlush()
+          }
+        },
+        onDone: () => {},
+        onError: (msg) => {
+          extra += `\n\n（续写失败：${msg}）`
+        },
+      },
+      undefined,
+      { prefixMode: true, prefixText: last.content },
+    )
+
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    accRef.current = ''
+    setStreamText('')
+    setReasonText('')
+    setBusy(false)
+
+    if (extra) {
+      const updated = msgs.map((m, i) =>
+        i === msgs.length - 1 ? { ...m, content: m.content + extra } : m,
+      )
+      setMessages(updated)
+      persist(updated)
+    }
+  }, [busy, messages, settings, session.model, persist, scheduleFlush])
 
   /** 编辑某条用户消息：截断它和之后的内容，把原文放回输入框 */
   const editFrom = useCallback(
@@ -509,6 +620,7 @@ export default function ChatScreen({
               isLastAssistant={idx === shown.length - 1 && m.role === 'assistant'}
               onRegenerate={() => void regenerate()}
               onEdit={() => editFrom(start + idx)}
+              onContinue={() => void continueGeneration()}
             />
           ))}
 
@@ -578,6 +690,8 @@ export default function ChatScreen({
         onWebSearchChange={(v) => onSettingsChange({ webSearch: v })}
         safety={settings.safety}
         onSafetyChange={(v) => onSettingsChange({ safety: v })}
+        toolsEnabled={settings.toolsEnabled}
+        onToolsChange={(v) => onSettingsChange({ toolsEnabled: v })}
         attachments={attachments}
         onPickFiles={(f) => void pickFiles(f)}
         onRemoveAttachment={removeAttachment}
@@ -640,13 +754,26 @@ function MessageRow({
   isLastAssistant,
   onRegenerate,
   onEdit,
+  onContinue,
 }: {
   msg: Message
   reasoningMode: 'off' | 'web' | 'dsh'
   isLastAssistant?: boolean
   onRegenerate?: () => void
   onEdit?: () => void
+  onContinue?: () => void
 }) {
+  if (msg.role === 'tool') {
+    return (
+      <div className="msg tool">
+        <div className="tool-line">
+          <span className="tool-name">{msg.toolName || 'tool'}</span>
+          <span className="tool-out">{msg.content.replace(/\s+/g, ' ').slice(0, 160)}</span>
+        </div>
+      </div>
+    )
+  }
+
   if (msg.role === 'user') {
     return (
       <div className="msg user">
@@ -716,6 +843,11 @@ function MessageRow({
         <button className="msg-action" onClick={() => copyText(msg.content)}>
           复制
         </button>
+        {isLastAssistant && onContinue && (
+          <button className="msg-action" onClick={onContinue}>
+            继续
+          </button>
+        )}
         {isLastAssistant && onRegenerate && (
           <button className="msg-action" onClick={onRegenerate}>
             重新生成

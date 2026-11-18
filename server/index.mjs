@@ -251,6 +251,8 @@ async function handleChat(req, res) {
     stream: true,
     // 思考模式开关与强度（DeepSeek 新接口参数）
     ...(signal.thinking ? { thinking: signal.thinking } : {}),
+    // 前缀续写
+    ...(signal.prefix_mode ? { prefix_mode: true } : {}),
     // 模型内容安全
     ...(signal.safety_check ? { safety_check: signal.safety_check } : {}),
     // 让服务端生成会话标题
@@ -263,7 +265,9 @@ async function handleChat(req, res) {
           tools: signal.tools.filter(
             (t) =>
               t &&
-              (t.type === 'deepseek_web_search' || t.type === 'deepseek_read_url'),
+              (t.type === 'deepseek_web_search' ||
+                t.type === 'deepseek_read_url' ||
+                (t.type === 'function' && t.function?.name)),
           ),
         }
       : {}),
@@ -271,7 +275,8 @@ async function handleChat(req, res) {
   })
 
   try {
-    const up = await upstreamRequest('/chat/completions', {
+    const chatPath = signal.prefix_mode ? '/beta/chat/completions' : '/chat/completions'
+    const up = await upstreamRequest(chatPath, {
       method: 'POST',
       headers: {
         authorization: `Bearer ${key}`,
@@ -324,6 +329,72 @@ async function handleChat(req, res) {
   }
 }
 
+/** 通用 GET 透传（余额、模型列表、文件列表） */
+async function handleGet(req, res, pathname) {
+  const key = String(req.headers['x-deepseek-key'] || '').trim()
+  if (!key) {
+    return send(res, 401, JSON.stringify({ error: { message: '缺少 API Key' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+  try {
+    const up = await upstreamRequest(pathname, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${key}` },
+    })
+    let data = ''
+    up.on('data', (c) => (data += c))
+    up.on('end', () => {
+      res.writeHead(up.statusCode || 502, {
+        'content-type': 'application/json; charset=utf-8',
+      })
+      res.end(data)
+    })
+  } catch (e) {
+    send(res, 502, JSON.stringify({ error: { message: e.message } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+}
+
+/** 通用 JSON POST 透传（独立搜索、抓取、删除文件） */
+async function handlePost(req, res, pathname, method = 'POST') {
+  const key = String(req.headers['x-deepseek-key'] || '').trim()
+  if (!key) {
+    return send(res, 401, JSON.stringify({ error: { message: '缺少 API Key' } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+  let body
+  try {
+    body = await readBody(req, 2 * 1024 * 1024)
+  } catch {
+    return send(res, 413, 'payload too large')
+  }
+  try {
+    const up = await upstreamRequest(pathname, {
+      method,
+      headers: {
+        authorization: `Bearer ${key}`,
+        'content-type': 'application/json',
+      },
+      body: method === 'DELETE' ? undefined : body,
+    })
+    let data = ''
+    up.on('data', (c) => (data += c))
+    up.on('end', () => {
+      res.writeHead(up.statusCode || 502, {
+        'content-type': 'application/json; charset=utf-8',
+      })
+      res.end(data)
+    })
+  } catch (e) {
+    send(res, 502, JSON.stringify({ error: { message: e.message } }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost')
   if (url.pathname === '/api/health') {
@@ -339,6 +410,31 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)
+    return
+  }
+  if (url.pathname === '/api/balance') {
+    void handleGet(req, res, '/user/balance')
+    return
+  }
+  if (url.pathname === '/api/models') {
+    void handleGet(req, res, '/models')
+    return
+  }
+  if (url.pathname === '/api/files/list') {
+    void handleGet(req, res, '/files')
+    return
+  }
+  if (url.pathname === '/api/files/delete') {
+    const id = url.searchParams.get('id') || ''
+    void handlePost(req, res, `/files/${encodeURIComponent(id)}`, 'DELETE')
+    return
+  }
+  if (url.pathname === '/api/search') {
+    void handlePost(req, res, '/v1/tools/search')
+    return
+  }
+  if (url.pathname === '/api/fetch') {
+    void handlePost(req, res, '/v1/tools/fetch')
     return
   }
   if (url.pathname === '/api/files') {

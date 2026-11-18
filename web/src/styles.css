@@ -2372,3 +2372,57 @@ button:disabled {
   border: 1px solid var(--line);
   object-fit: cover;
 }
+
+
+/* 工具调用记录 */
+.msg.tool {
+  margin: 0 0 10px;
+}
+
+.tool-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  color: var(--fg-dim);
+  overflow: hidden;
+}
+
+.tool-name {
+  flex: 0 0 auto;
+  color: #7fa8dd;
+  font-weight: 600;
+}
+
+.tool-out {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.balance-value {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12.5px;
+}
+
+.file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

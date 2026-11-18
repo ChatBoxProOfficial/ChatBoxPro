@@ -1,0 +1,16 @@
+﻿import { chromium } from 'playwright'
+const b = await chromium.launch({ channel: 'msedge', headless: true })
+const c = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+const p = await c.newPage()
+await p.goto('http://127.0.0.1:8812/', { waitUntil: 'networkidle' })
+await p.waitForSelector('.composer', { timeout: 15000 })
+await p.locator('.model-chip').click()
+await p.waitForSelector('.team-row', { timeout: 5000 })
+await p.locator('.team-row').filter({ hasText: '本地工具' }).locator('.switch').click()
+await p.waitForTimeout(300)
+const stored = await p.evaluate(async () => {
+  const db = await new Promise((res) => { const r = indexedDB.open('chatbox-pro', 1); r.onsuccess = () => res(r.result) })
+  return await new Promise((res) => { const t = db.transaction('kv', 'readonly'); const g = t.objectStore('kv').get('settings'); g.onsuccess = () => res(g.result) })
+})
+console.log('持久化 settings.toolsEnabled =', stored?.toolsEnabled)
+await b.close()

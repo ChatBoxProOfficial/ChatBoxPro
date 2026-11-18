@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { modelFullName, modelShort, type Attachment, type Settings } from '../types'
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 import Switch from './Switch'
@@ -22,6 +22,8 @@ interface Props {
   onWebSearchChange: (v: boolean) => void
   safety: boolean
   onSafetyChange: (v: boolean) => void
+  toolsEnabled: boolean
+  onToolsChange: (v: boolean) => void
   attachments: Attachment[]
   onPickFiles: (files: FileList) => void
   onRemoveAttachment: (id: string) => void
@@ -51,6 +53,8 @@ export default function Composer({
   onWebSearchChange,
   safety,
   onSafetyChange,
+  toolsEnabled,
+  onToolsChange,
   attachments,
   onPickFiles,
   onRemoveAttachment,
@@ -60,6 +64,19 @@ export default function Composer({
   const [collapsed, setCollapsed] = useState(false)
   const [popOpen, setPopOpen] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
+
+  // Esc 关闭模型面板
+  useEffect(() => {
+    if (!popOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setPopOpen(false)
+        setAdjusting(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [popOpen])
 
   const canSend = !!value.trim() || attachments.length > 0
 
@@ -233,6 +250,16 @@ export default function Composer({
                     <span className="team-desc">开启官方风控，命中风险内容时拒答</span>
                   </span>
                   <Switch checked={safety} onChange={onSafetyChange} />
+                </div>
+
+                <div className="team-row">
+                  <span className="team-main">
+                    <span className="team-title">本地工具</span>
+                    <span className="team-desc">
+                      允许模型调用时间、计算、搜索、抓网页（本机执行）
+                    </span>
+                  </span>
+                  <Switch checked={toolsEnabled} onChange={onToolsChange} />
                 </div>
               </div>
             </>

@@ -31,6 +31,54 @@ const CONTENT = [
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const server = http.createServer(async (req, res) => {
+  if (req.method === 'GET') {
+    const u = req.url || ''
+    if (u.startsWith('/user/balance')) {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          is_available: true,
+          balance_infos: [
+            { currency: 'CNY', total_balance: '23.88', granted_balance: '3.00', topped_up_balance: '20.88' },
+          ],
+        }),
+      )
+      return
+    }
+    if (u.startsWith('/files')) {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          object: 'list',
+          data: [
+            { id: 'file-mock-1', object: 'file', bytes: 18357, filename: 'sample.pdf', purpose: 'rich_layout_recognition' },
+          ],
+        }),
+      )
+      return
+    }
+    if (u.startsWith('/models')) {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          object: 'list',
+          data: [
+            { id: 'deepseek-flash', object: 'model', context_window: 1000000, max_output_tokens: 393216 },
+          ],
+        }),
+      )
+      return
+    }
+    res.writeHead(404).end()
+    return
+  }
+
+  if (req.method === 'DELETE') {
+    res.writeHead(200, { 'content-type': 'application/json' })
+    res.end(JSON.stringify({ id: 'file-mock-1', deleted: true }))
+    return
+  }
+
   if (req.method !== 'POST') {
     res.writeHead(404).end()
     return
@@ -59,6 +107,56 @@ const server = http.createServer(async (req, res) => {
     writeFileSync(LOG, body)
   } catch {
     /* 忽略 */
+  }
+
+  // 有 tools 且上一轮是用户消息 → 先要求调用工具
+  let parsed = {}
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    parsed = {}
+  }
+  const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0
+  const lastRole = parsed.messages?.[parsed.messages.length - 1]?.role
+  if (hasTools && lastRole === 'user') {
+    res.writeHead(200, {
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+    })
+    res.write(
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            index: 0,
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: 'call_mock_1',
+                  type: 'function',
+                  function: { name: 'get_current_time', arguments: '' },
+                },
+              ],
+            },
+          },
+        ],
+      })}\n\n`,
+    )
+    res.write(
+      `data: ${JSON.stringify({
+        choices: [
+          {
+            index: 0,
+            delta: { tool_calls: [{ index: 0, function: { arguments: '{}' } }] },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      })}\n\n`,
+    )
+    res.write('data: [DONE]\n\n')
+    res.end()
+    return
   }
 
   res.writeHead(200, {

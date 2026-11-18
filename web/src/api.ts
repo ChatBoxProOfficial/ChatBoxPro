@@ -1,5 +1,6 @@
 import { loadApiKey } from './secureStore'
 import type { Attachment, Message, Settings } from './types'
+import { TOOL_DEFS } from './tools'
 
 /**
  * 上传附件到服务器 inbox（DSH 那边的「手机文件进工作区」就走这条）。
@@ -49,6 +50,8 @@ export interface StreamHandlers {
     citations?: Array<{ url: string; title?: string }>
     usedTools?: boolean
   }) => void
+  /** 模型请求调用的工具 */
+  onToolCalls?: (calls: Array<{ id: string; name: string; arguments: string }>) => void
   /** 服务端生成的会话标题 */
   onTitle?: (title: string) => void
   /** 服务端返回的 token 用量（最后一个 chunk 或独立 usage chunk） */
@@ -124,6 +127,27 @@ function toPayload(messages: Message[], settings: Settings) {
   // 上下文管理：只带最近 N 条（0 = 全部）
   const limit = settings.contextLimit > 0 ? settings.contextLimit : kept.length
   for (const m of kept.slice(-limit)) {
+    if (m.role === 'tool') {
+      out.push({
+        role: 'tool',
+        tool_call_id: m.toolCallId,
+        content: m.content,
+      } as never)
+      continue
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      out.push({
+        role: 'assistant',
+        content: m.content || '',
+        tool_calls: m.toolCalls.map((t) => ({
+          id: t.id,
+          type: 'function',
+          function: { name: t.name, arguments: t.arguments },
+        })),
+      } as never)
+      continue
+    }
+
     if (reminder && m.role === 'user') {
       out.push({ role: 'latest_reminder', content: reminder })
     }
@@ -163,11 +187,18 @@ function toPayload(messages: Message[], settings: Settings) {
  * 通过我们自己的服务器中转，向 DeepSeek 发起流式对话。
  * key 只在请求头里带一次，服务器转发后即丢弃，不落盘、不进日志。
  */
+export interface StreamOptions {
+  /** 续写模式：把最后一条 assistant 当开头 */
+  prefixMode?: boolean
+  prefixText?: string
+}
+
 export async function streamChat(
   messages: Message[],
   settings: Settings,
   handlers: StreamHandlers,
   signal?: AbortSignal,
+  options?: StreamOptions,
 ): Promise<void> {
   const key = await loadApiKey()
   if (!key) {
@@ -185,8 +216,14 @@ export async function streamChat(
         'x-deepseek-key': key,
       },
       body: JSON.stringify({
+        ...(options?.prefixMode ? { prefix_mode: true } : {}),
         model: settings.model,
-        messages: toPayload(messages, settings),
+        messages: options?.prefixMode
+          ? [
+              ...toPayload(messages.slice(0, -1), settings),
+              { role: 'assistant', content: options.prefixText ?? '', prefix: true },
+            ]
+          : toPayload(messages, settings),
         temperature: settings.temperature,
         stream: true,
         // 明确告诉服务端要不要思考：不传的话默认是开启的，
@@ -198,6 +235,8 @@ export async function streamChat(
           ? {}
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
         stream_options: { include_usage: true },
+        // 本地工具（模型可以要求我们执行）
+        ...(settings.toolsEnabled ? { tools: TOOL_DEFS } : {}),
         // 模型内容安全（官方风控）
         ...(settings.safety ? { safety_check: { level: 'high' } } : {}),
         // 让服务端顺手起个会话标题（仅 flash 支持）
@@ -228,6 +267,7 @@ export async function streamChat(
     return
   }
 
+  const toolAcc: Record<number, { id: string; name: string; arguments: string }> = {}
   const reader = resp.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
@@ -290,6 +330,18 @@ export async function streamChat(
             if (typeof delta.content === 'string' && delta.content) {
               handlers.onDelta(delta.content, 'content')
             }
+            if (Array.isArray(delta.tool_calls)) {
+              for (const tc of delta.tool_calls) {
+                const idx = typeof tc.index === 'number' ? tc.index : 0
+                if (!toolAcc[idx]) {
+                  toolAcc[idx] = { id: tc.id ?? '', name: '', arguments: '' }
+                }
+                if (tc.id) toolAcc[idx].id = tc.id
+                const fn = tc.function
+                if (fn?.name) toolAcc[idx].name += fn.name
+                if (fn?.arguments) toolAcc[idx].arguments += fn.arguments
+              }
+            }
             // 服务端生成的会话标题
             if (typeof delta?.title === 'string' && delta.title.trim()) {
               handlers.onTitle?.(delta.title.trim())
@@ -317,6 +369,8 @@ export async function streamChat(
         }
       }
     }
+    const calls = Object.values(toolAcc).filter((t) => t.name)
+    if (calls.length) handlers.onToolCalls?.(calls)
     handlers.onDone()
   } catch (e) {
     if ((e as Error).name === 'AbortError') {
@@ -325,4 +379,58 @@ export async function streamChat(
     }
     handlers.onError(`读取流失败：${(e as Error).message}`)
   }
+}
+
+/** 查询账户余额 */
+export async function fetchBalance(baseUrl: string): Promise<{
+  available: boolean
+  cny?: { total: string; granted: string; toppedUp: string }
+}> {
+  const key = await loadApiKey()
+  const resp = await fetch(`${baseUrl}/balance`, {
+    headers: { 'x-deepseek-key': key },
+  })
+  const j = await resp.json()
+  if (!resp.ok) throw new Error(j?.error?.message || `余额查询失败（${resp.status}）`)
+  const cny = (j.balance_infos || []).find((b: any) => b.currency === 'CNY')
+  return {
+    available: !!j.is_available,
+    cny: cny
+      ? {
+          total: cny.total_balance,
+          granted: cny.granted_balance,
+          toppedUp: cny.topped_up_balance,
+        }
+      : undefined,
+  }
+}
+
+/** 已上传的文件列表 */
+export async function listFiles(baseUrl: string) {
+  const key = await loadApiKey()
+  const resp = await fetch(`${baseUrl}/files/list`, {
+    headers: { 'x-deepseek-key': key },
+  })
+  const j = await resp.json()
+  if (!resp.ok) throw new Error(j?.error?.message || `获取文件列表失败（${resp.status}）`)
+  return (j.data || []).map((f: any) => ({
+    id: f.id as string,
+    filename: f.filename as string,
+    bytes: f.bytes as number,
+    purpose: f.purpose as string,
+  }))
+}
+
+/** 删除已上传的文件 */
+export async function deleteFile(baseUrl: string, id: string) {
+  const key = await loadApiKey()
+  const resp = await fetch(`${baseUrl}/files/delete?id=${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'x-deepseek-key': key },
+  })
+  if (!resp.ok) {
+    const j = await resp.json().catch(() => ({}))
+    throw new Error(j?.error?.message || `删除失败（${resp.status}）`)
+  }
+  return true
 }
