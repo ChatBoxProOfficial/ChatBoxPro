@@ -3537,3 +3537,17 @@ button:disabled {
 .key-warning-list li:last-child {
   margin-bottom: 0;
 }
+
+/* 抽屉顶部的品牌名 + 版本号 */
+.drawer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.drawer-version {
+  font-size: 10.5px;
+  color: var(--fg-dim);
+  letter-spacing: 0.3px;
+}

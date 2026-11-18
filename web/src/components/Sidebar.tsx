@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { db, type SessionSummary } from '../db'
 import type { Session } from '../types'
 import { useT } from '../i18n'
+import { APP_VERSION } from '../version'
 import { confirmDialog } from './Confirm'
 
 interface Props {
@@ -129,7 +130,10 @@ export default function Sidebar({
       <aside className={`drawer${open ? ' show' : ''}`} aria-hidden={!open}>
         <div className="drawer-head">
           <img className="drawer-logo" src="logo.png" alt="" />
-          <div className="drawer-name">ChatBox Pro</div>
+          <div className="drawer-brand">
+            <div className="drawer-name">ChatBox Pro</div>
+            <div className="drawer-version">{APP_VERSION}</div>
+          </div>
         </div>
 
         {currentSession && (

@@ -590,6 +590,11 @@ const PATTERNS: Array<{
       '作業ディレクトリ内でのコマンド実行を許可します。各実行は確認が必要です。危険なコマンド（format、del /f、shutdown など）は常に拒否します。',
   },
   {
+    re: /^Ver\.(.+) · 本机模式 · 会话数据不离开设备$/,
+    en: (m) => `Ver.${m[1]} · Local mode · data stays on this device`,
+    ja: (m) => `Ver.${m[1]} · ローカルモード · データは端末内に保持`,
+  },
+  {
     re: /^版本 (.+) · 本机模式 · 会话数据不离开设备$/,
     en: (m) => `Version ${m[1]} · Local mode · data stays on this device`,
     ja: (m) => `バージョン ${m[1]} · ローカルモード · データは端末内に保持`,

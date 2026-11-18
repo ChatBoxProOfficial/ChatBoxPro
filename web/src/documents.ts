@@ -145,7 +145,7 @@ export const DOCS: Doc[] = [
       },
       {
         heading: '五、版本',
-        paragraphs: ['当前版本 0.2.0。界面语言支持中文、English、日本語。'],
+        paragraphs: ['当前版本 Ver.01.00.2。界面语言支持中文、English、日本語。'],
       },
     ],
   },

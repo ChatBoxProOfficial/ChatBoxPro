@@ -9,6 +9,7 @@ import Switch from './Switch'
 import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
 import { DOCS, type Doc } from '../documents'
+import { APP_VERSION } from '../version'
 
 interface Props {
   settings: Settings
@@ -1189,7 +1190,7 @@ function AboutSection({ onTip }: { onTip: () => void }) {
       <section className="card">
         <h3>关于 ChatBox Pro</h3>
         <p className="muted small">
-          版本 0.2.0 · 本机模式 · 会话数据不离开设备
+          {APP_VERSION} · 本机模式 · 会话数据不离开设备
           <br />
           多端共用同一服务端，用户各自配置自己的 API Key。
         </p>

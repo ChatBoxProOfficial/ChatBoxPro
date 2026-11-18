@@ -1,7 +1,7 @@
 {
   "name": "chatbox-pro",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.2",
   "description": "ChatBox Pro 鈥?鎵嬫満/鐢佃剳璁块棶 DeepSeek 涓?DSH 鐨勫鎴风",
   "type": "module",
   "scripts": {
