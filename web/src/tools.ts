@@ -96,6 +96,21 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     type: 'function',
     function: {
+      name: 'run_command',
+      description:
+        '在工作目录里执行一条命令并返回输出（需要用户逐次确认）。适合跑测试、构建、查看 git 状态等。',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: '要执行的完整命令' },
+        },
+        required: ['command'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'web_search',
       description: '联网搜索，返回若干条结果的标题、链接和摘要。需要最新信息时使用。',
       parameters: {
@@ -240,6 +255,23 @@ export async function executeTool(
         } catch {
           return raw
         }
+      }
+      case 'run_command': {
+        const cmd = String(args.command ?? '')
+        if (!cmd) return '缺少命令'
+        const resp = await fetch('/api/exec', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ root: workspaceDir, command: cmd }),
+        })
+        const j = await resp.json()
+        if (!resp.ok) return `执行被拒绝：${j?.error ?? resp.status}`
+        const parts = []
+        parts.push(`退出码：${j.code}${j.timedOut ? '（超时被终止）' : ''}`)
+        if (j.stdout) parts.push(`stdout:\n${j.stdout.trim()}`)
+        if (j.stderr) parts.push(`stderr:\n${j.stderr.trim()}`)
+        if (!j.stdout && !j.stderr) parts.push('（没有输出）')
+        return parts.join('\n')
       }
       case 'web_search': {
         const resp = await fetch(`${baseUrl}/search`, {

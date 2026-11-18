@@ -842,6 +842,18 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
         开启后模型可以写工作目录里的文件，<b>每次写入都会弹窗让你确认 diff</b>。
       </p>
 
+      <div className="switch-row" style={{ marginTop: 10 }}>
+        <span>允许执行命令</span>
+        <Switch
+          checked={settings.allowExec}
+          onChange={(v) => patch({ allowExec: v })}
+        />
+      </div>
+      <p className="warn small">
+        开启后模型可以在工作目录里执行命令，<b>每次都会弹窗显示完整命令让你确认</b>。
+        危险命令（format、del /f、shutdown 等）会被直接拒绝。
+      </p>
+
       <h3 style={{ marginTop: 16 }}>已上传到官方的文件</h3>
       <p className="muted small">解析过的 PDF/Office 会留在官方账户里，可以在这里清理。</p>
       <FileList />

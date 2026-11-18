@@ -3,6 +3,7 @@ import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile } from '../tools'
 import WriteApproval from './WriteApproval'
+import CommandApproval from './CommandApproval'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -51,6 +52,8 @@ export default function ChatScreen({
     after: string
   } | null>(null)
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null)
+  const [cmdApproval, setCmdApproval] = useState<string | null>(null)
+  const cmdResolve = useRef<((ok: boolean) => void) | null>(null)
   const [streamMd, setStreamMd] = useState('')
 
   const accRef = useRef('')
@@ -429,7 +432,35 @@ export default function ChatScreen({
           for (const call of calls) {
             let output: string
 
-            if (call.name === 'write_file') {
+            if (call.name === 'run_command') {
+              let args: { command?: string } = {}
+              try {
+                args = JSON.parse(call.arguments || '{}')
+              } catch {
+                args = {}
+              }
+              const cmd = String(args.command ?? '')
+              if (!settings.allowExec) {
+                output = '执行命令权限未开启（设置 → 保存路径 → 允许执行命令）'
+              } else if (!cmd) {
+                output = '缺少命令'
+              } else {
+                const ok = await new Promise<boolean>((resolve) => {
+                  cmdResolve.current = resolve
+                  setCmdApproval(cmd)
+                })
+                setCmdApproval(null)
+                cmdResolve.current = null
+                output = ok
+                  ? await executeTool(
+                      call.name,
+                      call.arguments,
+                      settings.baseUrl,
+                      settings.workspaceDir,
+                    )
+                  : '用户拒绝了这次命令执行'
+              }
+            } else if (call.name === 'write_file') {
               let args: { path?: string; content?: string } = {}
               try {
                 args = JSON.parse(call.arguments || '{}')
@@ -745,6 +776,15 @@ export default function ChatScreen({
           after={approval.after}
           onAllow={() => approvalResolve.current?.(true)}
           onDeny={() => approvalResolve.current?.(false)}
+        />
+      )}
+
+      {cmdApproval !== null && (
+        <CommandApproval
+          command={cmdApproval}
+          cwd={settings.workspaceDir}
+          onAllow={() => cmdResolve.current?.(true)}
+          onDeny={() => cmdResolve.current?.(false)}
         />
       )}
 

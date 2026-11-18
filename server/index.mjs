@@ -518,6 +518,135 @@ async function handleFs(req, res) {
   }
 }
 
+/** 危险命令黑名单 */
+const BLOCKED = [
+  /\bformat(\s|$)/i,
+  /\b(shutdown|restart-computer|stop-computer)\b/i,
+  /\bdel\s+\/f\b/i,
+  /\brmdir\s+\/s\b/i,
+  /\brd\s+\/s\b/i,
+  /\breg\s+delete\b/i,
+  /\brm\s+-rf\s+\//i,
+  /\bmkfs\b/i,
+  /\bdiskpart\b/i,
+  /\bbcdedit\b/i,
+  /Remove-Item[^\n]*-Recurse[^\n]*\b[A-Z]:\\?\s*$/i,
+]
+
+/** 执行命令（只允许在工作目录内，带超时与黑名单） */
+async function handleExec(req, res) {
+  let body
+  try {
+    body = JSON.parse(await readBody(req, 256 * 1024))
+  } catch {
+    return send(res, 400, 'bad body')
+  }
+  const { root, command, timeoutMs = 60000 } = body || {}
+  if (!root || !command) {
+    return send(res, 400, JSON.stringify({ error: '缺少工作目录或命令' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+  if (typeof command !== 'string' || command.length > 4000) {
+    return send(res, 400, JSON.stringify({ error: '命令为空或过长' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+  const hit = BLOCKED.find((re) => re.test(command))
+  if (hit) {
+    return send(res, 403, JSON.stringify({ error: '这条命令在禁止列表里，已拒绝执行' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const path = await import('node:path')
+  const fsMod = await import('node:fs/promises')
+  const rootAbs = path.resolve(root)
+  try {
+    const st = await fsMod.stat(rootAbs)
+    if (!st.isDirectory()) throw new Error('not dir')
+  } catch {
+    return send(res, 400, JSON.stringify({ error: '工作目录不存在' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const { spawn } = await import('node:child_process')
+  const win = process.platform === 'win32'
+  const shells = win
+    ? [
+        'pwsh',
+        'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
+        'powershell.exe',
+      ]
+    : ['bash']
+  const buildArgs = (cmd) =>
+    win ? ['-NoProfile', '-NonInteractive', '-Command', cmd] : ['-lc', cmd]
+
+  // Windows 下统一把输出转成 UTF-8，避免中文乱码
+  const wrapped = win
+    ? `[Console]::OutputEncoding=[Text.Encoding]::UTF8; ${command}`
+    : command
+
+  let out = ''
+  let err = ''
+  let timedOut = false
+
+  const trySpawn = (idx) =>
+    new Promise((resolve) => {
+      if (idx >= shells.length) {
+        resolve(null)
+        return
+      }
+      const child = spawn(shells[idx], buildArgs(wrapped), {
+        cwd: rootAbs,
+        windowsHide: true,
+        env: { ...process.env, NO_COLOR: '1' },
+      })
+      child.once('error', () => resolve(trySpawn(idx + 1)))
+      child.once('spawn', () => resolve(child))
+    })
+
+  const child = await trySpawn(0)
+  if (!child) {
+    return send(res, 500, JSON.stringify({ error: '找不到可用的 shell' }), {
+      'content-type': 'application/json; charset=utf-8',
+    })
+  }
+
+  const cap = (buf, target) => {
+    if (target.length > 64 * 1024) return target
+    return (target + buf.toString('utf8')).slice(0, 64 * 1024)
+  }
+  child.stdout.on('data', (b) => (out = cap(b, out)))
+  child.stderr.on('data', (b) => (err = cap(b, err)))
+
+  const timer = setTimeout(() => {
+    timedOut = true
+    try {
+      child.kill('SIGKILL')
+    } catch {
+      /* ignore */
+    }
+  }, Math.min(Number(timeoutMs) || 60000, 300000))
+
+  child.on('close', (code) => {
+    clearTimeout(timer)
+    send(
+      res,
+      200,
+      JSON.stringify({
+        code,
+        stdout: out,
+        stderr: err,
+        timedOut,
+        cwd: rootAbs,
+      }),
+      { 'content-type': 'application/json; charset=utf-8' },
+    )
+  })
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost')
   if (url.pathname === '/api/health') {
@@ -533,6 +662,11 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat') {
     if (req.method !== 'POST') return send(res, 405, 'method not allowed')
     void handleChat(req, res)
+    return
+  }
+  if (url.pathname === '/api/exec') {
+    if (req.method !== 'POST') return send(res, 405, 'method not allowed')
+    void handleExec(req, res)
     return
   }
   if (url.pathname === '/api/fs') {

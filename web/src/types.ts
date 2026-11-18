@@ -125,6 +125,8 @@ export interface Settings {
   workspaceDir: string
   /** 允许模型写文件（每次写入都要人工确认） */
   allowWrite: boolean
+  /** 允许模型执行命令（每次执行都要人工确认） */
+  allowExec: boolean
   /** 上下文超过阈值时自动压缩 */
   autoCompact: boolean
   /** 自动压缩阈值（百分比） */
@@ -152,6 +154,7 @@ export const DEFAULT_SETTINGS: Settings = {
   toolsEnabled: false,
   workspaceDir: '',
   allowWrite: false,
+  allowExec: false,
   autoCompact: false,
   compactThreshold: 60,
 }
