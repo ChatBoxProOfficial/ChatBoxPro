@@ -150,6 +150,7 @@ const server = http.createServer(async (req, res) => {
   const wantFiles = toolNames.includes('list_dir') && /文件|目录|文件夹/.test(lastUserText)
   const wantWrite = toolNames.includes('write_file') && /写|创建|新建|改/.test(lastUserText)
   const wantRun = toolNames.includes('run_command') && /运行|跑|执行|命令/.test(lastUserText)
+  const wantSub = toolNames.includes('spawn_subagent') && /子智能体|派|调研|查一下/.test(lastUserText)
   const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0
   const lastRole = parsed.messages?.[parsed.messages.length - 1]?.role
   if (hasTools && lastRole === 'user') {
@@ -170,8 +171,10 @@ const server = http.createServer(async (req, res) => {
                   id: 'call_mock_1',
                   type: 'function',
                   function: {
-                    name: wantRun
-                      ? 'run_command'
+                    name: wantSub
+                      ? 'spawn_subagent'
+                      : wantRun
+                        ? 'run_command'
                       : wantWrite
                         ? 'write_file'
                         : wantFiles
@@ -194,8 +197,10 @@ const server = http.createServer(async (req, res) => {
             delta: {
                 tool_calls: [
                   { index: 0, function: {
-                      arguments: wantRun
-                        ? JSON.stringify({ command: 'echo hello-from-agent' })
+                      arguments: wantSub
+                        ? JSON.stringify({ task: '查一下瑞利散射的基本原理' })
+                        : wantRun
+                          ? JSON.stringify({ command: 'echo hello-from-agent' })
                         : wantWrite
                           ? JSON.stringify({ path: 'note.md', content: '第一行\n第二行\n' })
                           : wantFiles

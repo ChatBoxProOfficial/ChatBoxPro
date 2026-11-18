@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
-import { executeTool, readWorkspaceFile } from '../tools'
+import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
 import WriteApproval from './WriteApproval'
 import CommandApproval from './CommandApproval'
+import SubAgentPanel, { type SubRun } from './SubAgentPanel'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -24,6 +25,73 @@ interface Props {
 }
 
 const INITIAL_WINDOW = 30
+const SUB_MAX_STEPS = 6
+
+/** 子智能体：独立上下文的只读小循环 */
+async function runSubagent(
+  task: string,
+  buf: { reasoning: string; content: string; steps: SubRun['steps'] },
+  settings: Settings,
+): Promise<string> {
+  let msgs: Message[] = [
+    { id: `sub-${Date.now()}`, role: 'user', content: task, createdAt: Date.now() },
+  ]
+
+  for (let step = 0; step < SUB_MAX_STEPS; step++) {
+    let calls: Array<{ id: string; name: string; arguments: string }> = []
+    let failed = ''
+
+    await streamChat(
+      msgs,
+      { ...settings, toolsEnabled: true, teamMode: false, webSearch: false },
+      {
+        onDelta: (chunk, kind) => {
+          if (kind === 'content') buf.content += chunk
+          else buf.reasoning += chunk
+        },
+        onDone: () => {},
+        onError: (m) => {
+          failed = m
+        },
+        onToolCalls: (c) => {
+          calls = c
+        },
+      },
+    )
+
+    if (failed) throw new Error(failed)
+    if (!calls.length) return buf.content.trim() || '（子智能体没有输出）'
+
+    const assistantMsg: Message = {
+      id: `sub-a-${step}`,
+      role: 'assistant',
+      content: buf.content,
+      createdAt: Date.now(),
+      toolCalls: calls,
+    }
+    const toolMsgs: Message[] = []
+
+    for (const c of calls) {
+      const out = SUBAGENT_TOOLS.has(c.name)
+        ? await executeTool(c.name, c.arguments, settings.baseUrl, settings.workspaceDir)
+        : `子智能体不允许使用工具：${c.name}`
+      buf.steps.push({ name: c.name, args: c.arguments.slice(0, 120), result: out.slice(0, 200) })
+      toolMsgs.push({
+        id: `sub-t-${step}-${c.id}`,
+        role: 'tool',
+        content: out,
+        createdAt: Date.now(),
+        toolCallId: c.id,
+        toolName: c.name,
+      })
+    }
+
+    buf.content = ''
+    msgs = [...msgs, assistantMsg, ...toolMsgs]
+  }
+
+  return buf.content.trim() || '（子智能体达到步数上限 6）'
+}
 
 export default function ChatScreen({
   session,
@@ -53,6 +121,8 @@ export default function ChatScreen({
   } | null>(null)
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null)
   const [cmdApproval, setCmdApproval] = useState<string | null>(null)
+  const [subRuns, setSubRuns] = useState<SubRun[]>([])
+  const [subOpen, setSubOpen] = useState(false)
   const cmdResolve = useRef<((ok: boolean) => void) | null>(null)
   const [streamMd, setStreamMd] = useState('')
 
@@ -432,7 +502,89 @@ export default function ChatScreen({
           for (const call of calls) {
             let output: string
 
-            if (call.name === 'run_command') {
+            if (call.name === 'spawn_subagent') {
+              let args: { task?: string } = {}
+              try {
+                args = JSON.parse(call.arguments || '{}')
+              } catch {
+                args = {}
+              }
+              const task = String(args.task ?? '').trim()
+
+              if (!settings.teamMode) {
+                output = '子智能体未开启（模型面板 → 子智能体团队协作）'
+              } else if (!task) {
+                output = '缺少子任务描述'
+              } else {
+                const subId = `sub-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`
+                const buf = {
+                  reasoning: '',
+                  content: '',
+                  steps: [] as SubRun['steps'],
+                  usage: undefined as Message['usage'],
+                }
+
+                setSubRuns((prev) => [
+                  ...prev,
+                  {
+                    id: subId,
+                    task,
+                    status: 'running',
+                    reasoning: '',
+                    content: '',
+                    steps: [],
+                    startedAt: Date.now(),
+                  },
+                ])
+                setSubOpen(false)
+
+                const flush = setInterval(() => {
+                  setSubRuns((prev) =>
+                    prev.map((r) =>
+                      r.id === subId
+                        ? {
+                            ...r,
+                            reasoning: buf.reasoning,
+                            content: buf.content,
+                            steps: [...buf.steps],
+                          }
+                        : r,
+                    ),
+                  )
+                }, 150)
+
+                try {
+                  output = await runSubagent(task, buf, settings)
+                  setSubRuns((prev) =>
+                    prev.map((r) =>
+                      r.id === subId
+                        ? {
+                            ...r,
+                            status: 'done',
+                            reasoning: buf.reasoning,
+                            content: buf.content,
+                            steps: [...buf.steps],
+                            endedAt: Date.now(),
+                          }
+                        : r,
+                    ),
+                  )
+                } catch (e) {
+                  output = `子智能体执行失败：${(e as Error).message}`
+                  setSubRuns((prev) =>
+                    prev.map((r) =>
+                      r.id === subId
+                        ? { ...r, status: 'error', endedAt: Date.now() }
+                        : r,
+                    ),
+                  )
+                } finally {
+                  clearInterval(flush)
+                }
+                output = `[子智能体结果]
+${output}`
+              }
+            } else if (call.name === 'run_command') {
               let args: { command?: string } = {}
               try {
                 args = JSON.parse(call.arguments || '{}')
@@ -697,6 +849,27 @@ export default function ChatScreen({
         </div>
       ) : (
         <div className="msg-list" ref={listRef} onScroll={onScroll}>
+          {subRuns.length > 0 && (
+            <div
+              className={`sub-banner${
+                subRuns.some((r) => r.status === 'running') ? ' running' : ''
+              }`}
+              onClick={() => setSubOpen(true)}
+              role="button"
+              title="查看子智能体"
+            >
+              <span className="sub-banner-dot" />
+              <span className="sub-banner-title">子智能体</span>
+              <span className="sub-banner-desc">
+                {subRuns.some((r) => r.status === 'running')
+                  ? '子智能体进行中'
+                  : '子智能体已完成'}
+                {' · '}
+                {subRuns.length} 个
+              </span>
+              <span className="sub-banner-arrow">›</span>
+            </div>
+          )}
           {start > 0 && (
             <button
               className="load-more"
@@ -778,6 +951,8 @@ export default function ChatScreen({
           onDeny={() => approvalResolve.current?.(false)}
         />
       )}
+
+      {subOpen && <SubAgentPanel runs={subRuns} onClose={() => setSubOpen(false)} />}
 
       {cmdApproval !== null && (
         <CommandApproval

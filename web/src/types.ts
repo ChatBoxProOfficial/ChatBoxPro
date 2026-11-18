@@ -109,7 +109,7 @@ export interface Settings {
   reasoningDisplay: 'off' | 'web' | 'dsh'
   /** 思考强度：off 关闭思考 / low / high / max */
   reasoningEffort: 'off' | 'low' | 'high' | 'max'
-  /** 允许启动子智能体团队协作（需连接 DSH 后生效） */
+  /** 允许主模型派生只读子智能体 */
   teamMode: boolean
   /** 联网搜索（DeepSeek 服务端工具） */
   webSearch: boolean

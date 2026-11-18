@@ -231,7 +231,7 @@ export default function Composer({
                 <div className="team-row">
                   <span className="team-main">
                     <span className="team-title">子智能体团队协作</span>
-                    <span className="team-desc">允许拆分子任务并行处理（需连接 DeepSeek Harness）</span>
+                    <span className="team-desc">允许主模型派生只读子智能体处理子任务</span>
                   </span>
                   <Switch checked={teamMode} onChange={onTeamModeChange} />
                 </div>

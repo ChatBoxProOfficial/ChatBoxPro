@@ -11,6 +11,36 @@ export interface ToolDef {
   }
 }
 
+/** 子智能体允许使用的工具（只读，避免并发写冲突） */
+export const SUBAGENT_TOOLS = new Set([
+  'list_dir',
+  'read_file',
+  'search_in_files',
+  'web_search',
+  'fetch_url',
+  'get_current_time',
+  'calculate',
+])
+
+export const SP_SUBAGENT_DEF: ToolDef = {
+  type: 'function',
+  function: {
+    name: 'spawn_subagent',
+    description:
+      '把一个相对独立的子任务交给子智能体执行。子智能体有自己的上下文和只读工具（读文件、搜索、抓网页），会跑多步后返回结论。适合"分别去查几件事"这类可以拆开的工作。',
+    parameters: {
+      type: 'object',
+      properties: {
+        task: {
+          type: 'string',
+          description: '要交给子智能体的完整任务描述（它看不到当前对话，必须写清楚背景）',
+        },
+      },
+      required: ['task'],
+    },
+  },
+}
+
 export const TOOL_DEFS: ToolDef[] = [
   {
     type: 'function',

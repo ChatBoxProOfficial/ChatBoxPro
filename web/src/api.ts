@@ -1,6 +1,6 @@
 import { loadApiKey } from './secureStore'
 import type { Attachment, Message, Settings } from './types'
-import { TOOL_DEFS } from './tools'
+import { SP_SUBAGENT_DEF, TOOL_DEFS } from './tools'
 
 /**
  * 上传附件到服务器 inbox（DSH 那边的「手机文件进工作区」就走这条）。
@@ -293,7 +293,11 @@ export async function streamChat(
           : { reasoning_effort: settings.reasoningEffort || 'high' }),
         stream_options: { include_usage: true },
         // 本地工具（模型可以要求我们执行）
-        ...(settings.toolsEnabled ? { tools: TOOL_DEFS } : {}),
+        ...(settings.toolsEnabled
+          ? {
+              tools: settings.teamMode ? [...TOOL_DEFS, SP_SUBAGENT_DEF] : TOOL_DEFS,
+            }
+          : {}),
         // 模型内容安全（官方风控）
         ...(settings.safety ? { safety_check: { level: 'high' } } : {}),
         // 让服务端顺手起个会话标题（仅 flash 支持）
