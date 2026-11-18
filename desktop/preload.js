@@ -1,7 +1,20 @@
-// 桌面端桥接：只暴露「打开文件夹」和「取路径」两个最小能力
+// 桌面端桥接：只暴露必要的能力（打开文件夹、取路径、检查/下载/应用更新）
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('chatbox', {
   openFolder: (p) => ipcRenderer.invoke('chatbox:open-folder', p),
   paths: () => ipcRenderer.invoke('chatbox:paths'),
+
+  /** 读取远端版本信息 */
+  checkUpdate: (url) => ipcRenderer.invoke('chatbox:check-update', url),
+  /** 下载更新包 */
+  downloadUpdate: (url) => ipcRenderer.invoke('chatbox:download-update', url),
+  /** 应用更新（退出并覆盖安装） */
+  applyUpdate: (file) => ipcRenderer.invoke('chatbox:apply-update', file),
+  /** 下载进度 */
+  onUpdateProgress: (cb) => {
+    const handler = (_e, p) => cb(p)
+    ipcRenderer.on('chatbox:update-progress', handler)
+    return () => ipcRenderer.removeListener('chatbox:update-progress', handler)
+  },
 })

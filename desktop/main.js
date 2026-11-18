@@ -8,7 +8,7 @@
  *
  * 换句话说：双击 exe 就能用，不需要先手动起服务，也不需要浏览器。
  */
-const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, net } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 const http = require('node:http')
@@ -83,6 +83,88 @@ function registerIpc() {
     inbox: path.join(app.getPath('userData'), 'inbox'),
     userData: app.getPath('userData'),
   }))
+
+  // 读取远端版本信息（在主进程里发请求，避免渲染进程的跨域限制）
+  ipcMain.handle('chatbox:check-update', async (_e, url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      return { ok: false, error: '更新地址无效（必须是 http/https）' }
+    }
+    try {
+      const headers = { 'cache-control': 'no-cache' }
+      const resp = await net.fetch(url, { headers })
+      if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` }
+      const json = await resp.json()
+      return { ok: true, manifest: json }
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) }
+    }
+  })
+
+  // 下载更新包
+  ipcMain.handle('chatbox:download-update', async (event, url) => {
+    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+      return { ok: false, error: '下载地址无效' }
+    }
+    try {
+      const dir = path.join(app.getPath('userData'), 'updates')
+      fs.mkdirSync(dir, { recursive: true })
+      const file = path.join(dir, 'update.zip')
+      const resp = await net.fetch(url)
+      if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` }
+
+      const total = Number(resp.headers.get('content-length') || 0)
+      const chunks = []
+      let received = 0
+      const reader = resp.body.getReader()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(Buffer.from(value))
+        received += value.length
+        if (total > 0) {
+          event.sender.send('chatbox:update-progress', {
+            received,
+            total,
+            percent: Math.round((received / total) * 100),
+          })
+        }
+      }
+      fs.writeFileSync(file, Buffer.concat(chunks))
+      return { ok: true, file, size: received }
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) }
+    }
+  })
+
+  // 应用更新：写一个等待退出的脚本，退出后解压覆盖并重启
+  ipcMain.handle('chatbox:apply-update', async (_e, file) => {
+    if (typeof file !== 'string' || !fs.existsSync(file)) {
+      return { ok: false, error: '更新包不存在' }
+    }
+    const installDir = path.dirname(app.getPath('exe'))
+    const exePath = app.getPath('exe')
+    const scriptPath = path.join(path.dirname(file), 'apply-update.ps1')
+    const script = [
+      '$ErrorActionPreference = "Stop"',
+      `$targetPid = ${process.pid}`,
+      'while (Get-Process -Id $targetPid -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }',
+      'Start-Sleep -Milliseconds 600',
+      `Expand-Archive -LiteralPath "${file}" -DestinationPath "${installDir}" -Force`,
+      `Start-Process "${exePath}"`,
+    ].join('\r\n')
+    try {
+      fs.writeFileSync(scriptPath, script, 'utf8')
+      const { spawn } = require('node:child_process')
+      spawn(
+        'powershell.exe',
+        ['-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
+        { detached: true, stdio: 'ignore', windowsHide: true },
+      ).unref()
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) }
+    }
+  })
 }
 
 function loadBounds() {

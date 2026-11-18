@@ -125,6 +125,8 @@ export interface Settings {
   lang: 'zh' | 'en' | 'ja'
   /** 字号缩放（0.85 ~ 1.3） */
   fontScale: number
+  /** 更新信息地址（version.json） */
+  updateUrl: string
   /** 模型内容安全（官方 safety_check） */
   safety: boolean
   /** 每轮附带用户元信息（日期/平台/语言） */
@@ -164,6 +166,7 @@ export const DEFAULT_SETTINGS: Settings = {
   backgroundBlur: 0,
   lang: 'zh',
   fontScale: 1,
+  updateUrl: '',
   safety: false,
   reminder: true,
   toolsEnabled: false,

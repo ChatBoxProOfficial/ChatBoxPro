@@ -10,6 +10,7 @@ import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
 import { DOCS, type Doc } from '../documents'
 import { APP_VERSION } from '../version'
+import UpdatePanel from './UpdatePanel'
 
 interface Props {
   settings: Settings
@@ -25,6 +26,10 @@ declare global {
   interface Window {
     chatbox?: {
       openFolder?: (p: string) => Promise<string>
+      checkUpdate?: (url: string) => Promise<{ ok: boolean; error?: string; manifest?: unknown }>
+      downloadUpdate?: (url: string) => Promise<{ ok: boolean; error?: string; file?: string }>
+      applyUpdate?: (file: string) => Promise<{ ok: boolean; error?: string }>
+      onUpdateProgress?: (cb: (p: { percent: number }) => void) => () => void
       paths?: () => Promise<{ inbox: string; userData: string }>
     }
   }
@@ -168,7 +173,13 @@ export default function SettingsScreen({
             )}
             {section === 'dsh' && <DshSection settings={settings} patch={patch} />}
             {section === 'paths' && <PathsSection flash={flash} settings={settings} patch={patch} />}
-            {section === 'about' && <AboutSection onTip={() => setTipOpen(true)} />}
+            {section === 'about' && (
+              <AboutSection
+                onTip={() => setTipOpen(true)}
+                settings={settings}
+                patch={patch}
+              />
+            )}
             {section === 'general' && (
               <GeneralSection settings={settings} patch={patch} />
             )}
@@ -1182,7 +1193,15 @@ function GeneralSection({ settings, patch }: { settings: Settings; patch: Patch 
   )
 }
 
-function AboutSection({ onTip }: { onTip: () => void }) {
+function AboutSection({
+  onTip,
+  settings,
+  patch,
+}: {
+  onTip: () => void
+  settings: Settings
+  patch: Patch
+}) {
   const [doc, setDoc] = useState<Doc | null>(null)
 
   return (
@@ -1201,6 +1220,11 @@ function AboutSection({ onTip }: { onTip: () => void }) {
           自愿支持，不影响任何功能。
         </p>
       </section>
+
+      <UpdatePanel
+        updateUrl={settings.updateUrl}
+        onUpdateUrlChange={(v) => patch({ updateUrl: v })}
+      />
 
       <section className="card">
         <h3>文档</h3>
