@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
+import { pickWelcome } from '../welcome'
 import WriteApproval from './WriteApproval'
 import CommandApproval from './CommandApproval'
 import SubAgentPanel, { type SubRun } from './SubAgentPanel'
@@ -122,6 +123,7 @@ export default function ChatScreen({
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null)
   const [cmdApproval, setCmdApproval] = useState<string | null>(null)
   const [subRuns, setSubRuns] = useState<SubRun[]>([])
+  const [welcome] = useState(() => pickWelcome())
   const [subOpen, setSubOpen] = useState(false)
   const cmdResolve = useRef<((ok: boolean) => void) | null>(null)
   const [streamMd, setStreamMd] = useState('')
@@ -862,7 +864,7 @@ ${output}`
 
       {isEmpty ? (
         <div className="welcome">
-          <h1 className="welcome-title">您好，ChatBox Pro 欢迎您</h1>
+          <h1 className="welcome-title">{welcome}</h1>
           <p className="welcome-sub">有什么可以帮你的？</p>
         </div>
       ) : (

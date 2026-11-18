@@ -172,9 +172,10 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement
     root.dataset.bg = settings.backgroundImage ? 'on' : 'off'
-    const alpha = Math.min(100, Math.max(0, settings.backgroundOpacity)) / 100
-    root.style.setProperty('--panel-alpha', String(alpha))
-  }, [settings.backgroundImage, settings.backgroundOpacity])
+    const strength = Math.min(100, Math.max(0, settings.backgroundOpacity)) / 100
+    root.style.setProperty('--bg-strength', String(strength))
+    root.style.setProperty('--bg-blur', `${Math.max(0, settings.backgroundBlur)}px`)
+  }, [settings.backgroundImage, settings.backgroundOpacity, settings.backgroundBlur])
 
   // 应用主题（浅色 / 深色 / 跟随系统）
   useEffect(() => {

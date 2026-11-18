@@ -399,17 +399,33 @@ function PersonalizeSection({
       </div>
 
       <label className="field" style={{ marginTop: 14 }}>
-        <span>面板不透明度 {settings.backgroundOpacity}%</span>
+        <span>背景强度 {settings.backgroundOpacity}%</span>
         <input
           type="range"
-          min={30}
+          min={0}
           max={100}
           step={1}
           value={settings.backgroundOpacity}
+          disabled={!settings.backgroundImage}
           onChange={(e) => patch({ backgroundOpacity: Number(e.target.value) })}
         />
       </label>
-      <p className="muted small">数值越低，背景图越明显；越高，界面越不透明。</p>
+
+      <label className="field">
+        <span>背景模糊 {settings.backgroundBlur}px</span>
+        <input
+          type="range"
+          min={0}
+          max={24}
+          step={1}
+          value={settings.backgroundBlur}
+          disabled={!settings.backgroundImage}
+          onChange={(e) => patch({ backgroundBlur: Number(e.target.value) })}
+        />
+      </label>
+      <p className="muted small">
+        背景只影响聊天区域的观感，界面面板始终保持磨砂质感，不会发白或糊成一片。
+      </p>
 
       <div className="field" style={{ marginTop: 14 }}>
         <span>主题</span>

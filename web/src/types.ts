@@ -117,8 +117,10 @@ export interface Settings {
   theme: 'light' | 'dark' | 'system'
   /** 自定义背景图（压缩后的 data URL，空 = 不使用） */
   backgroundImage: string
-  /** 面板不透明度（0-100，越大越不透明，背景图越不明显） */
+  /** 背景图强度（0-100，越大背景越明显） */
   backgroundOpacity: number
+  /** 背景模糊（px） */
+  backgroundBlur: number
   /** 模型内容安全（官方 safety_check） */
   safety: boolean
   /** 每轮附带用户元信息（日期/平台/语言） */
@@ -154,7 +156,8 @@ export const DEFAULT_SETTINGS: Settings = {
   webSearch: false,
   theme: 'system',
   backgroundImage: '',
-  backgroundOpacity: 88,
+  backgroundOpacity: 100,
+  backgroundBlur: 0,
   safety: false,
   reminder: true,
   toolsEnabled: false,

@@ -3131,25 +3131,7 @@ button:disabled {
   pointer-events: none;
 }
 
-:root[data-bg='on'] .app-shell,
-:root[data-bg='on'] .topbar,
-:root[data-bg='on'] .composer-bar,
-:root[data-bg='on'] .msg-list,
-:root[data-bg='on'] .chat-screen {
-  background: rgba(15, 17, 19, var(--panel-alpha, 0.88));
-}
 
-:root[data-bg='on'] .composer-bar {
-  backdrop-filter: blur(10px);
-}
-
-:root[data-bg='on'][data-theme='light'] .app-shell,
-:root[data-bg='on'][data-theme='light'] .topbar,
-:root[data-bg='on'][data-theme='light'] .composer-bar,
-:root[data-bg='on'][data-theme='light'] .msg-list,
-:root[data-bg='on'][data-theme='light'] .chat-screen {
-  background: rgba(245, 246, 248, var(--panel-alpha, 0.88));
-}
 
 .hidden-file {
   display: none;
@@ -3178,4 +3160,66 @@ button:disabled {
 .app-shell {
   position: relative;
   isolation: isolate;
+}
+
+/* ---------------- 自定义背景（重做版） ---------------- */
+.app-bg {
+  position: fixed;
+  inset: -48px;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--bg-strength, 1);
+  filter: blur(var(--bg-blur, 0px));
+  pointer-events: none;
+}
+
+/* 压一层暗色蒙版，保证正文可读 */
+.app-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme='light'] .app-bg::after {
+  background: rgba(255, 255, 255, 0.42);
+}
+
+/* 背景开启时：外壳与聊天区透明，让背景透出来；顶栏与输入栏保持磨砂 */
+:root[data-bg='on'] .app-shell,
+:root[data-bg='on'] .chat-screen,
+:root[data-bg='on'] .msg-list {
+  background: transparent;
+}
+
+:root[data-bg='on'] .topbar,
+:root[data-bg='on'] .composer-bar {
+  background: rgba(16, 19, 23, 0.62);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+}
+
+:root[data-bg='on'][data-theme='light'] .topbar,
+:root[data-bg='on'][data-theme='light'] .composer-bar {
+  background: rgba(250, 251, 253, 0.72);
+}
+
+/* 消息气泡和代码块在半透明背景下加一点底，避免糊在图上 */
+:root[data-bg='on'] .msg .md pre {
+  background: rgba(8, 10, 12, 0.72);
+}
+
+:root[data-bg='on'][data-theme='light'] .msg .md pre {
+  background: rgba(246, 248, 251, 0.85);
+}
+
+:root[data-bg='on'] .msg.user .bubble {
+  box-shadow: 0 2px 12px #0005;
+}
+
+/* 浅色模式下蒙版别太重，否则发白 */
+:root[data-theme='light'] .app-bg::after {
+  background: rgba(255, 255, 255, 0.28);
 }
