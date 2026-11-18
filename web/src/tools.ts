@@ -80,6 +80,22 @@ export const TOOL_DEFS: ToolDef[] = [
   {
     type: 'function',
     function: {
+      name: 'write_file',
+      description:
+        '把内容写入工作目录里的某个文件（会覆盖原文件，需要用户逐次确认）。新建文件也可以用它。',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: '相对工作目录的文件路径' },
+          content: { type: 'string', description: '要写入的完整文件内容' },
+        },
+        required: ['path', 'content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'web_search',
       description: '联网搜索，返回若干条结果的标题、链接和摘要。需要最新信息时使用。',
       parameters: {
@@ -130,6 +146,23 @@ async function callFs(op: string, root: string, payload: Record<string, unknown>
   const json = await resp.json()
   if (!resp.ok) return `读取失败：${json?.error ?? resp.status}`
   return JSON.stringify(json)
+}
+
+/** 读原始文件内容（不存在返回空串） */
+export async function readWorkspaceFile(root: string, path: string): Promise<string> {
+  if (!root) return ''
+  try {
+    const resp = await fetch('/api/fs', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ op: 'read', root, path }),
+    })
+    if (!resp.ok) return ''
+    const j = await resp.json()
+    return typeof j.content === 'string' ? j.content : ''
+  } catch {
+    return ''
+  }
 }
 
 export async function executeTool(
@@ -191,6 +224,19 @@ export async function executeTool(
           return j.hits
             .map((h: { file: string; line: number; text: string }) => `${h.file}:${h.line}  ${h.text}`)
             .join('\n')
+        } catch {
+          return raw
+        }
+      }
+      case 'write_file': {
+        const raw = await callFs('write', workspaceDir, {
+          path: String(args.path ?? ''),
+          content: String(args.content ?? ''),
+        })
+        try {
+          const j = JSON.parse(raw)
+          if (!j.path) return raw
+          return `已写入 ${j.path}（${j.bytes} 字节）`
         } catch {
           return raw
         }

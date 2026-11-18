@@ -455,6 +455,16 @@ async function handleFs(req, res) {
       })
     }
 
+    if (op === 'write') {
+      const content = String(body.content ?? '')
+      if (content.length > 2 * 1024 * 1024) {
+        return send(res, 413, JSON.stringify({ error: '内容太大（>2MB）' }))
+      }
+      await fsMod.mkdir(path.dirname(target), { recursive: true })
+      await fsMod.writeFile(target, content, 'utf8')
+      return ok({ path: path.relative(rootAbs, target), bytes: Buffer.byteLength(content) })
+    }
+
     if (op === 'search') {
       const needle = String(pattern || '')
       if (!needle) return send(res, 400, JSON.stringify({ error: '缺少关键词' }))

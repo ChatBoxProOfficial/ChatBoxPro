@@ -123,6 +123,8 @@ export interface Settings {
   toolsEnabled: boolean
   /** 只读文件工具的根目录（留空 = 不允许读文件） */
   workspaceDir: string
+  /** 允许模型写文件（每次写入都要人工确认） */
+  allowWrite: boolean
   /** 上下文超过阈值时自动压缩 */
   autoCompact: boolean
   /** 自动压缩阈值（百分比） */
@@ -149,6 +151,7 @@ export const DEFAULT_SETTINGS: Settings = {
   reminder: true,
   toolsEnabled: false,
   workspaceDir: '',
+  allowWrite: false,
   autoCompact: false,
   compactThreshold: 60,
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
-import { executeTool } from '../tools'
+import { executeTool, readWorkspaceFile } from '../tools'
+import WriteApproval from './WriteApproval'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
 import Reasoning from './Reasoning'
@@ -44,6 +45,12 @@ export default function ChatScreen({
   const [atBottom, setAtBottom] = useState(true)
   const [searching, setSearching] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [approval, setApproval] = useState<{
+    path: string
+    before: string
+    after: string
+  } | null>(null)
+  const approvalResolve = useRef<((ok: boolean) => void) | null>(null)
   const [streamMd, setStreamMd] = useState('')
 
   const accRef = useRef('')
@@ -420,12 +427,47 @@ export default function ChatScreen({
           }
           const toolMsgs: Message[] = []
           for (const call of calls) {
-            const output = await executeTool(
-              call.name,
-              call.arguments,
-              settings.baseUrl,
-              settings.workspaceDir,
-            )
+            let output: string
+
+            if (call.name === 'write_file') {
+              let args: { path?: string; content?: string } = {}
+              try {
+                args = JSON.parse(call.arguments || '{}')
+              } catch {
+                args = {}
+              }
+              const relPath = String(args.path ?? '')
+              const content = String(args.content ?? '')
+
+              if (!settings.allowWrite) {
+                output = '写文件权限未开启（设置 → 保存路径 → 允许写文件）'
+              } else if (!relPath) {
+                output = '缺少文件路径'
+              } else {
+                const before = await readWorkspaceFile(settings.workspaceDir, relPath)
+                const ok = await new Promise<boolean>((resolve) => {
+                  approvalResolve.current = resolve
+                  setApproval({ path: relPath, before, after: content })
+                })
+                setApproval(null)
+                approvalResolve.current = null
+                output = ok
+                  ? await executeTool(
+                      call.name,
+                      call.arguments,
+                      settings.baseUrl,
+                      settings.workspaceDir,
+                    )
+                  : '用户拒绝了这次写入，文件未改动'
+              }
+            } else {
+              output = await executeTool(
+                call.name,
+                call.arguments,
+                settings.baseUrl,
+                settings.workspaceDir,
+              )
+            }
             toolMsgs.push({
               id: newId(),
               role: 'tool',
@@ -694,6 +736,16 @@ export default function ChatScreen({
         >
           ↓ 回到最新
         </button>
+      )}
+
+      {approval && (
+        <WriteApproval
+          path={approval.path}
+          before={approval.before}
+          after={approval.after}
+          onAllow={() => approvalResolve.current?.(true)}
+          onDeny={() => approvalResolve.current?.(false)}
+        />
       )}
 
       {statsOpen && (

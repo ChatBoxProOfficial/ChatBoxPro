@@ -148,6 +148,7 @@ const server = http.createServer(async (req, res) => {
     return ''
   })()
   const wantFiles = toolNames.includes('list_dir') && /文件|目录|文件夹/.test(lastUserText)
+  const wantWrite = toolNames.includes('write_file') && /写|创建|新建|改/.test(lastUserText)
   const hasTools = Array.isArray(parsed.tools) && parsed.tools.length > 0
   const lastRole = parsed.messages?.[parsed.messages.length - 1]?.role
   if (hasTools && lastRole === 'user') {
@@ -168,7 +169,11 @@ const server = http.createServer(async (req, res) => {
                   id: 'call_mock_1',
                   type: 'function',
                   function: {
-                    name: wantFiles ? 'list_dir' : 'get_current_time',
+                    name: wantWrite
+                      ? 'write_file'
+                      : wantFiles
+                        ? 'list_dir'
+                        : 'get_current_time',
                     arguments: '',
                   },
                 },
@@ -185,7 +190,14 @@ const server = http.createServer(async (req, res) => {
             index: 0,
             delta: {
                 tool_calls: [
-                  { index: 0, function: { arguments: wantFiles ? '{"path":"."}' : '{}' } },
+                  { index: 0, function: {
+                      arguments: wantWrite
+                        ? JSON.stringify({ path: 'note.md', content: '第一行\n第二行\n' })
+                        : wantFiles
+                          ? '{"path":"."}'
+                          : '{}',
+                    },
+                  },
                 ],
               },
             finish_reason: 'tool_calls',

@@ -831,6 +831,17 @@ function PathsSection({ flash, settings, patch }: { flash: (s: string) => void; 
         />
       </div>
 
+      <div className="switch-row" style={{ marginTop: 12 }}>
+        <span>允许写文件</span>
+        <Switch
+          checked={settings.allowWrite}
+          onChange={(v) => patch({ allowWrite: v })}
+        />
+      </div>
+      <p className="warn small">
+        开启后模型可以写工作目录里的文件，<b>每次写入都会弹窗让你确认 diff</b>。
+      </p>
+
       <h3 style={{ marginTop: 16 }}>已上传到官方的文件</h3>
       <p className="muted small">解析过的 PDF/Office 会留在官方账户里，可以在这里清理。</p>
       <FileList />
