@@ -4134,3 +4134,12 @@ textarea {
     z-index: 60 !important;
   }
 }
+
+/* 空内容时按钮只是变淡，仍然可点（点击后无反应），避免"永远灰"的误解 */
+.send-circle.idle {
+  opacity: 0.45;
+}
+
+.primary.wide.idle {
+  opacity: 0.6;
+}

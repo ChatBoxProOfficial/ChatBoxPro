@@ -26,8 +26,10 @@ export default function Onboarding({ onDone }: Props) {
     }
   }
 
-  const submit = () => {
-    const trimmed = name.trim()
+  const submit = (override?: string) => {
+    const el = imeProps.ref.current
+    const raw = override ?? el?.value ?? name
+    const trimmed = raw.trim()
     if (!trimmed) {
       setErr('先起个名字吧')
       return
@@ -79,17 +81,20 @@ export default function Onboarding({ onDone }: Props) {
               imeProps.onInput(e)
               setErr('')
             }}
-            placeholder="例如：小王"
-            autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit()
             }}
+            placeholder="例如：小王"
+            autoFocus
           />
         </label>
 
         {err && <p className="warn small">{err}</p>}
 
-        <button className="primary wide" onClick={submit} disabled={!name.trim()}>
+        <button
+          className={`primary wide${name.trim() ? '' : ' idle'}`}
+          onClick={() => submit()}
+        >
           开始使用
         </button>
 

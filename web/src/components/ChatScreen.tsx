@@ -686,8 +686,8 @@ ${output}`
     [busy, settings, session.model, persist, scheduleFlush, onPersist],
   )
 
-  const send = useCallback(async () => {
-    const text = input.trim()
+  const send = useCallback(async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim()
     if ((!text && attachments.length === 0) || busy) return
 
     const ready = attachments.filter((a) => !a.uploading && !a.error)
@@ -1038,7 +1038,7 @@ ${output}`
       <Composer
         value={input}
         onChange={setInput}
-        onSend={() => void send()}
+        onSend={(text) => void send(text)}
         onStop={stop}
         busy={busy}
         model={session.model || settings.model}

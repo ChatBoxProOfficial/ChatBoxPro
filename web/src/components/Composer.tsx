@@ -10,7 +10,7 @@ type Effort = Settings['reasoningEffort']
 interface Props {
   value: string
   onChange: (v: string) => void
-  onSend: () => void
+  onSend: (text?: string) => void
   onStop: () => void
   busy: boolean
   model: string
@@ -168,7 +168,9 @@ export default function Composer({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
-              if (canSend && !busy) onSend()
+              const el = imeProps.ref.current
+              const text = el ? el.value : value
+              if (!busy && (text.trim() || attachments.length > 0)) onSend(text)
             }
           }}
           placeholder={placeholder ?? `${t('send', '发送')}…`}
@@ -285,9 +287,13 @@ export default function Composer({
           </button>
         ) : (
           <button
-            className="send-circle"
-            onClick={onSend}
-            disabled={!canSend}
+            className={`send-circle${canSend ? '' : ' idle'}`}
+            onClick={() => {
+              const el = imeProps.ref.current
+              const text = el ? el.value : value
+              if (!text.trim() && attachments.length === 0) return
+              onSend(text)
+            }}
             title="发送"
             aria-label="发送"
           >
