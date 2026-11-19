@@ -1,1 +1,1 @@
-{"model":"deepseek-flash","messages":[{"role":"latest_reminder","content":"2026-11-18,星期三,,App,中文"},{"role":"user","content":"天空为什么是蓝色？"}],"temperature":0.7,"stream":true,"thinking":{"type":"enabled"},"title":{"enabled":true},"stream_options":{"include_usage":true},"reasoning_effort":"high"}
+{"model":"deepseek-flash","messages":[{"role":"latest_reminder","content":"2026-11-19,星期四,,App,中文"},{"role":"user","content":"你好"}],"temperature":0.7,"stream":true,"thinking":{"type":"enabled"},"title":{"enabled":true},"stream_options":{"include_usage":true},"reasoning_effort":"high"}

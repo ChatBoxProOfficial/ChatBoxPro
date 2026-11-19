@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { APP_VERSION } from '../version'
 import type { Settings } from '../types'
+import { isNativeApp, nativeJson, nativeOpenExternal } from '../native'
 
 interface Manifest {
   version?: string
@@ -140,12 +141,25 @@ export default function UpdatePanel({
       setState({ kind: 'error', message: '先在下面填写更新信息地址' })
       return
     }
-    if (!desktop) {
+    if (!desktop && !isNativeApp()) {
       setState({ kind: 'error', message: '检查更新只在桌面端可用（浏览器环境请手动下载）' })
       return
     }
     setState({ kind: 'checking' })
-    const res = await bridge!.checkUpdate!(url)
+    const key = ''
+    let res: { ok: boolean; error?: string; manifest?: unknown } | undefined
+    if (isNativeApp()) {
+      const r = await nativeJson(url, key, 'GET')
+      let manifest: unknown = undefined
+      try {
+        manifest = JSON.parse(r.text)
+      } catch {
+        manifest = undefined
+      }
+      res = r.ok && manifest ? { ok: true, manifest } : { ok: false, error: `HTTP ${r.status}` }
+    } else {
+      res = await bridge!.checkUpdate!(url)
+    }
     const manifest0 = (res?.manifest || {}) as Manifest
     patch({
       updateLastCheck: Date.now(),
@@ -175,13 +189,20 @@ export default function UpdatePanel({
   useEffect(() => {
     if (snoozed) return
     if (!updateUrl.trim()) return
-    if (!desktop) return
+    if (!desktop && !isNativeApp()) return
     void check(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const startUpdate = async (manifest: Manifest) => {
-    if (!desktop || !manifest.url) return
+    if (!manifest.url) return
+    if (!desktop && isNativeApp()) {
+      // 安卓端没法自我覆盖安装：跳到下载页，用户装一次即可
+      await nativeOpenExternal(manifest.url)
+      setState({ kind: 'idle' })
+      return
+    }
+    if (!desktop) return
     setState({ kind: 'downloading', percent: 0 })
     const dl = await bridge!.downloadUpdate!(manifest.url, manifest.sha256)
     if (!dl?.ok || !dl.file) {

@@ -1,4 +1,5 @@
 import { loadApiKey } from './secureStore'
+import { isNativeApp, nativeStream, nativeJson, nativeUpload } from './native'
 import type { Attachment, Message, Settings } from './types'
 import { SP_SUBAGENT_DEF, TOOL_DEFS } from './tools'
 
@@ -11,6 +12,7 @@ export async function uploadFile(
   baseUrl: string,
   onProgress?: (loaded: number, total: number) => void,
 ): Promise<Pick<Attachment, 'stored' | 'path' | 'size'>> {
+  if (isNativeApp()) return { stored: '', size: file.size }
   const url = `${baseUrl}/upload?name=${encodeURIComponent(file.name)}`
   const buf = await file.arrayBuffer()
 
@@ -82,6 +84,37 @@ export async function uploadDocument(
 ): Promise<{ fileId: string }> {
   const key = await loadApiKey()
   if (!key) throw new Error('还没有填写 API Key')
+  if (isNativeApp()) {
+    const b64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const str = String(reader.result || '')
+        resolve(str.slice(str.indexOf(',') + 1))
+      }
+      reader.onerror = () => reject(new Error('读取文件失败'))
+      reader.readAsDataURL(file)
+    })
+    const res = await nativeUpload(
+      'https://api.deepseek.com/files',
+      key,
+      file.name,
+      purpose,
+      b64,
+    )
+    if (!res.ok) {
+      let msg = `解析失败（${res.status}）`
+      try {
+        msg = JSON.parse(res.text)?.error?.message || msg
+      } catch {
+        /* 保留默认 */
+      }
+      throw new Error(msg)
+    }
+    const json = JSON.parse(res.text)
+    if (!json?.id) throw new Error('解析失败：没有返回 file_id')
+    return { fileId: json.id as string }
+  }
+
   const buf = await file.arrayBuffer()
   const url = `${baseUrl}/files?name=${encodeURIComponent(file.name)}&purpose=${encodeURIComponent(purpose)}`
   const resp = await fetch(url, {
@@ -130,6 +163,39 @@ export async function summarize(
     .map((m) => `${m.role === 'user' ? '用户' : '助手'}：${m.content}`)
     .join('\n\n')
 
+  if (isNativeApp()) {
+    const body = JSON.stringify({
+      model: settings.model || 'deepseek-flash',
+      stream: false,
+      temperature: 0.3,
+      thinking: { type: 'disabled' },
+      messages: [
+        {
+          role: 'user',
+          content:
+            '把下面这段对话压缩成一段摘要，供之后继续讨论时作为背景。要求：\n' +
+            '1. 保留关键事实、结论、数字、专有名词、未完成的事项；\n' +
+            '2. 去掉寒暄、重复、无关内容；\n' +
+            '3. 用第三人称陈述，不超过 400 字；\n' +
+            '4. 直接输出摘要正文，不要任何前缀。\n\n' +
+            transcript,
+        },
+      ],
+    })
+    const res = await nativeJson('https://api.deepseek.com/chat/completions', key, 'POST', body)
+    if (!res.ok) {
+      let msg = `压缩失败（${res.status}）`
+      try {
+        msg = JSON.parse(res.text)?.error?.message || msg
+      } catch {
+        /* 保留 */
+      }
+      throw new Error(msg)
+    }
+    const content = JSON.parse(res.text)?.choices?.[0]?.message?.content
+    if (!content) throw new Error('压缩失败：没有返回内容')
+    return String(content).trim()
+  }
   const resp = await fetch(`${baseUrl}/chat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-deepseek-key': key },
@@ -312,60 +378,66 @@ export async function streamChat(
     return
   }
 
-  let resp: Response
-  try {
-    resp = await fetch(`${settings.baseUrl}/chat`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        // 中转服务器读取该头并转发给上游，不会记录
-        'x-deepseek-key': key,
-      },
-      body: JSON.stringify({
-        ...(options?.prefixMode ? { prefix_mode: true } : {}),
-        model: settings.model,
-        messages: options?.prefixMode
-          ? [
-              ...toPayload(messages.slice(0, -1), settings),
-              { role: 'assistant', content: options.prefixText ?? '', prefix: true },
-            ]
-          : toPayload(messages, settings),
-        temperature: settings.temperature,
-        stream: true,
-        // 明确告诉服务端要不要思考：不传的话默认是开启的，
-        // 关掉显示时顺手关掉思考，省 token
-        thinking: {
-          type: settings.reasoningEffort === 'off' ? 'disabled' : 'enabled',
-        },
-        ...(settings.reasoningEffort === 'off'
-          ? {}
-          : { reasoning_effort: settings.reasoningEffort || 'high' }),
-        stream_options: { include_usage: true },
-        // 本地工具（模型可以要求我们执行）
-        ...(settings.toolsEnabled || settings.teamMode
-          ? {
-              tools: settings.teamMode ? [...TOOL_DEFS, SP_SUBAGENT_DEF] : TOOL_DEFS,
-            }
-          : {}),
-        // 模型内容安全（官方风控）
-        ...(settings.safety ? { safety_check: { level: 'high' } } : {}),
-        // 让服务端顺手起个会话标题（仅 flash 支持）
-        ...(settings.model === 'deepseek-flash' ? { title: { enabled: true } } : {}),
-        // 联网搜索 / 阅读链接：声明后由 DeepSeek 服务端执行，客户端不跑工具
-        ...(settings.webSearch
-          ? { tools: [{ type: 'deepseek_web_search' }, { type: 'deepseek_read_url' }] }
-          : {}),
-      }),
-      signal,
+  const native = isNativeApp()
+  const nativeBase = 'https://api.deepseek.com'
+  let stream: ReadableStream<Uint8Array> | null = null
+  let resp: Response | null = null
+
+  const buildBody = () =>
+    JSON.stringify({
+      ...(options?.prefixMode ? { prefix_mode: true } : {}),
+      model: settings.model,
+      messages: options?.prefixMode
+        ? [
+            ...toPayload(messages.slice(0, -1), settings),
+            { role: 'assistant', content: options.prefixText ?? '', prefix: true },
+          ]
+        : toPayload(messages, settings),
+      temperature: settings.temperature,
+      stream: true,
+      thinking: { type: settings.reasoningEffort === 'off' ? 'disabled' : 'enabled' },
+      ...(settings.reasoningEffort === 'off'
+        ? {}
+        : { reasoning_effort: settings.reasoningEffort || 'high' }),
+      stream_options: { include_usage: true },
+      ...(settings.toolsEnabled || settings.teamMode
+        ? { tools: settings.teamMode ? [...TOOL_DEFS, SP_SUBAGENT_DEF] : TOOL_DEFS }
+        : {}),
+      ...(settings.webSearch
+        ? { tools: [{ type: 'deepseek_web_search' }, { type: 'deepseek_read_url' }] }
+        : {}),
+      ...(settings.safety ? { safety_check: { level: 'high' } } : {}),
+      ...(settings.model === 'deepseek-flash' ? { title: { enabled: true } } : {}),
     })
+
+  try {
+    if (native) {
+      stream = nativeStream({
+        url: `${nativeBase}/chat/completions`,
+        apiKey: key,
+        body: buildBody(),
+        signal,
+      })
+    } else {
+      resp = await fetch(`${settings.baseUrl}/chat`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          // 中转服务器读取该头并转发给上游，不会记录
+          'x-deepseek-key': key,
+        },
+        body: buildBody(),
+        signal,
+      })
+    }
   } catch (e) {
     if ((e as Error).name === 'AbortError') return
     handlers.onError(`网络请求失败：${(e as Error).message}`)
     return
   }
 
-  if (!resp.ok || !resp.body) {
-    const text = await resp.text().catch(() => '')
+  if (!native && (!resp || !resp.ok || !resp.body)) {
+    const text = await resp!.text().catch(() => '')
     let msg = text.slice(0, 400)
     try {
       const j = JSON.parse(text)
@@ -373,12 +445,13 @@ export async function streamChat(
     } catch {
       /* 保持原文 */
     }
-    handlers.onError(`请求失败（${resp.status}）：${msg || '没有返回内容'}`)
+    handlers.onError(`请求失败（${resp!.status}）：${msg || '没有返回内容'}`)
     return
   }
 
   const toolAcc: Record<number, { id: string; name: string; arguments: string }> = {}
-  const reader = resp.body.getReader()
+  const source: ReadableStream<Uint8Array> = native ? (stream as ReadableStream<Uint8Array>) : (resp!.body as ReadableStream<Uint8Array>)
+  const reader = source.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
 
@@ -497,6 +570,22 @@ export async function fetchBalance(baseUrl: string): Promise<{
   cny?: { total: string; granted: string; toppedUp: string }
 }> {
   const key = await loadApiKey()
+  if (isNativeApp()) {
+    const res = await nativeJson('https://api.deepseek.com/user/balance', key)
+    const j = JSON.parse(res.text || '{}')
+    if (!res.ok) throw new Error(j?.error?.message || `余额查询失败（${res.status}）`)
+    const cny0 = (j.balance_infos || []).find((b: any) => b.currency === 'CNY')
+    return {
+      available: !!j.is_available,
+      cny: cny0
+        ? {
+            total: cny0.total_balance,
+            granted: cny0.granted_balance,
+            toppedUp: cny0.topped_up_balance,
+          }
+        : undefined,
+    }
+  }
   const resp = await fetch(`${baseUrl}/balance`, {
     headers: { 'x-deepseek-key': key },
   })
@@ -518,6 +607,17 @@ export async function fetchBalance(baseUrl: string): Promise<{
 /** 已上传的文件列表 */
 export async function listFiles(baseUrl: string) {
   const key = await loadApiKey()
+  if (isNativeApp()) {
+    const res = await nativeJson('https://api.deepseek.com/files', key)
+    const j = JSON.parse(res.text || '{}')
+    if (!res.ok) throw new Error(j?.error?.message || `获取文件列表失败（${res.status}）`)
+    return (j.data || []).map((f: any) => ({
+      id: f.id as string,
+      filename: f.filename as string,
+      bytes: f.bytes as number,
+      purpose: f.purpose as string,
+    }))
+  }
   const resp = await fetch(`${baseUrl}/files/list`, {
     headers: { 'x-deepseek-key': key },
   })
@@ -534,6 +634,19 @@ export async function listFiles(baseUrl: string) {
 /** 删除已上传的文件 */
 export async function deleteFile(baseUrl: string, id: string) {
   const key = await loadApiKey()
+  if (isNativeApp()) {
+    const res = await nativeJson(`https://api.deepseek.com/files/${encodeURIComponent(id)}`, key, 'DELETE')
+    if (!res.ok) {
+      let msg = `删除失败（${res.status}）`
+      try {
+        msg = JSON.parse(res.text)?.error?.message || msg
+      } catch {
+        /* 保留 */
+      }
+      throw new Error(msg)
+    }
+    return true
+  }
   const resp = await fetch(`${baseUrl}/files/delete?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: { 'x-deepseek-key': key },

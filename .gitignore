@@ -7,3 +7,9 @@ desktop/server/
 *.log
 smoke-desktop.png
 update/*.zip
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json

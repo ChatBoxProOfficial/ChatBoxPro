@@ -18,9 +18,14 @@
     "install:local": "npm run build && npm run shortcut",
     "install:app": "node scripts/install-app.mjs",
     "publish:update": "node scripts/publish-update.mjs",
-    "make:update": "node scripts/make-update.mjs"
+    "make:update": "node scripts/make-update.mjs",
+    "android:sync": "npm run build && cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
     "dompurify": "^3.2.4",
     "marked": "^15.0.7",
     "react": "^19.0.0",

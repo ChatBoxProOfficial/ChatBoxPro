@@ -2,6 +2,9 @@
  * 本地工具：模型可以调用它们，由我们（客户端/中转）真正执行。
  * 这是从「只能聊天」走向「能干活」的最小一步。
  */
+import { isNativeApp, nativeJson } from './native'
+import { loadApiKey } from './secureStore'
+
 export interface ToolDef {
   type: 'function'
   function: {
@@ -236,6 +239,7 @@ export async function executeTool(
       case 'calculate':
         return safeCalc(String(args.expression ?? ''))
       case 'list_dir': {
+        if (isNativeApp()) return '手机端不支持读取本地文件'
         const raw = await callFs('list', workspaceDir, { path: String(args.path ?? '.') })
         try {
           const j = JSON.parse(raw)
@@ -248,6 +252,7 @@ export async function executeTool(
         }
       }
       case 'read_file': {
+        if (isNativeApp()) return '手机端不支持读取本地文件'
         const raw = await callFs('read', workspaceDir, { path: String(args.path ?? '') })
         try {
           const j = JSON.parse(raw)
@@ -258,6 +263,7 @@ export async function executeTool(
         }
       }
       case 'search_in_files': {
+        if (isNativeApp()) return '手机端不支持读取本地文件'
         const raw = await callFs('search', workspaceDir, {
           pattern: String(args.pattern ?? ''),
           path: String(args.path ?? '.'),
@@ -274,6 +280,7 @@ export async function executeTool(
         }
       }
       case 'write_file': {
+        if (isNativeApp()) return '手机端不支持写入本地文件'
         const raw = await callFs('write', workspaceDir, {
           path: String(args.path ?? ''),
           content: String(args.content ?? ''),
@@ -287,6 +294,7 @@ export async function executeTool(
         }
       }
       case 'run_command': {
+        if (isNativeApp()) return '手机端不支持执行命令'
         const cmd = String(args.command ?? '')
         if (!cmd) return '缺少命令'
         const resp = await fetch('/api/exec', {
@@ -304,6 +312,20 @@ export async function executeTool(
         return parts.join('\n')
       }
       case 'web_search': {
+        if (isNativeApp()) {
+          const key = await loadApiKey()
+          const r = await nativeJson(
+            'https://api.deepseek.com/v1/tools/search',
+            key,
+            'POST',
+            JSON.stringify({ query: String(args.query ?? ''), count: 5 }),
+          )
+          if (!r.ok) return `搜索失败：${r.status}`
+          const j = JSON.parse(r.text || '{}')
+          const list = (j.results || []) as Array<{ title: string; url: string; summary: string }>
+          if (!list.length) return '没有搜到结果'
+          return list.map((x, i) => `${i + 1}. ${x.title}\n   ${x.url}\n   ${x.summary}`).join('\n\n')
+        }
         const resp = await fetch(`${baseUrl}/search`, {
           method: 'POST',
           headers: {
@@ -325,6 +347,21 @@ export async function executeTool(
           .join('\n\n')
       }
       case 'fetch_url': {
+        if (isNativeApp()) {
+          const key = await loadApiKey()
+          const r = await nativeJson(
+            'https://api.deepseek.com/v1/tools/fetch',
+            key,
+            'POST',
+            JSON.stringify({ url: String(args.url ?? '') }),
+          )
+          if (!r.ok) return `抓取失败：${r.status}`
+          const j = JSON.parse(r.text || '{}')
+          const content = String(j.content ?? '')
+          return `${j.title || ''}\n\n${content.slice(0, 8000)}${
+            content.length > 8000 ? '\n…（内容过长已截断）' : ''
+          }`
+        }
         const resp = await fetch(`${baseUrl}/fetch`, {
           method: 'POST',
           headers: {
