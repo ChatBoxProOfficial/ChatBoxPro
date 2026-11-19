@@ -10,6 +10,7 @@ import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
 import { DOCS, type Doc } from '../documents'
 import { APP_VERSION, RELEASE_DATE, RELEASE_NOTES } from '../version'
+import { useImeSafeInput } from '../imeInput'
 import UpdatePanel from './UpdatePanel'
 
 interface Props {
@@ -230,6 +231,9 @@ function AccountSection({
   const [key, setKey] = useState('')
   const [keyInput, setKeyInput] = useState('')
   const [editing, setEditing] = useState(false)
+  const nameProps = useImeSafeInput<HTMLInputElement>(settings.userName, (v) =>
+    patch({ userName: v }),
+  )
 
   useEffect(() => {
     void loadApiKey().then(setKey)
@@ -296,8 +300,10 @@ function AccountSection({
         <label className="field">
           <span>显示名称</span>
           <input
-            value={settings.userName}
-            onChange={(e) => patch({ userName: e.target.value })}
+            {...nameProps}
+            onChange={(e) => {
+              nameProps.onChange(e)
+            }}
             placeholder="我"
           />
         </label>

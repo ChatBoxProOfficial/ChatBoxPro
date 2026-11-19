@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { imageToDataUrl } from '../image'
+import { useImeSafeInput } from '../imeInput'
 
 interface Props {
   onDone: (profile: { userName: string; avatar: string }) => void
@@ -13,6 +14,7 @@ export default function Onboarding({ onDone }: Props) {
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const initial = (name.trim() || '?').slice(0, 1).toUpperCase()
+  const imeProps = useImeSafeInput<HTMLInputElement>(name, setName)
 
   const pick = async (file: File | undefined) => {
     if (!file) return
@@ -72,9 +74,9 @@ export default function Onboarding({ onDone }: Props) {
         <label className="field">
           <span>你的名字</span>
           <input
-            value={name}
+            {...imeProps}
             onChange={(e) => {
-              setName(e.target.value)
+              imeProps.onChange(e)
               setErr('')
             }}
             placeholder="例如：小王"

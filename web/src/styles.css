@@ -4037,3 +4037,64 @@ button:disabled {
   vertical-align: middle;
   white-space: nowrap;
 }
+
+/* ==================== 手机端适配 ==================== */
+@media (max-width: 700px) {
+  /* 模型/思考强度面板：改成底部全宽弹层，不再超出屏幕 */
+  .model-pop {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+    width: auto;
+    max-height: 68dvh;
+    overflow-y: auto;
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .model-pop .pop-item {
+    padding: 10px 10px;
+  }
+
+  /* 输入栏：紧凑一点，字号 16px 防止键盘弹起后缩放 */
+  .composer-bar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .composer-input {
+    font-size: 16px;
+  }
+
+  /* 消息区留白变小，内容更宽 */
+  .msg-list {
+    padding: 10px 12px 0;
+  }
+
+  .msg {
+    max-width: 100%;
+  }
+
+  /* 顶栏 */
+  .topbar {
+    padding: 0 10px;
+  }
+
+  /* 引导卡片 */
+  .onboarding-card {
+    width: calc(100% - 28px);
+    padding: 18px 16px 14px;
+  }
+
+  /* 抽屉 */
+  .drawer {
+    width: min(300px, 86vw);
+  }
+
+  /* 文档弹窗 */
+  .doc-modal {
+    width: calc(100% - 16px);
+    max-height: 86dvh;
+  }
+}

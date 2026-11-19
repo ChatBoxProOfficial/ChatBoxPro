@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useImeSafeInput } from '../imeInput'
 import { modelFullName, modelShort, type Attachment, type Settings } from '../types'
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 import Switch from './Switch'
@@ -67,6 +68,8 @@ export default function Composer({
   const [popOpen, setPopOpen] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
   const [liveEffort, setLiveEffort] = useState(effort)
+  // 安卓输入法中文安全：非受控 + 组合事件
+  const imeProps = useImeSafeInput<HTMLTextAreaElement>(value, onChange)
 
   // 父级状态更新是异步的，这里本地先更新，保证拖动时数字立刻变
   useEffect(() => {
@@ -161,8 +164,7 @@ export default function Composer({
         <textarea
           className="composer-input"
           rows={1}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          {...imeProps}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
