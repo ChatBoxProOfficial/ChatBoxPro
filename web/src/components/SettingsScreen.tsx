@@ -302,9 +302,6 @@ function AccountSection({
           <span>显示名称</span>
           <input
             {...nameProps}
-            onChange={(e) => {
-              nameProps.onChange(e)
-            }}
             placeholder="我"
           />
         </label>

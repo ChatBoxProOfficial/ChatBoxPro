@@ -75,8 +75,8 @@ export default function Onboarding({ onDone }: Props) {
           <span>你的名字</span>
           <input
             {...imeProps}
-            onChange={(e) => {
-              imeProps.onChange(e)
+            onInput={(e) => {
+              imeProps.onInput(e)
               setErr('')
             }}
             placeholder="例如：小王"

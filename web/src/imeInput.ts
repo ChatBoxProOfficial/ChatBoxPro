@@ -3,23 +3,26 @@ import { useEffect, useRef } from 'react'
 /**
  * 中文输入法安全的输入框绑定。
  *
- * 安卓 WebView 里，受控输入框（value + onChange 每次 setState）会在
- * 拼音组合阶段被 React 覆写 value，导致中文打不出来、只剩字母。
- * 这里改成「非受控 + 必要时同步」：
- *  - 打字过程由 DOM 自己管，React 不覆写
- *  - 外部值变化（切换会话、发送后清空）时才写回 DOM
+ * 之前的问题：
+ *  - 受控输入框（value + onChange 每次 setState）会在拼音组合阶段被 React 覆写 value，
+ *    导致安卓上中文打不出来，只剩字母。
+ *  - 后来改成「组合期间不同步」，结果部分输入法（如搜狗）不发 compositionend，
+ *    文字虽然在框里，但 React 状态一直是空的 → 发送按钮永远灰、起名按钮点不动。
+ *
+ * 现在的做法：
+ *  - 输入框非受控（只给 defaultValue），React 永远不覆写 DOM，输入法不被干扰；
+ *  - 每一次 input 事件（含输入法上屏那一次）都同步到 React 状态；
+ *  - 只有外部值变化（发送后清空、切换会话）才写回 DOM。
  */
 export function useImeSafeInput<T extends HTMLInputElement | HTMLTextAreaElement>(
   value: string,
   onChange: (v: string) => void,
 ) {
   const ref = useRef<T | null>(null)
-  const composing = useRef(false)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    if (composing.current) return
     if (el.value === value) return
 
     // 发送后清空：即使正在聚焦也要清
@@ -34,14 +37,7 @@ export function useImeSafeInput<T extends HTMLInputElement | HTMLTextAreaElement
   return {
     ref,
     defaultValue: value,
-    onChange: (e: React.ChangeEvent<T>) => {
-      if (!composing.current) onChange(e.target.value)
-    },
-    onCompositionStart: () => {
-      composing.current = true
-    },
-    onCompositionEnd: (e: React.CompositionEvent<T>) => {
-      composing.current = false
+    onInput: (e: React.FormEvent<T>) => {
       onChange((e.target as T).value)
     },
   }
