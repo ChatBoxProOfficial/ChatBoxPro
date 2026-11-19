@@ -4108,3 +4108,29 @@ textarea {
   -webkit-touch-callout: default;
   touch-action: auto;
 }
+
+/* 原生构建号（方便确认装的是哪个包） */
+.native-build {
+  font-size: 9px;
+  color: var(--fg-dim);
+  opacity: 0.55;
+  margin-right: 6px;
+  user-select: none;
+}
+
+/* 手机端：模型面板强制变成底部弹层（用 !important 压掉其他规则） */
+@media (max-width: 760px) {
+  .model-pop {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 86px !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: 66dvh !important;
+    overflow-y: auto !important;
+    transform: none !important;
+    z-index: 60 !important;
+  }
+}

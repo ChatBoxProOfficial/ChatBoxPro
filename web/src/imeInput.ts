@@ -34,6 +34,18 @@ export function useImeSafeInput<T extends HTMLInputElement | HTMLTextAreaElement
     if (document.activeElement !== el) el.value = value
   }, [value])
 
+  // 兜底：某些安卓输入法既不触发 compositionend，input 事件也不可靠，
+  // 这里直接盯着 DOM 的值，发现不一致就同步（聚焦时才轮询）
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const el = ref.current
+      if (!el) return
+      if (document.activeElement !== el) return
+      if (el.value !== value) onChange(el.value)
+    }, 250)
+    return () => window.clearInterval(id)
+  }, [value, onChange])
+
   return {
     ref,
     defaultValue: value,

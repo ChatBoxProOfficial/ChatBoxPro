@@ -3,6 +3,8 @@ import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
 import { pickWelcome } from '../welcome'
+import { isNativeApp } from '../native'
+import { ANDROID_BUILD } from '../version'
 import { WELCOME, useLang, useT } from '../i18n'
 import WriteApproval from './WriteApproval'
 import CommandApproval from './CommandApproval'
@@ -818,7 +820,10 @@ ${output}`
             />
           </svg>
         </button>
-        <div className="topbar-title">
+        <span className="native-build" aria-hidden="true">
+            {isNativeApp() ? ANDROID_BUILD : ''}
+          </span>
+          <div className="topbar-title">
           <div className="title-row">
             <span className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</span>
             {subRuns.length > 0 && (
