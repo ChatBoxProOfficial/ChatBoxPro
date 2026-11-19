@@ -4098,3 +4098,13 @@ button:disabled {
     max-height: 86dvh;
   }
 }
+
+
+/* 输入框：安卓输入法兼容（禁止任何继承来的 user-select） */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+  touch-action: auto;
+}

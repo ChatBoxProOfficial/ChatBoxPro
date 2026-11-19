@@ -9,8 +9,9 @@ import Switch from './Switch'
 import { imageToDataUrl } from '../image'
 import { useT } from '../i18n'
 import { DOCS, type Doc } from '../documents'
-import { APP_VERSION, RELEASE_DATE, RELEASE_NOTES } from '../version'
+import { APP_VERSION, RELEASE_DATE, RELEASE_NOTES, ANDROID_BUILD } from '../version'
 import { useImeSafeInput } from '../imeInput'
+import { isNativeApp } from '../native'
 import UpdatePanel from './UpdatePanel'
 
 interface Props {

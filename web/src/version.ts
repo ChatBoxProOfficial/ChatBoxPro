@@ -13,3 +13,6 @@ export const RELEASE_NOTES = [
   '修复：拖动思考强度时标签不实时变化',
   '修复：工具调用消息缺少配对导致的 400 错误',
 ]
+
+/** 安卓构建号（每次重新打包 +1，用来确认手机上装的是新版） */
+export const ANDROID_BUILD = 'build-5'

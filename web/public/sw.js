@@ -3,7 +3,7 @@
  * - /api/*：完全绕过（聊天请求必须走网络，绝不缓存）
  * - 页面导航：网络优先，断网时回退到缓存的 index.html
  */
-const CACHE = 'chatbox-pro-v1'
+const CACHE = 'chatbox-pro-v2'
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './logo.png']
 
 self.addEventListener('install', (event) => {
