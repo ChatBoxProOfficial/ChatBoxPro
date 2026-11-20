@@ -94,7 +94,7 @@ export default function Reasoning({
       </button>
       {open && (
         <div className="thinking-body">
-          <Markdown text={reasoning} />
+          {streaming ? <span className="reasoning-plain">{reasoning}</span> : <Markdown text={reasoning} />}
         </div>
       )}
     </div>

@@ -15,4 +15,4 @@ export const RELEASE_NOTES = [
 ]
 
 /** 安卓构建号（每次重新打包 +1，用来确认手机上装的是新版） */
-export const ANDROID_BUILD = 'build-11'
+export const ANDROID_BUILD = 'build-12'

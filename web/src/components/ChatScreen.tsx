@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { streamChat, uploadDocument, uploadFile } from '../api'
 import { imageToDataUrl } from '../image'
 import { executeTool, readWorkspaceFile, SUBAGENT_TOOLS } from '../tools'
@@ -130,6 +130,18 @@ export default function ChatScreen({
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [busy, setBusy] = useState(false)
   const [hasStream, setHasStream] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
 
   const [atBottom, setAtBottom] = useState(true)
   const [searching, setSearching] = useState(false)
@@ -191,6 +203,16 @@ export default function ChatScreen({
     },
     [onPersist],
   )
+
+const deleteSelected = useCallback(() => {
+    const ids = selectedIds
+    if (!ids.size) return
+    const kept = messages.filter((m) => !ids.has(m.id))
+    persist(kept)
+    setSelectedIds(new Set())
+    setSelectMode(false)
+    setVisibleCount(Math.min(INITIAL_WINDOW, Math.max(kept.length, 1)))
+  }, [selectedIds, messages, persist])
 
   /** 流式增量按帧合批，避免每 token 一次 React 渲染 */
   /** 兼容旧调用：流式内容只在子组件里刷新，这里只标记“有内容” */
@@ -911,6 +933,19 @@ ${output}`
         )}
         {!isEmpty && (
           <button
+            className={`icon-btn${selectMode ? ' active' : ''}`}
+            onClick={() => {
+              setSelectMode((v) => !v)
+              setSelectedIds(new Set())
+            }}
+            aria-label="多选"
+            title="多选消息"
+          >
+            ☑
+          </button>
+        )}
+        {!isEmpty && (
+          <button
             className="icon-btn"
             onClick={() => onExport(sessionRef.current)}
             aria-label="导出"
@@ -944,15 +979,31 @@ ${output}`
             </button>
           )}
           {shown.map((m, idx) => (
-            <MessageRow
+            <div
               key={m.id}
-              msg={m}
-              reasoningMode={settings.reasoningDisplay}
-              isLastAssistant={idx === shown.length - 1 && m.role === 'assistant'}
-              onRegenerate={() => void regenerate()}
-              onEdit={() => editFrom(start + idx)}
-              onContinue={() => void continueGeneration()}
-            />
+              className={`sel-wrap${selectMode ? ' selecting' : ''}${
+                selectedIds.has(m.id) ? ' picked' : ''
+              }`}
+              onClick={
+                selectMode
+                  ? () => toggleSelect(m.id)
+                  : undefined
+              }
+            >
+              {selectMode && (
+                <span className="sel-box" aria-hidden="true">
+                  {selectedIds.has(m.id) ? '✓' : ''}
+                </span>
+              )}
+              <MessageRow
+                msg={m}
+                reasoningMode={settings.reasoningDisplay}
+                isLastAssistant={idx === shown.length - 1 && m.role === 'assistant'}
+                onRegenerate={() => void regenerate()}
+                onEdit={() => editFrom(start + idx)}
+                onContinue={() => void continueGeneration()}
+              />
+            </div>
           ))}
 
           {(busy || hasStream) && (
@@ -965,6 +1016,30 @@ ${output}`
               searching={searching}
             />
           )}
+        </div>
+      )}
+
+      {selectMode && (
+        <div className="sel-bar">
+          <span className="sel-count">已选 {selectedIds.size} 条</span>
+          <button
+            className="ghost"
+            onClick={() =>
+              setSelectedIds(
+                selectedIds.size === messages.length
+                  ? new Set()
+                  : new Set(messages.map((m) => m.id)),
+              )
+            }
+          >
+            {selectedIds.size === messages.length ? '取消全选' : '全选'}
+          </button>
+          <button className="ghost" onClick={() => setSelectMode(false)}>
+            退出
+          </button>
+          <button className="primary" disabled={!selectedIds.size} onClick={deleteSelected}>
+            删除所选
+          </button>
         </div>
       )}
 
@@ -1139,7 +1214,7 @@ function splitLegacyReasoning(msg: Message): { content: string; reasoning?: stri
   return { content: hit[2], reasoning }
 }
 
-function MessageRow({
+const MessageRow = memo(function MessageRow({
   msg,
   reasoningMode,
   isLastAssistant,
@@ -1266,4 +1341,4 @@ function MessageRow({
       </div>
     </div>
   )
-}
+})

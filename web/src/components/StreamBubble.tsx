@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
-import { Markdown } from './Markdown'
+
 import Reasoning from './Reasoning'
 
 interface Props {
@@ -58,9 +58,7 @@ export default function StreamBubble({
           </div>
         )}
         {text ? (
-          <div className="streaming-text streaming-md">
-            <Markdown text={text} />
-          </div>
+          <div className="streaming-text streaming-plain">{text}</div>
         ) : (
           !reason && <span className="cursor">▍</span>
         )}
