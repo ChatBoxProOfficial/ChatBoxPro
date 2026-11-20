@@ -117,7 +117,10 @@ function registerIpc() {
     }
     try {
       const headers = { 'cache-control': 'no-cache' }
-      const resp = await net.fetch(url, { headers })
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 15000)
+      const resp = await net.fetch(url, { headers, signal: ctrl.signal })
+      clearTimeout(timer)
       if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` }
       const json = await resp.json()
       return { ok: true, manifest: json }
@@ -135,7 +138,10 @@ function registerIpc() {
       const dir = path.join(app.getPath('userData'), 'updates')
       fs.mkdirSync(dir, { recursive: true })
       const file = path.join(dir, 'update.zip')
-      const resp = await net.fetch(url)
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), 20000)
+      const resp = await net.fetch(url, { signal: ctrl.signal })
+      clearTimeout(timer)
       if (!resp.ok) return { ok: false, error: `HTTP ${resp.status}` }
 
       const total = Number(resp.headers.get('content-length') || 0)
@@ -214,14 +220,31 @@ function registerIpc() {
 }
 
 function loadBounds() {
+  const fallback = { width: 1180, height: 820 }
+  let b = null
   try {
     const raw = fs.readFileSync(stateFile(), 'utf8')
-    const b = JSON.parse(raw)
-    if (b && Number.isFinite(b.width) && Number.isFinite(b.height)) return b
+    b = JSON.parse(raw)
   } catch {
-    /* 首次运行或文件损坏，用默认值 */
+    return fallback
   }
-  return { width: 1180, height: 820 }
+  if (!b || !Number.isFinite(b.width) || !Number.isFinite(b.height)) return fallback
+
+  // 上次的显示器可能已经拔掉了：落在任何屏幕之外就回到默认位置
+  try {
+    const { screen } = require('electron')
+    const displays = screen.getAllDisplays()
+    const visible = displays.some((d) => {
+      const a = d.workArea
+      const overlapX = Math.min(b.x + b.width, a.x + a.width) - Math.max(b.x, a.x)
+      const overlapY = Math.min(b.y + b.height, a.y + a.height) - Math.max(b.y, a.y)
+      return overlapX > 120 && overlapY > 80
+    })
+    if (!visible) return fallback
+  } catch {
+    /* 拿不到屏幕信息就按原样用 */
+  }
+  return b
 }
 
 function saveBounds(win) {

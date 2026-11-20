@@ -1,6 +1,7 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
 
 import Reasoning from './Reasoning'
+import { Markdown } from './Markdown'
 
 interface Props {
   /** 流式正文累积（父级只写 ref，不改 state，避免整屏重渲染） */
@@ -30,7 +31,7 @@ export default function StreamBubble({
 
   useEffect(() => {
     if (!busy) return
-    const id = window.setInterval(() => tick((n) => n + 1), 140)
+    const id = window.setInterval(() => tick((n) => n + 1), 240)
     return () => window.clearInterval(id)
   }, [busy])
 
@@ -58,7 +59,13 @@ export default function StreamBubble({
           </div>
         )}
         {text ? (
-          <div className="streaming-text streaming-plain">{text}</div>
+          text.length < 2500 ? (
+            <div className="streaming-text streaming-md">
+              <Markdown text={text} />
+            </div>
+          ) : (
+            <div className="streaming-text streaming-plain">{text}</div>
+          )
         ) : (
           !reason && <span className="cursor">▍</span>
         )}
