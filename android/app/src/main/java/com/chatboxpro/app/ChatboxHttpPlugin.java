@@ -5,20 +5,9 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.Permission;
-import com.getcapacitor.annotation.PermissionCallback;
 import com.getcapacitor.PermissionState;
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 
-import java.util.ArrayList;
-import java.util.Locale;
 
 import org.json.JSONObject;
 
@@ -40,13 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * - json：普通请求，返回状态码与响应体
  * - upload：multipart 上传（文件解析用）
  */
-@CapacitorPlugin(name = "ChatboxHttp", permissions = {
-    @Permission(alias = "microphone", strings = { Manifest.permission.RECORD_AUDIO })
-})
+@CapacitorPlugin(name = "ChatboxHttp")
 public class ChatboxHttpPlugin extends Plugin {
 
     private final ConcurrentHashMap<String, HttpURLConnection> active = new ConcurrentHashMap<>();
-    private SpeechRecognizer recognizer;
 
     @PluginMethod
     public void stream(PluginCall call) {
@@ -266,107 +252,6 @@ public class ChatboxHttpPlugin extends Plugin {
                 if (conn != null) conn.disconnect();
             }
         }).start();
-    }
-
-    /** 开始语音输入（安卓原生识别，离线/在线由系统决定） */
-    @PluginMethod
-    public void startVoice(final PluginCall call) {
-        if (getPermissionState("microphone") != PermissionState.GRANTED) {
-            requestPermissionForAlias("microphone", call, "micPermissionCallback");
-            return;
-        }
-        startRecognizer(call);
-    }
-
-    @PermissionCallback
-    private void micPermissionCallback(PluginCall call) {
-        if (getPermissionState("microphone") != PermissionState.GRANTED) {
-            call.reject("没有麦克风权限");
-            return;
-        }
-        startRecognizer(call);
-    }
-
-    private void startRecognizer(final PluginCall call) {
-        postToUi(() -> {
-            try {
-                if (recognizer != null) {
-                    recognizer.destroy();
-                }
-                if (!SpeechRecognizer.isRecognitionAvailable(getContext())) {
-                    call.reject("这台设备没有语音识别服务");
-                    return;
-                }
-                recognizer = SpeechRecognizer.createSpeechRecognizer(getContext());
-                recognizer.setRecognitionListener(new RecognitionListener() {
-                    @Override public void onReadyForSpeech(Bundle params) {}
-                    @Override public void onBeginningOfSpeech() {}
-                    @Override public void onRmsChanged(float rmsdB) {}
-                    @Override public void onBufferReceived(byte[] buffer) {}
-                    @Override public void onEndOfSpeech() {}
-                    @Override public void onError(int error) {
-                        emitVoice("", false, true, "error:" + error);
-                    }
-                    @Override public void onResults(Bundle results) {
-                        emitVoice(firstResult(results), true, false, null);
-                        stopRecognizer();
-                    }
-                    @Override public void onPartialResults(Bundle partialResults) {
-                        emitVoice(firstResult(partialResults), false, false, null);
-                    }
-                    @Override public void onEvent(int eventType, Bundle params) {}
-                });
-
-                Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toString());
-                intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-                intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
-                recognizer.startListening(intent);
-                call.resolve();
-            } catch (Exception e) {
-                appendLine("voice error: " + e.getMessage());
-                call.reject(String.valueOf(e.getMessage()));
-            }
-        });
-    }
-
-    private String firstResult(Bundle bundle) {
-        try {
-            ArrayList<String> list = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (list != null && !list.isEmpty()) return list.get(0);
-        } catch (Exception ignored) {
-        }
-        return "";
-    }
-
-    private void emitVoice(String text, boolean isFinal, boolean isError, String error) {
-        postToUi(() -> {
-            JSObject o = new JSObject();
-            o.put("text", text);
-            o.put("final", isFinal);
-            o.put("error", isError ? (error == null ? "error" : error) : null);
-            notifyListeners("voice", o);
-        });
-    }
-
-    @PluginMethod
-    public void stopVoice(PluginCall call) {
-        stopRecognizer();
-        call.resolve();
-    }
-
-    private void stopRecognizer() {
-        postToUi(() -> {
-            try {
-                if (recognizer != null) {
-                    recognizer.stopListening();
-                    recognizer.destroy();
-                    recognizer = null;
-                }
-            } catch (Exception ignored) {
-            }
-        });
     }
 
     @PluginMethod

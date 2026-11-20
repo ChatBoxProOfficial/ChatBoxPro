@@ -236,28 +236,71 @@ const deleteSelected = useCallback(() => {
     el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
   }, [])
 
-  // 只有用户贴着底部时才跟随新内容；用户往上翻时绝不抢屏
+  // ===== 滚动跟随 =====
+  // 规则：只有「用户贴底」且「最近没有往上滑」时才跟随新内容
   const pinnedRef = useRef(true)
-  useLayoutEffect(() => {
-    if (pinnedRef.current) scrollToBottom(false)
-  }, [messages.length, scrollToBottom])
+  const lastUserScrollAt = useRef(0)
 
-  // 流式内容变高时不靠 state 驱动：观察 DOM 变化，贴底才跟随
+  // 用户主动上滑：立刻解除跟随，并记下时间（1.2 秒内不抢屏）
   useEffect(() => {
     const el = listRef.current
     if (!el) return
-    let queued = false
-    const obs = new MutationObserver(() => {
-      if (queued) return
-      queued = true
-      requestAnimationFrame(() => {
-        queued = false
-        if (pinnedRef.current) el.scrollTop = el.scrollHeight
-      })
-    })
-    obs.observe(el, { childList: true, subtree: true, characterData: true })
-    return () => obs.disconnect()
+    const markUserScroll = () => {
+      lastUserScrollAt.current = Date.now()
+    }
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) {
+        pinnedRef.current = false
+        setAtBottom(false)
+      }
+      markUserScroll()
+    }
+    let touchStartY = 0
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0]?.clientY ?? 0
+      markUserScroll()
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0
+      // 手指往下拉 = 看上面的内容
+      if (y > touchStartY + 2) {
+        pinnedRef.current = false
+        setAtBottom(false)
+      }
+      touchStartY = y
+      markUserScroll()
+    }
+    el.addEventListener('wheel', onWheel, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: true })
+    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+    }
   }, [])
+
+  // 流式期间用 rAF 跟随：只在“贴底 + 用户没在动”时补到底
+  useEffect(() => {
+    if (!busy) return
+    let raf = 0
+    const tick = () => {
+      const el = listRef.current
+      if (el && pinnedRef.current && Date.now() - lastUserScrollAt.current > 1200) {
+        const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+        if (dist > 2) el.scrollTop = el.scrollHeight
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [busy])
+
+  useLayoutEffect(() => {
+    if (!pinnedRef.current) return
+    if (Date.now() - lastUserScrollAt.current < 1200) return
+    scrollToBottom(false)
+  }, [messages.length, scrollToBottom])
 
   const lastScrollTopRef = useRef(0)
   const onScroll = useCallback(() => {
@@ -1048,7 +1091,7 @@ ${output}`
           className="to-bottom"
           onClick={() => {
             setAtBottom(true)
-            scrollToBottom(true)
+            if (pinnedRef.current) scrollToBottom(true)
           }}
         >
           ↓ 回到最新

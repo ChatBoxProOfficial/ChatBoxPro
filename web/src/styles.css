@@ -4376,3 +4376,9 @@ textarea {
   order: 4;
   margin-left: 8px;
 }
+
+/* 关闭浏览器的滚动锚定，避免内容变高时自动跳位置 */
+.msg-list {
+  overflow-anchor: none;
+  overscroll-behavior-y: contain;
+}
