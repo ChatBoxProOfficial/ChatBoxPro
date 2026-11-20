@@ -6,6 +6,12 @@
  */
 import { registerPlugin } from '@capacitor/core'
 
+export interface VoiceEvent {
+  text: string
+  final: boolean
+  error: string | null
+}
+
 interface ChunkEvent {
   requestId: string
   line: string
@@ -45,9 +51,15 @@ interface ChatboxHttpPlugin {
   }): Promise<JsonResult>
   openExternal(options: { url: string }): Promise<void>
   appendLog(options: { line: string }): Promise<void>
+  startVoice(): Promise<void>
+  stopVoice(): Promise<void>
   addListener(
     event: 'chunk' | 'done' | 'error',
     cb: (data: ChunkEvent & DoneEvent & ErrorEvent) => void,
+  ): Promise<{ remove: () => void }>
+  addListener(
+    event: 'voice',
+    cb: (data: VoiceEvent) => void,
   ): Promise<{ remove: () => void }>
 }
 
@@ -177,5 +189,29 @@ export async function nativeLog(line: string): Promise<void> {
     await Native.appendLog({ line })
   } catch {
     /* 日志失败不影响使用 */
+  }
+}
+
+
+/** 开始原生语音识别，返回取消订阅函数 */
+export async function nativeStartVoice(
+  onEvent: (e: VoiceEvent) => void,
+): Promise<() => void> {
+  const handle = await Native.addListener('voice', (e) => {
+    onEvent({ text: e.text ?? '', final: Boolean(e.final), error: e.error ?? null })
+  })
+  await Native.startVoice()
+  return () => {
+    void handle.remove()
+    void Native.stopVoice().catch(() => {})
+  }
+}
+
+/** 停止原生语音识别 */
+export async function nativeStopVoice(): Promise<void> {
+  try {
+    await Native.stopVoice()
+  } catch {
+    /* ignore */
   }
 }

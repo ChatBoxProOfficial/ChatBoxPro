@@ -4,6 +4,7 @@ import { modelFullName, modelShort, type Attachment, type Settings } from '../ty
 import EffortSlider, { EFFORT_NOTE } from './EffortSlider'
 import Switch from './Switch'
 import { useT } from '../i18n'
+import { isNativeApp, nativeStartVoice } from '../native'
 
 type Effort = Settings['reasoningEffort']
 
@@ -121,6 +122,83 @@ export default function Composer({
 
   const canSend = !!text.trim() || attachments.length > 0
 
+  // ---- 语音输入 ----
+  const [listening, setListening] = useState(false)
+  const voiceStopRef = useRef<null | (() => void)>(null)
+  const baseTextRef = useRef('')
+  const speechSupported =
+    isNativeApp() ||
+    typeof window !== 'undefined' &&
+      Boolean(
+        (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition ||
+          (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition,
+      )
+
+  const applyVoice = (transcript: string) => {
+    const el = imeProps.ref.current
+    if (!el) return
+    const base = baseTextRef.current
+    el.value = (base ? base + ' ' : '') + transcript
+    setText(el.value)
+    onChange(el.value)
+  }
+
+  const stopVoice = () => {
+    voiceStopRef.current?.()
+    voiceStopRef.current = null
+    setListening(false)
+  }
+
+  const startVoice = async () => {
+    const el = imeProps.ref.current
+    baseTextRef.current = el ? el.value : text
+    setListening(true)
+    try {
+      if (isNativeApp()) {
+        const stop = await nativeStartVoice((e) => {
+          if (e.error) {
+            stopVoice()
+            return
+          }
+          applyVoice(e.text)
+          if (e.final) stopVoice()
+        })
+        voiceStopRef.current = stop
+        return
+      }
+      const w = window as unknown as {
+        SpeechRecognition?: new () => {
+          lang: string
+          interimResults: boolean
+          onresult: ((ev: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null
+          onend: (() => void) | null
+          start: () => void
+          stop: () => void
+        }
+        webkitSpeechRecognition?: new () => never
+      }
+      const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition
+      if (!Ctor) {
+        setListening(false)
+        return
+      }
+      const rec = new Ctor()
+      rec.lang = 'zh-CN'
+      rec.interimResults = true
+      rec.onresult = (ev) => {
+        const textOut = Array.from(ev.results)
+          .map((r) => r[0]?.transcript ?? '')
+          .join('')
+        applyVoice(textOut)
+      }
+      rec.onend = () => setListening(false)
+      rec.start()
+      voiceStopRef.current = () => rec.stop()
+    } catch {
+      setListening(false)
+    }
+  }
+
   return (
     <div className={`composer${collapsed ? ' collapsed' : ''}`}>
       {!collapsed && attachments.length > 0 && (
@@ -166,19 +244,18 @@ export default function Composer({
           }}
         />
         <button
-          className="tool-btn"
+          className="tool-btn round"
           onClick={() => fileRef.current?.click()}
-          title="上传文件"
-          aria-label="上传文件"
+          title="上传文件或照片"
+          aria-label="上传文件或照片"
         >
-          <svg viewBox="0 0 24 24" width="19" height="19" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
             <path
-              d="M16.5 6.5v9a4.5 4.5 0 1 1-9 0V7a3 3 0 0 1 6 0v8.2a1.6 1.6 0 1 1-3.2 0V8"
+              d="M12 5v14M5 12h14"
               fill="none"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="2"
               strokeLinecap="round"
-              strokeLinejoin="round"
             />
           </svg>
         </button>
@@ -211,15 +288,40 @@ export default function Composer({
           placeholder={placeholder ?? `${t('send', '发送')}…`}
         />
 
+        {speechSupported && (
+          <button
+            className={`tool-btn round mic${listening ? ' listening' : ''}`}
+            onClick={() => (listening ? stopVoice() : void startVoice())}
+            title={listening ? '停止语音输入' : '语音输入'}
+            aria-label={listening ? '停止语音输入' : '语音输入'}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path
+                d="M12 4a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1-5 0v-5A2.5 2.5 0 0 1 12 4Z"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
+
         <div className="model-wrap">
           <button
-            className={`model-chip${popOpen ? ' open' : ''}`}
+            className={`model-chip debug-pill${popOpen ? ' open' : ''}`}
             onClick={() => setPopOpen((v) => !v)}
             title="模型与思考强度"
           >
-            {modelShort(model)}
+            <span className="pill-ico" aria-hidden="true">⚙</span>
+            总调试
             <span className="chip-effort">{liveEffort}</span>
-            <span className="caret">▾</span>
           </button>
 
           {popOpen && (
