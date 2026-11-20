@@ -919,22 +919,29 @@ ${output}`
           <div className="topbar-title">
           <div className="title-row">
             <span className="title-line">{isEmpty ? 'ChatBox Pro' : session.title}</span>
-            {subRuns.length > 0 && (
-              <button
-                className={`sub-chip${
-                  subRuns.some((r) => r.status === 'running') ? ' running' : ''
-                }`}
-                onClick={() => setSubOpen(true)}
-                title="查看子智能体"
-              >
-                <span className="sub-chip-dot" />
-                <span className="sub-chip-text">子智能体</span>
-                {subRuns.some((r) => r.status === 'running') && (
+            {subRuns.length > 0 &&
+              (subRuns.some((r) => r.status === 'running') ? (
+                <button
+                  className="sub-chip running"
+                  onClick={() => setSubOpen(true)}
+                  title="查看子智能体"
+                >
+                  <span className="sub-chip-dot" />
+                  <span className="sub-chip-text">子智能体</span>
                   <span className="sub-chip-state">进行中</span>
-                )}
-                <span className="sub-chip-count">{subRuns.length}</span>
-              </button>
-            )}
+                  <span className="sub-chip-count">{subRuns.length}</span>
+                </button>
+              ) : (
+                <button
+                  className="sub-chip mini"
+                  onClick={() => setSubOpen(true)}
+                  title={`子智能体记录（${subRuns.length}）`}
+                  aria-label="子智能体记录"
+                >
+                  <span className="sub-chip-dot done" />
+                  <span className="sub-chip-count">{subRuns.length}</span>
+                </button>
+              ))}
           </div>
           {!isEmpty && <div className="sub-line">{session.model}</div>}
         </div>

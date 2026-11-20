@@ -4382,3 +4382,33 @@ textarea {
   overflow-anchor: none;
   overscroll-behavior-y: contain;
 }
+
+/* 子智能体：完成后收成小圆点按钮 */
+.sub-chip.mini {
+  padding: 2px 7px;
+  gap: 4px;
+  border-radius: 999px;
+  opacity: 0.75;
+}
+
+.sub-chip.mini:hover {
+  opacity: 1;
+}
+
+.sub-chip-dot.done {
+  background: #62c98e;
+  animation: none;
+}
+
+/* 思考强度数值固定宽度，避免拖动时输入栏跟着抖动 */
+.chip-effort {
+  display: inline-block;
+  width: 34px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-chip.debug-pill {
+  min-width: 120px;
+  justify-content: center;
+}
