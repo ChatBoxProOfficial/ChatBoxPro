@@ -8,8 +8,12 @@ import { useT } from '../i18n'
 type Effort = Settings['reasoningEffort']
 
 interface Props {
+  /** 外部注入的文本（点提示词时） */
   value: string
+  /** 输入变化时回写（父级只存 ref，不触发重渲染） */
   onChange: (v: string) => void
+  /** 文本变化序号：变化时把 value 写进输入框 */
+  seedNonce?: number
   onSend: (text?: string) => void
   onStop: () => void
   busy: boolean
@@ -41,6 +45,7 @@ function humanSize(n: number): string {
 export default function Composer({
   value,
   onChange,
+  seedNonce,
   onSend,
   onStop,
   busy,
@@ -68,8 +73,33 @@ export default function Composer({
   const [popOpen, setPopOpen] = useState(false)
   const [adjusting, setAdjusting] = useState(false)
   const [liveEffort, setLiveEffort] = useState(effort)
-  // 安卓输入法中文安全：非受控 + 组合事件
-  const imeProps = useImeSafeInput<HTMLTextAreaElement>(value, onChange)
+
+  // 输入内容由本组件自己持有：父级每次按键不重渲染，安卓上就不会卡
+  const [text, setText] = useState(value)
+  const imeProps = useImeSafeInput<HTMLTextAreaElement>(text, (v) => {
+    setText(v)
+    onChange(v)
+  })
+
+  // 外部注入（点提示词）或发送后清空
+  useEffect(() => {
+    const el = imeProps.ref.current
+    const next = value ?? ''
+    if (el) el.value = next
+    setText(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedNonce])
+
+  // 自动长高：1~5 行，超过就在框内滚动
+  useEffect(() => {
+    const el = imeProps.ref.current
+    if (!el) return
+    el.style.height = 'auto'
+    const max = 5 * 22 + 12
+    el.style.height = Math.min(el.scrollHeight, max) + 'px'
+    el.style.overflowY = el.scrollHeight > max ? 'auto' : 'hidden'
+  }, [text])
+
 
   // 父级状态更新是异步的，这里本地先更新，保证拖动时数字立刻变
   useEffect(() => {
@@ -89,7 +119,7 @@ export default function Composer({
     return () => window.removeEventListener('keydown', onKey)
   }, [popOpen])
 
-  const canSend = !!value.trim() || attachments.length > 0
+  const canSend = !!text.trim() || attachments.length > 0
 
   return (
     <div className={`composer${collapsed ? ' collapsed' : ''}`}>
@@ -169,8 +199,13 @@ export default function Composer({
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
               const el = imeProps.ref.current
-              const text = el ? el.value : value
-              if (!busy && (text.trim() || attachments.length > 0)) onSend(text)
+              const next = el ? el.value : text
+              if (!busy && (next.trim() || attachments.length > 0)) {
+                onSend(next)
+                if (el) el.value = ''
+                setText('')
+                onChange('')
+              }
             }
           }}
           placeholder={placeholder ?? `${t('send', '发送')}…`}
@@ -290,9 +325,12 @@ export default function Composer({
             className={`send-circle${canSend ? '' : ' idle'}`}
             onClick={() => {
               const el = imeProps.ref.current
-              const text = el ? el.value : value
-              if (!text.trim() && attachments.length === 0) return
-              onSend(text)
+              const next = el ? el.value : text
+              if (!next.trim() && attachments.length === 0) return
+              onSend(next)
+              if (el) el.value = ''
+              setText('')
+              onChange('')
             }}
             title="发送"
             aria-label="发送"

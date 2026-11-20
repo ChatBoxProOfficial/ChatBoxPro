@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Markdown } from './Markdown'
 
 interface Props {
   /** 思维链全文（流式中是已到达的部分） */
@@ -46,10 +47,12 @@ export default function Reasoning({
     else if (hasContent) setOpen(false)
   }, [mode, streaming, hasContent])
 
-  // 一轮结束，重置手动标记，下次还能自动
+  // 自动收起只做一次：正文出现且用户从没手动点过时才收起
   useEffect(() => {
-    if (!streaming) touched.current = false
-  }, [streaming])
+    if (mode !== 'web') return
+    if (touched.current) return
+    if (hasContent && !streaming) setOpen(false)
+  }, [mode, hasContent, streaming])
 
   if (mode === 'off' || !reasoning) return null
 
@@ -89,7 +92,11 @@ export default function Reasoning({
         <span className={`thinking-chev${open ? ' open' : ''}`}>›</span>
         {trailing}
       </button>
-      {open && <div className="thinking-body">{reasoning}</div>}
+      {open && (
+        <div className="thinking-body">
+          <Markdown text={reasoning} />
+        </div>
+      )}
     </div>
   )
 }

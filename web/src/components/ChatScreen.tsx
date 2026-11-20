@@ -11,6 +11,7 @@ import CommandApproval from './CommandApproval'
 import SubAgentPanel, { type SubRun } from './SubAgentPanel'
 import { Markdown } from './Markdown'
 import Composer from './Composer'
+import StreamBubble from './StreamBubble'
 import Reasoning from './Reasoning'
 import StatsModal from './StatsModal'
 import type { Attachment, Message, Session, Settings } from '../types'
@@ -111,10 +112,25 @@ export default function ChatScreen({
     Math.min(INITIAL_WINDOW, Math.max(session.messages.length, 1)),
   )
   const [input, setInput] = useState('')
+  const [seedNonce, setSeedNonce] = useState(0)
+  const typedRef = useRef('')
+
+  /** 往输入框注入文本（点提示词、编辑重发） */
+  const seedInput = useCallback((v: string) => {
+    setInput(v)
+    setSeedNonce((n) => n + 1)
+  }, [])
+
+  /** 清空输入框（发送后） */
+  const clearInput = useCallback(() => {
+    typedRef.current = ''
+    clearInput()
+    setSeedNonce((n) => n + 1)
+  }, [])
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [busy, setBusy] = useState(false)
-  const [streamText, setStreamText] = useState('')
-  const [reasonText, setReasonText] = useState('')
+  const [hasStream, setHasStream] = useState(false)
+
   const [atBottom, setAtBottom] = useState(true)
   const [searching, setSearching] = useState(false)
   const [statsOpen, setStatsOpen] = useState(false)
@@ -136,7 +152,6 @@ export default function ChatScreen({
   const [userBarOpen, setUserBarOpen] = useState(false)
   const [subOpen, setSubOpen] = useState(false)
   const cmdResolve = useRef<((ok: boolean) => void) | null>(null)
-  const [streamMd, setStreamMd] = useState('')
 
   const accRef = useRef('')
   const reasonRef = useRef('')
@@ -178,13 +193,9 @@ export default function ChatScreen({
   )
 
   /** 流式增量按帧合批，避免每 token 一次 React 渲染 */
+  /** 兼容旧调用：流式内容只在子组件里刷新，这里只标记“有内容” */
   const scheduleFlush = useCallback(() => {
-    if (rafRef.current !== null) return
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = null
-      setStreamText(accRef.current)
-      setReasonText(reasonRef.current)
-    })
+    setHasStream(true)
   }, [])
 
   useEffect(
@@ -195,15 +206,7 @@ export default function ChatScreen({
     [],
   )
 
-  // 流式正文：每 140ms 渲染一次 Markdown，避免逐 token 重排
-  useEffect(() => {
-    if (!busy) {
-      setStreamMd('')
-      return
-    }
-    const t = setInterval(() => setStreamMd(accRef.current), 140)
-    return () => clearInterval(t)
-  }, [busy])
+  // 流式 Markdown 的刷新已下沉到 StreamBubble 组件内部
 
   const scrollToBottom = useCallback((smooth = false) => {
     const el = listRef.current
@@ -211,14 +214,39 @@ export default function ChatScreen({
     el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
   }, [])
 
+  // 只有用户贴着底部时才跟随新内容；用户往上翻时绝不抢屏
+  const pinnedRef = useRef(true)
   useLayoutEffect(() => {
-    if (atBottom) scrollToBottom(false)
-  }, [messages.length, streamText.length, atBottom, scrollToBottom])
+    if (pinnedRef.current) scrollToBottom(false)
+  }, [messages.length, scrollToBottom])
 
+  // 流式内容变高时不靠 state 驱动：观察 DOM 变化，贴底才跟随
+  useEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    let queued = false
+    const obs = new MutationObserver(() => {
+      if (queued) return
+      queued = true
+      requestAnimationFrame(() => {
+        queued = false
+        if (pinnedRef.current) el.scrollTop = el.scrollHeight
+      })
+    })
+    obs.observe(el, { childList: true, subtree: true, characterData: true })
+    return () => obs.disconnect()
+  }, [])
+
+  const lastScrollTopRef = useRef(0)
   const onScroll = useCallback(() => {
     const el = listRef.current
     if (!el) return
-    setAtBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 80)
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+    const wentUp = el.scrollTop < lastScrollTopRef.current - 4
+    lastScrollTopRef.current = el.scrollTop
+    // 往上滑就立刻停止跟随，哪怕还离底部很近
+    pinnedRef.current = wentUp ? false : dist < 80
+    setAtBottom(pinnedRef.current)
     if (el.scrollTop < 40 && visibleCount < messages.length) {
       const prevHeight = el.scrollHeight
       setVisibleCount((c) => Math.min(c + 30, messages.length))
@@ -351,8 +379,8 @@ export default function ChatScreen({
         firstContentAtRef.current = 0
         firstTokenAtRef.current = 0
         usageRef.current = undefined
-        setStreamText('')
-        setReasonText('')
+        accRef.current = ''
+        reasonRef.current = ''
 
         const ctrl = new AbortController()
         abortRef.current = ctrl
@@ -491,8 +519,8 @@ export default function ChatScreen({
             cancelAnimationFrame(rafRef.current)
             rafRef.current = null
           }
-          setStreamText('')
-          setReasonText('')
+          accRef.current = ''
+          reasonRef.current = ''
           setSearching(false)
           abortRef.current = null
 
@@ -679,15 +707,15 @@ ${output}`
       } finally {
         setBusy(false)
         setSearching(false)
-        setStreamText('')
-        setReasonText('')
+        accRef.current = ''
+        reasonRef.current = ''
       }
     },
     [busy, settings, session.model, persist, scheduleFlush, onPersist],
   )
 
   const send = useCallback(async (textOverride?: string) => {
-    const text = (textOverride ?? input).trim()
+    const text = (textOverride ?? typedRef.current ?? input).trim()
     if ((!text && attachments.length === 0) || busy) return
 
     const ready = attachments.filter((a) => !a.uploading && !a.error)
@@ -741,8 +769,8 @@ ${output}`
     accRef.current = ''
     reasonRef.current = ''
     startAtRef.current = Date.now()
-    setStreamText('')
-    setReasonText('')
+    accRef.current = ''
+    reasonRef.current = ''
 
     let extra = ''
     await streamChat(
@@ -770,8 +798,8 @@ ${output}`
       rafRef.current = null
     }
     accRef.current = ''
-    setStreamText('')
-    setReasonText('')
+    accRef.current = ''
+    reasonRef.current = ''
     setBusy(false)
 
     if (extra) {
@@ -790,7 +818,7 @@ ${output}`
       const target = messages[index]
       if (!target || target.role !== 'user') return
       const base = messages.slice(0, index)
-      setInput(target.content.split('\n\n[附件]')[0])
+      seedInput(target.content.split('\n\n[附件]')[0])
       setMessages(base)
       setVisibleCount((c) => Math.min(Math.max(c + 1, 1), Math.max(base.length, 1)))
       persist(base)
@@ -927,35 +955,15 @@ ${output}`
             />
           ))}
 
-          {(busy || streamText || reasonText) && (
-            <div className="msg assistant">
-              <div className="msg-role">DeepSeek</div>
-              <div className="msg-body">
-                {settings.reasoningDisplay !== 'off' && reasonText && (
-                  <Reasoning
-                    key={settings.reasoningDisplay}
-                    reasoning={reasonText}
-                    mode={settings.reasoningDisplay}
-                    streaming={busy}
-                    hasContent={!!streamText}
-                    durationMs={Date.now() - startAtRef.current}
-                  />
-                )}
-                {searching && (
-                  <div className="searching-line">
-                    <span className="searching-dot" />
-                    正在搜索…
-                  </div>
-                )}
-                {streamText ? (
-                  <div className="streaming-text streaming-md">
-                    <Markdown text={streamMd || streamText} />
-                  </div>
-                ) : (
-                  !reasonText && <span className="cursor">▍</span>
-                )}
-              </div>
-            </div>
+          {(busy || hasStream) && (
+            <StreamBubble
+              accRef={accRef}
+              reasonRef={reasonRef}
+              busy={busy}
+              display={settings.reasoningDisplay}
+              startAt={startAtRef.current}
+              searching={searching}
+            />
           )}
         </div>
       )}
@@ -1037,7 +1045,10 @@ ${output}`
 
       <Composer
         value={input}
-        onChange={setInput}
+        seedNonce={seedNonce}
+        onChange={(v) => {
+          typedRef.current = v
+        }}
         onSend={(text) => void send(text)}
         onStop={stop}
         busy={busy}

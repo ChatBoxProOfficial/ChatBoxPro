@@ -2,7 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import './styles.css'
-import { isNativeApp } from './native'
+import { isNativeApp, nativeLog } from './native'
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -11,6 +11,18 @@ createRoot(document.getElementById('root')!).render(
 )
 
 const native = isNativeApp()
+
+// 闪退/异常先落盘，便于排查（安卓）
+if (native) {
+  window.addEventListener('error', (e) => {
+    void nativeLog(`ERROR ${e.message} @ ${e.filename}:${e.lineno}`)
+  })
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = e.reason as { message?: string } | string
+    void nativeLog(`REJECT ${typeof r === 'string' ? r : r?.message ?? 'unknown'}`)
+  })
+  void nativeLog('app start')
+}
 
 if (native) {
   // 安卓 App 里绝不能用 Service Worker：

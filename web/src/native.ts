@@ -44,6 +44,7 @@ interface ChatboxHttpPlugin {
     data: string
   }): Promise<JsonResult>
   openExternal(options: { url: string }): Promise<void>
+  appendLog(options: { line: string }): Promise<void>
   addListener(
     event: 'chunk' | 'done' | 'error',
     cb: (data: ChunkEvent & DoneEvent & ErrorEvent) => void,
@@ -167,4 +168,14 @@ export async function nativeUpload(
 /** 用系统浏览器打开链接（安卓端） */
 export async function nativeOpenExternal(url: string): Promise<void> {
   await Native.openExternal({ url })
+}
+
+/** 写一行日志到 App 私有目录（crash.log），用于排查闪退 */
+export async function nativeLog(line: string): Promise<void> {
+  try {
+    if (!isNativeApp()) return
+    await Native.appendLog({ line })
+  } catch {
+    /* 日志失败不影响使用 */
+  }
 }

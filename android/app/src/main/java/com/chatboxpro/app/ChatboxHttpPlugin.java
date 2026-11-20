@@ -80,25 +80,34 @@ public class ChatboxHttpPlugin extends Plugin {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     if (line.isEmpty()) continue;
-                    JSObject chunk = new JSObject();
-                    chunk.put("line", line);
-                    chunk.put("requestId", requestId);
-                    notifyListeners("chunk", chunk);
+                    final String lineCopy = line;
+                    postToUi(() -> {
+                        JSObject chunk = new JSObject();
+                        chunk.put("line", lineCopy);
+                        chunk.put("requestId", requestId);
+                        notifyListeners("chunk", chunk);
+                    });
                     if (line.contains("[DONE]")) break;
                 }
 
-                JSObject done = new JSObject();
-                done.put("requestId", requestId);
-                notifyListeners("done", done);
+                postToUi(() -> {
+                    JSObject done = new JSObject();
+                    done.put("requestId", requestId);
+                    notifyListeners("done", done);
+                });
 
                 JSObject ret = new JSObject();
                 ret.put("status", status);
                 call.resolve(ret);
             } catch (Exception e) {
-                JSObject err = new JSObject();
-                err.put("requestId", requestId);
-                err.put("message", String.valueOf(e.getMessage()));
-                notifyListeners("error", err);
+                final String msg = String.valueOf(e.getMessage());
+                appendLine("stream error: " + msg);
+                postToUi(() -> {
+                    JSObject err = new JSObject();
+                    err.put("requestId", requestId);
+                    err.put("message", msg);
+                    notifyListeners("error", err);
+                });
                 call.reject(String.valueOf(e.getMessage()));
             } finally {
                 active.remove(requestId);
@@ -240,6 +249,32 @@ public class ChatboxHttpPlugin extends Plugin {
                 if (conn != null) conn.disconnect();
             }
         }).start();
+    }
+
+    @PluginMethod
+    public void appendLog(PluginCall call) {
+        String line = call.getString("line", "");
+        appendLine(line);
+        call.resolve();
+    }
+
+    private void postToUi(Runnable r) {
+        try {
+            getActivity().runOnUiThread(r);
+        } catch (Exception e) {
+            r.run();
+        }
+    }
+
+    private void appendLine(String line) {
+        try {
+            java.io.File f = new java.io.File(getContext().getFilesDir(), "crash.log");
+            String stamp = new java.text.SimpleDateFormat("MM-dd HH:mm:ss").format(new java.util.Date());
+            java.io.FileWriter w = new java.io.FileWriter(f, true);
+            w.write("[" + stamp + "] " + line + "\n");
+            w.close();
+        } catch (Exception ignored) {
+        }
     }
 
     private String readAll(InputStream is) {
